@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Teacher Ingest
+  version: "1.0.0"
+paths:
+  /api/ingest/ocr:
+    post:
+      operationId: ingestOcr
+      responses: { "202": { description: accepted } }
+  /api/ingest/purge:
+    post:
+      operationId: purge
+      responses: { "202": { description: accepted } }
+components: {}

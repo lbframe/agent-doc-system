@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Calendar Cron
+  version: "1.0.0"
+paths:
+  /api/internal/notifications/digest-flush:
+    post:
+      operationId: digestFlush
+      responses: { "202": { description: accepted } }
+  /api/internal/calendar/pending-approval:
+    post:
+      operationId: pendingApproval
+      responses: { "202": { description: accepted } }
+components: {}

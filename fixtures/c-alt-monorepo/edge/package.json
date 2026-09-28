@@ -1,0 +1,2 @@
+{ "name": "@corp/edge", "version": "1.0.0", "dependencies": { "@corp/shared": "workspace:*" },
+  "scripts": { "test": "vitest run" } }

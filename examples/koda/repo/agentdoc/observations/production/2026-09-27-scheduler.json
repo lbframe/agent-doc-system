@@ -1,0 +1,18 @@
+{
+  "note": "Raw, credential-free excerpt of the production scheduler state read during the 2026-09-27 recovery window. Triggers, bindings and effective gates only.",
+  "capturedAt": "2026-09-27T18:40:00Z",
+  "source": "platform-scheduler control plane",
+  "worker": "koda-cron",
+  "triggers": [
+    { "cron": "0 * * * *", "enabled": true, "gate": { "hourEquals": 3 } },
+    { "cron": "3 0 * * *", "enabled": true }
+  ],
+  "bindings": [
+    { "type": "kv", "name": "CRON_STATE" }
+  ],
+  "uploadApiProbe": {
+    "accepted": ["presign", "confirm", "complete"],
+    "rejectedFields": ["annotations"],
+    "probeResult": "400 on annotations"
+  }
+}

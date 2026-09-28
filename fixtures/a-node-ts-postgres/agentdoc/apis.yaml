@@ -1,0 +1,10 @@
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: orders-api
+  description: "Canonical JSON HTTP surface for order capture and reads."
+spec:
+  type: openapi
+  provider: component:default/orders-service
+  contract:
+    ref: contracts/orders.openapi.yaml

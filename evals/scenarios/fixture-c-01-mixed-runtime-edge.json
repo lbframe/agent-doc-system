@@ -1,0 +1,19 @@
+{
+  "id": "c-01",
+  "repository": "fixture-c",
+  "title": "Change the edge worker's flush schedule",
+  "touch": [
+    "edge/wrangler.toml"
+  ],
+  "truth": [
+    "component:default/edge",
+    "component:default/telemetry-api",
+    "constraint:edge/CONSTRAINTS.md"
+  ],
+  "critical": [
+    "constraint:edge/CONSTRAINTS.md"
+  ],
+  "verification": [
+    "verify:vitest run"
+  ]
+}

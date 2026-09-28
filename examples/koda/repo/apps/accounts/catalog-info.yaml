@@ -1,0 +1,11 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: accounts
+  description: "Provides identity, family relationships, sessions and shared authorization contracts."
+spec:
+  type: web-app
+  system: identity-access
+  context:
+    constraints:
+      - apps/accounts/CONSTRAINTS.md

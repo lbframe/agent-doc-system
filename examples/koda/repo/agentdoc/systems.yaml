@@ -1,0 +1,39 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: identity-access
+  description: "Provides identity, family relationships, sessions and shared authorization contracts."
+spec:
+  domain: identity-family
+---
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: document-capture
+  description: "Authorizes, deposits, confirms and classifies school-document uploads."
+spec:
+  domain: school-life
+---
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: school-calendar
+  description: "Converts OCR calendar artifacts into parent-reviewable school calendar items."
+spec:
+  domain: school-life
+---
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: lesson-production
+  description: "Converts lesson artifacts into durable canonical lesson publications."
+spec:
+  domain: learning
+---
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: scheduler
+  description: "Triggers governed endpoints on a platform schedule and owns no business logic."
+spec:
+  domain: learning

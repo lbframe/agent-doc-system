@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: notifications
+  description: "Fans out notifications over in-app and push transports and owns the notify subject catalog."
+spec:
+  type: service
+  system: identity-access

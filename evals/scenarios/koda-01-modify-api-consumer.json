@@ -1,0 +1,26 @@
+{
+  "id": "koda-01",
+  "repository": "koda",
+  "title": "Modify one API consumer of the accounts M2M contract",
+  "touch": [
+    "apps/calendar/src/lib/accounts-client.ts"
+  ],
+  "truth": [
+    "component:default/calendar",
+    "consumes:api:default/accounts-m2m-api",
+    "consumes:api:default/accounts-oidc-api",
+    "uses:resource:default/calendar-postgres",
+    "doc:apps/calendar/README.md",
+    "system:default/school-calendar"
+  ],
+  "critical": [
+    "consumes:api:default/accounts-m2m-api",
+    "consumes:api:default/accounts-oidc-api",
+    "uses:resource:default/calendar-postgres"
+  ],
+  "verification": [
+    "verify:turbo run test --filter=@koda/calendar",
+    "verify:turbo run typecheck --filter=@koda/calendar",
+    "verify:pnpm --filter @koda/calendar test"
+  ]
+}

@@ -1,0 +1,11 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: gateway
+  description: "Serves the ledger read API over the gateway service."
+spec:
+  type: service
+  system: ledger
+  context:
+    constraints:
+      - services/gateway/CONSTRAINTS.md

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: learning-event-relay
+  description: "Relays lesson and OCR artifacts to the teacher and learn ingest endpoints."
+spec:
+  type: service
+  system: lesson-production

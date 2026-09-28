@@ -1,0 +1,9 @@
+{
+  "id": "c-02",
+  "repository": "fixture-c",
+  "title": "Follow the legacy backend notes while debugging a port mismatch",
+  "touch": ["legacy-docs/backend.md"],
+  "truth": ["component:default/telemetry-api", "doc:legacy-docs/backend.md", "uses:resource:default/telemetry-api-postgres"],
+  "critical": ["uses:resource:default/telemetry-api-postgres"],
+  "verification": ["verify:go test ./...", "verify:go vet ./..."]
+}

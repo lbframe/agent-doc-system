@@ -1,0 +1,35 @@
+{
+  "name": "agent-doc-system",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Portable documentation and software-catalog system with an explicit authority model",
+  "bin": {
+    "agentdoc": "./bin/agentdoc.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "eval": "node evals/run-all.mjs",
+    "check": "node bin/agentdoc.mjs check",
+    "selfcheck": "node bin/agentdoc.mjs doctor",
+    "compare": "python3 scripts/compare-koda.py"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "files": [
+    "adapters",
+    "bin",
+    "ci",
+    "core",
+    "evals",
+    "examples",
+    "fixtures",
+    "schemas",
+    "scripts",
+    "templates",
+    "tests",
+    "*.md"
+  ]
+}

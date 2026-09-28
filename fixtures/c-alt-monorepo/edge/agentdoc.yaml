@@ -1,0 +1,11 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: edge
+  description: "Runs at the network edge, rate limits ingest and flushes buffered telemetry."
+spec:
+  type: worker
+  system: edge-ingest
+  context:
+    constraints:
+      - edge/CONSTRAINTS.md

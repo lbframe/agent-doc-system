@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/observation.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "agentdoc.dev/observation/v1"
+    },
+    "kind": {
+      "const": "ObservationSet"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "environment",
+        "capturedAt",
+        "sourceSystem",
+        "collector",
+        "evidenceBundle"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.json#/$defs/name"
+        },
+        "description": {
+          "$ref": "common.json#/$defs/description"
+        },
+        "environment": {
+          "description": "Which environment the observation describes. Never a secret-bearing identifier.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "capturedAt": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "maxAgeDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "sourceSystem": {
+          "description": "The authoritative external system the facts came from.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "collector": {
+          "description": "Retrieval method identity: the command or API used to read the source system.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "^[^\\n\\r]+$"
+        },
+        "evidenceBundle": {
+          "description": "Durable, secret-free, repository-relative reference to the raw observation. Never a temp path, host path or console URL with credentials.",
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "supersedes": {
+          "$ref": "common.json#/$defs/name"
+        },
+        "provenance": {
+          "type": "string",
+          "maxLength": 280
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facts"
+      ],
+      "properties": {
+        "facts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "subject",
+              "key",
+              "value",
+              "semantics"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.json#/$defs/name"
+              },
+              "subject": {
+                "$ref": "common.json#/$defs/entityRef"
+              },
+              "key": {
+                "description": "Dotted claim key, e.g. schedule.cron, binding.kv, contract.supports-annotations.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+              },
+              "value": {
+                "description": "Observed value. A JSON scalar, array of scalars, or null when the fact is known to be absent."
+              },
+              "semantics": {
+                "description": "What the observed value actually means, in one sentence.",
+                "$ref": "common.json#/$defs/rationale"
+              },
+              "observedRefs": {
+                "type": "array",
+                "maxItems": 16,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "common.json#/$defs/entityRef"
+                }
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 600
+              }
+            }
+          }
+        }
+      }
+    },
+    "extensions": {
+      "$ref": "common.json#/$defs/extensions"
+    }
+  }
+}

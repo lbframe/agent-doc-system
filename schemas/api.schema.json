@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/api.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "agentdoc.dev/v1"
+    },
+    "kind": {
+      "const": "API"
+    },
+    "metadata": {
+      "$ref": "common.json#/$defs/metadata"
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "provider",
+        "contract"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "openapi",
+            "asyncapi",
+            "protobuf",
+            "graphql",
+            "oidc",
+            "grpc-json",
+            "graphql-sdl"
+          ]
+        },
+        "provider": {
+          "$ref": "common.json#/$defs/componentRef"
+        },
+        "contract": {
+          "$ref": "#/$defs/contract"
+        },
+        "consumers": {
+          "description": "Optional reviewed consumer list. Discovery-derived consumers win; this is for consumers a deterministic extractor cannot see.",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.json#/$defs/componentRef"
+          }
+        }
+      }
+    },
+    "extensions": {
+      "$ref": "common.json#/$defs/extensions"
+    }
+  },
+  "$defs": {
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "ref": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "standard": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "discoveryPath": {
+          "type": "string",
+          "pattern": "^/[^?#\\s]*$"
+        }
+      }
+    }
+  }
+}

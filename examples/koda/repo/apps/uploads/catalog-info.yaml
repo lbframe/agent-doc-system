@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: uploads
+  description: "Presigns and confirms school-document upload batches."
+spec:
+  type: web-app
+  system: document-capture

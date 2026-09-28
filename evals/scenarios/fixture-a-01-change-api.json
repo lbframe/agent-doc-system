@@ -1,0 +1,9 @@
+{
+  "id": "a-01",
+  "repository": "fixture-a",
+  "title": "Change the orders API contract",
+  "touch": ["contracts/orders.openapi.yaml"],
+  "truth": ["api:default/orders-api", "component:default/orders-service", "provides:api:default/orders-api", "provider:component:default/orders-service"],
+  "critical": ["provides:api:default/orders-api"],
+  "verification": ["verify:pnpm --filter @orders/service test", "verify:pnpm --filter @orders/service typecheck"]
+}

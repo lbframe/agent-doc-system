@@ -1,0 +1,25 @@
+{
+  "id": "koda-05",
+  "repository": "koda",
+  "title": "Modify a scheduler worker binding",
+  "touch": [
+    "workers/koda-cron/wrangler.toml"
+  ],
+  "truth": [
+    "component:default/koda-cron",
+    "constraint:workers/koda-cron/CONSTRAINTS.md",
+    "doc:workers/koda-cron/README.md",
+    "observation:production",
+    "conflict:binding.declared",
+    "conflict:binding.kind"
+  ],
+  "critical": [
+    "constraint:workers/koda-cron/CONSTRAINTS.md",
+    "observation:production",
+    "conflict:binding.declared",
+    "conflict:binding.kind"
+  ],
+  "verification": [
+    "verify:turbo run test --filter=@koda/koda-cron"
+  ]
+}

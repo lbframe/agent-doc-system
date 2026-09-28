@@ -1,0 +1,6 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: commerce
+  description: "Owns order capture, pricing presentation and order state transitions."
+spec: {}

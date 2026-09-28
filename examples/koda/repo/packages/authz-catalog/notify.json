@@ -1,0 +1,5 @@
+{
+  "koda.flow.help.requested": { "channel": "inapp" },
+  "koda.flow.lesson.available": { "channel": "inapp" },
+  "koda.ocr.batch.ready.*": { "channel": "push" }
+}

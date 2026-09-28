@@ -1,0 +1,44 @@
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: koda-events
+  description: "Provides shared event transport for product events."
+spec:
+  type: event-bus
+  placementRationale: "Cross-domain event transport belongs to no single product bounded context."
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: accounts-postgres
+  description: "Logical database owned by the accounts identity service."
+spec:
+  type: logical-database
+  system: identity-access
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: calendar-postgres
+  description: "Logical database owned by the calendar application."
+spec:
+  type: logical-database
+  system: school-calendar
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: notifications-postgres
+  description: "Logical database owned by the notifications service."
+spec:
+  type: logical-database
+  system: identity-access
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: upload-object-dataset
+  description: "Stores uploaded document objects shared by the document-capture pipeline."
+spec:
+  type: logical-dataset
+  system: document-capture

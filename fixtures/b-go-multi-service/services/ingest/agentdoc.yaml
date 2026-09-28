@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ingest
+  description: "Accepts ledger write commands and is the only writer of ledger entries."
+spec:
+  type: service
+  system: ledger

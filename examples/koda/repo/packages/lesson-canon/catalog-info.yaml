@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: lesson-canon
+  description: "Holds the canonical lesson artifact vocabulary shared by the lesson-production system."
+spec:
+  type: contract-library
+  system: lesson-production

@@ -1,0 +1,9 @@
+{
+  "id": "b-04",
+  "repository": "fixture-b",
+  "title": "Break the append-to-read journey",
+  "touch": ["services/gateway/cmd/gateway/main.go"],
+  "truth": ["component:default/gateway", "component:default/ingest", "uses:resource:default/gateway-postgres", "constraint:services/gateway/CONSTRAINTS.md"],
+  "critical": ["uses:resource:default/gateway-postgres", "constraint:services/gateway/CONSTRAINTS.md"],
+  "verification": ["verify:go test ./...", "verify:go vet ./..."]
+}

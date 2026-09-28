@@ -1,0 +1,1084 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/graph.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "compiler",
+    "entities",
+    "relations",
+    "interfaces",
+    "externalDependencies",
+    "capabilities",
+    "verification",
+    "journeys",
+    "gates",
+    "contracts",
+    "assertions",
+    "conflicts",
+    "observations",
+    "provenance",
+    "diagnostics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "agentdoc.dev/graph/v1"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commit",
+        "dirty",
+        "inputHash"
+      ],
+      "properties": {
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "inputHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "adapters"
+      ],
+      "properties": {
+        "name": {
+          "const": "agentdoc-compiler"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "adapters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ref",
+          "kind",
+          "name",
+          "entity",
+          "source",
+          "sourcePaths"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(domain|system|component|api|resource):[a-z0-9][a-z0-9-]*/[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "kind": {
+            "enum": [
+              "Domain",
+              "System",
+              "Component",
+              "API",
+              "Resource"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "object"
+          },
+          "source": {
+            "const": "authored"
+          },
+          "sourcePaths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "derived": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "sourceRef",
+          "targetRef",
+          "evidenceClass",
+          "attributes",
+          "provenanceIds"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/$defs/relationType"
+          },
+          "sourceRef": {
+            "type": "string"
+          },
+          "targetRef": {
+            "type": "string"
+          },
+          "evidenceClass": {
+            "$ref": "#/$defs/evidenceClass"
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "interfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events"
+      ],
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pattern",
+              "producers",
+              "consumers",
+              "contract",
+              "provenanceIds",
+              "resolution"
+            ],
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "producers": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "consumers": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "contract": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "format",
+                  "ref"
+                ],
+                "properties": {
+                  "format": {
+                    "enum": [
+                      "code",
+                      "asyncapi",
+                      "declared-catalog"
+                    ]
+                  },
+                  "ref": {
+                    "type": "string"
+                  }
+                }
+              },
+              "provenanceIds": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "resolution": {
+                "enum": [
+                  "resolved",
+                  "unresolved"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "externalDependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "componentRef",
+          "name",
+          "role",
+          "mechanism",
+          "evidenceClass",
+          "provenanceIds"
+        ],
+        "properties": {
+          "componentRef": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "mechanism": {
+            "enum": [
+              "sdk",
+              "http",
+              "smtp",
+              "webhook",
+              "platform-binding",
+              "file",
+              "unknown"
+            ]
+          },
+          "evidenceClass": {
+            "$ref": "#/$defs/evidenceClass"
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "componentRef",
+          "name",
+          "evidenceClass",
+          "provenanceIds"
+        ],
+        "properties": {
+          "componentRef": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "evidenceClass": {
+            "$ref": "#/$defs/evidenceClass"
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "componentRefs",
+          "tier",
+          "command",
+          "provenanceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "componentRefs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "tier": {
+            "enum": [
+              "unit",
+              "integration",
+              "contract",
+              "e2e",
+              "static",
+              "build"
+            ]
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 600
+          },
+          "configPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "journeys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "components",
+          "provenanceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "components": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "gates": {
+      "description": "Repository-scoped verification gates that name no single component. Recorded once, not duplicated per component.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tier",
+          "command",
+          "provenanceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tier": {
+            "enum": [
+              "unit",
+              "integration",
+              "contract",
+              "e2e",
+              "static",
+              "build"
+            ]
+          },
+          "command": {
+            "type": "string"
+          },
+          "configPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "contracts": {
+      "description": "A pointer into the canonical contract plus the operation inventory an agent needs to locate a handler. The contract itself is never duplicated here.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "apiRef",
+          "ref",
+          "provenanceIds"
+        ],
+        "properties": {
+          "apiRef": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "method",
+                "route"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string"
+                },
+                "route": {
+                  "type": "string"
+                },
+                "operationId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "service",
+                "method",
+                "request"
+              ],
+              "properties": {
+                "service": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                },
+                "request": {
+                  "type": "string"
+                },
+                "streaming": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "standard": {
+            "type": "string"
+          },
+          "discoveryPath": {
+            "type": "string"
+          },
+          "services": {
+            "type": "integer"
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "provenanceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "assertions": {
+      "description": "Every claim that more than one evidence class could make about the same subject key. Unambiguous claims are not duplicated here; they live on entities and interfaces. Multiple assertions on the same (subject,key) with different values are a conflict, never a silent reconciliation.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "subject",
+          "key",
+          "value",
+          "evidenceClass",
+          "confidence",
+          "status",
+          "provenanceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {},
+          "evidenceClass": {
+            "$ref": "#/$defs/evidenceClass"
+          },
+          "confidence": {
+            "enum": [
+              "direct",
+              "deterministic",
+              "declared",
+              "reviewed",
+              "candidate"
+            ]
+          },
+          "status": {
+            "enum": [
+              "elected",
+              "contradicted",
+              "unresolved",
+              "candidate",
+              "superseded"
+            ]
+          },
+          "semantics": {
+            "type": "string"
+          },
+          "observed": {
+            "$ref": "#/$defs/observation"
+          },
+          "review": {
+            "$ref": "#/$defs/review"
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "subject",
+          "key",
+          "kind",
+          "status",
+          "assertionIds",
+          "election",
+          "provenanceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "contradiction",
+              "staleness",
+              "supersession",
+              "ambiguity",
+              "reviewed-divergence"
+            ]
+          },
+          "status": {
+            "enum": [
+              "unresolved",
+              "resolved",
+              "accepted"
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "assertionIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "election": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "electedAssertionId",
+              "basis",
+              "ruleId"
+            ],
+            "properties": {
+              "electedAssertionId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "basis": {
+                "enum": [
+                  "authority-rule",
+                  "superset",
+                  "recency",
+                  "reviewed-override",
+                  "none"
+                ]
+              },
+              "ruleId": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string",
+                "maxLength": 400
+              },
+              "reviewWhen": {
+                "description": "The governing authority rule's re-examination condition. Null when no rule governs the key, which is a real state: the fact stayed unresolved.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "contradictedAssertionIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "acceptance": {
+            "$ref": "common.json#/$defs/warningAcceptance"
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "environment",
+          "sourceSystem",
+          "collector",
+          "capturedAt",
+          "maxAgeDays",
+          "evidenceBundle",
+          "facts",
+          "provenanceIds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "sourceSystem": {
+            "type": "string"
+          },
+          "collector": {
+            "type": "string"
+          },
+          "capturedAt": {
+            "type": "string"
+          },
+          "maxAgeDays": {
+            "type": "integer"
+          },
+          "evidenceBundle": {
+            "type": "string"
+          },
+          "supersedes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "facts": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "subject",
+                "key",
+                "value",
+                "assertionId"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "value": {},
+                "semantics": {
+                  "type": "string"
+                },
+                "assertionId": {
+                  "type": "string"
+                },
+                "observedRefs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "provenanceIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "class",
+          "path",
+          "extractor",
+          "contentHash",
+          "subjects"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "class": {
+            "enum": [
+              "declared",
+              "observed",
+              "validated",
+              "runtime",
+              "standard",
+              "reviewed"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "extractor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "location": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "jsonPointer": {
+                "type": "string"
+              },
+              "lineStart": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "lineEnd": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "subjects": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "acceptance": {
+            "$ref": "common.json#/$defs/warningAcceptance"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "partOf",
+        "hasPart",
+        "providesApi",
+        "apiProvidedBy",
+        "consumesApi",
+        "apiConsumedBy",
+        "buildDependsOn",
+        "buildDependencyOf",
+        "testDependsOn",
+        "testDependencyOf",
+        "runtimeCalls",
+        "runtimeCalledBy",
+        "usesResource",
+        "resourceUsedBy",
+        "schedules",
+        "scheduledBy"
+      ]
+    },
+    "evidenceClass": {
+      "type": "string",
+      "enum": [
+        "AUTHORED",
+        "DERIVED",
+        "OBSERVED_RUNTIME",
+        "EXTERNAL_STANDARD",
+        "REVIEWED_OVERRIDE",
+        "UNRESOLVED"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "environment",
+        "sourceSystem",
+        "collector",
+        "evidenceBundle",
+        "retrievalMethod"
+      ],
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "sourceSystem": {
+          "type": "string"
+        },
+        "collector": {
+          "type": "string"
+        },
+        "evidenceBundle": {
+          "type": "string"
+        },
+        "retrievalMethod": {
+          "type": "string"
+        },
+        "supersedes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "reviewWhen"
+      ],
+      "description": "Review provenance for an interpreted fact. The reviewer and the date are not typed in: they are the commit that changed the configuration carrying this record, which is stronger evidence than a string in a data file.",
+      "properties": {
+        "reason": {
+          "$ref": "common.json#/$defs/rationale"
+        },
+        "reviewWhen": {
+          "$ref": "common.json#/$defs/rationale"
+        },
+        "evidence": {
+          "$ref": "common.json#/$defs/evidence"
+        }
+      }
+    }
+  }
+}

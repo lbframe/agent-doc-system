@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/common.json",
+  "$defs": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280,
+      "pattern": "\\S"
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600,
+      "pattern": "\\S"
+    },
+    "entityRef": {
+      "type": "string",
+      "pattern": "^(domain|system|component|api|resource):[a-z0-9][a-z0-9-]*/[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "componentRef": { "$ref": "#/$defs/entityRef" },
+    "apiRef": { "$ref": "#/$defs/entityRef" },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^[^\\s\\\\][^\\s]*$"
+    },
+    "namespace": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description"],
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "description": { "$ref": "#/$defs/description" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 120 }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "$ref": "#/$defs/repoPath" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "warningAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "subject", "classification", "reason", "reviewWhen", "observedRefs", "evidence"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^AGENTDOC_[A-Z_]+$" },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 400, "pattern": "^\\S+$" },
+        "classification": { "type": "string", "pattern": "^[A-Z]+(?:_[A-Z]+)*$" },
+        "reason": { "$ref": "#/$defs/rationale" },
+        "reviewWhen": { "$ref": "#/$defs/rationale" },
+        "observedRefs": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/entityRef" } },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "docs": {
+          "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/repoPath" }
+        },
+        "constraints": {
+          "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/repoPath" }
+        },
+        "runbooks": {
+          "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/repoPath" }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Forward-evolution escape hatch. Core validators ignore these keys.",
+      "additionalProperties": true
+    }
+  }
+}

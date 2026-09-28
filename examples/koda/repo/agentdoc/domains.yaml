@@ -1,0 +1,20 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: identity-family
+  description: "Defines family actors, relationships, consent, identity and access boundaries."
+spec: {}
+---
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: school-life
+  description: "Turns school documents into parent-reviewed school information with provenance."
+spec: {}
+---
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: learning
+  description: "Produces, publishes, presents and tracks canonical learning material."
+spec: {}

@@ -1,0 +1,19 @@
+apiVersion: agentdoc.dev/observation/v1
+kind: ObservationSet
+metadata:
+  name: production
+  description: "What the production platform reported for one observation window."
+  environment: production
+  capturedAt: "2026-01-01T00:00:00Z"
+  maxAgeDays: 30
+  sourceSystem: example-scheduler
+  collector: "example-cli schedules list --json"
+  evidenceBundle: agentdoc/observations/production/2026-01-01.json
+  provenance: "Collected during the scheduled change window; raw output committed verbatim."
+spec:
+  facts:
+    - id: nightly-digest
+      subject: component:default/example-service
+      key: schedule.cron
+      value: "0 3 * * *"
+      semantics: "The expression the production scheduler actually evaluates for this trigger."

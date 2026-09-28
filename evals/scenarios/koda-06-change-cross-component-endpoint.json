@@ -1,0 +1,22 @@
+{
+  "id": "koda-06",
+  "repository": "koda",
+  "title": "Change the canonical teacher ingest contract",
+  "touch": [
+    "contracts/teacher-ingest.openapi.yaml"
+  ],
+  "truth": [
+    "api:default/teacher-ingest-api",
+    "component:default/teacher",
+    "component:default/learning-event-relay",
+    "provides:api:default/teacher-ingest-api",
+    "provider:component:default/teacher"
+  ],
+  "critical": [
+    "provides:api:default/teacher-ingest-api"
+  ],
+  "verification": [
+    "verify:turbo run test --filter=@koda/teacher",
+    "verify:pnpm --filter @koda/teacher test"
+  ]
+}

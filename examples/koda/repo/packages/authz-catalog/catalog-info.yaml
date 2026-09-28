@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: authz-catalog
+  description: "Holds the shared authorization and notification subject catalog consumed across services."
+spec:
+  type: contract-library
+  placementRationale: "The subject catalog is a contract shared by several systems and belongs to no single one."

@@ -1,0 +1,11 @@
+name: ci
+on: { pull_request: {} }
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @koda/teacher test
+      - run: pnpm --filter @koda/calendar test
+      - run: node agentdoc/bin/agentdoc.mjs check

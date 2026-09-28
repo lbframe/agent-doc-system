@@ -1,0 +1,137 @@
+# Koda profile: how the generic system represents the reference repository.
+#
+# This file is the ONLY Koda-specific artefact. Everything the compiler does
+# with Koda's layout, its TypeScript+Go toolchain, its OpenAPI/OIDC contracts and
+# its event vocabulary comes from this file plus the enabled adapters.
+apiVersion: agentdoc.dev/config/v1
+namespace: default
+
+discovery:
+  componentDescriptorName: catalog-info.yaml
+  componentDescriptors:
+    - apps/**/catalog-info.yaml
+    - packages/**/catalog-info.yaml
+    - workers/**/catalog-info.yaml
+  centralDescriptors:
+    - agentdoc/domains.yaml
+    - agentdoc/systems.yaml
+    - agentdoc/apis.yaml
+    - agentdoc/resources.yaml
+  journeyDefinitions: agentdoc/journeys.yaml
+  supplementalRoots: []
+  contractRoots:
+    - contracts
+  eventPatternPrefixes:
+    - koda.
+  eventContracts:
+    - path: packages/authz-catalog/notify.json
+      consumer: component:default/notifications
+      format: json-map
+  docCandidates:
+    - README.md
+    - ARCHITECTURE.md
+    - AGENTS.md
+  constraintCandidates:
+    - CONSTRAINTS.md
+  runbookCandidates:
+    - RUNBOOK.md
+
+adapters:
+  - node
+  - pnpm
+  - turborepo
+  - typescript
+  - go
+  - openapi
+  - oidc
+  - github-actions
+  - dockerfile
+  - wrangler
+  - database
+  - events
+  - deploy-config
+
+authority:
+  rules:
+    - id: deployed-schedule-is-runtime-truth
+      keyPattern: " schedule\\.(cron|enabled|target)$"
+      elect: [OBSERVED_RUNTIME]
+      rationale: "The committed wrangler manifest states intent; only the live scheduler states what actually fires."
+      reviewWhen: "Review when the platform scheduler configuration changes or a trigger silently stops firing."
+      degradeOnStale: conflict
+    - id: deployed-bindings-are-runtime-truth
+      keyPattern: " binding\\."
+      elect: [OBSERVED_RUNTIME]
+      rationale: "A binding list in a manifest is the intended set; the deployed binding list is the real one."
+      reviewWhen: "Review after every deployment that adds, removes or repoints a binding."
+      degradeOnStale: conflict
+    - id: external-api-capability-is-runtime-truth
+      keyPattern: " contract\\.supports$"
+      elect: [OBSERVED_RUNTIME, EXTERNAL_STANDARD]
+      rationale: "The repository documents what an external API was assumed to accept; a live probe states what it accepts."
+      reviewWhen: "Review when the external provider changes its API or the integration is upgraded."
+      degradeOnStale: conflict
+    - id: desired-wire-contract-is-authored
+      keyPattern: " contract\\.version$"
+      elect: [AUTHORED, EXTERNAL_STANDARD]
+      rationale: "The canonical contract states the desired wire surface; the deployed version is observed, not authored."
+      reviewWhen: "Review when a contract is promoted or a consumer is cut over."
+      degradeOnStale: conflict
+    - id: placement-is-an-ownership-decision
+      keyPattern: " placement\\."
+      elect: [AUTHORED, REVIEWED_OVERRIDE]
+      rationale: "Placement is a human ownership decision; no extractor can discover it."
+      reviewWhen: "Review when ownership of a component moves."
+    - id: artifact-shape-is-derived
+      keyPattern: " component\\.(deployable|importable|runtime|language)$"
+      elect: [DERIVED, AUTHORED]
+      rationale: "The artifact shape is whatever the repository actually contains; an authored type that contradicts it is a documentation bug."
+      reviewWhen: "Review when a component changes build shape."
+
+reviewedOverrides: []
+
+# Warning acceptances are reviewed dispositions, not suppressions. Each one
+# pins the evidence it was written against by content hash: if that evidence
+# moves, compilation fails and a fresh review is forced.
+warningAcceptances:
+  - code: AGENTDOC_EVENT_UNRESOLVED
+    subject: koda.flow.help.requested
+    classification: FUTURE_RESERVED_EVENT
+    reason: "The notification contract is subscribed, but the adult-help capability has no producer; the current in-product hint is local UI state, not a request event."
+    reviewWhen: "Review when a real adult-help action is implemented, the notification contract changes, or the reserved capability is retired. This is not a delivery commitment."
+    observedRefs:
+      - component:default/notifications
+    evidence:
+      - path: packages/authz-catalog/notify.json
+        sha256: 12eaa4d7828ba2dd5c54cc6c3ce737ef2e3194a67eae4632098d403d633b12d1
+  - code: AGENTDOC_EVENT_UNRESOLVED
+    subject: koda.flow.lesson.available
+    classification: FUTURE_RESERVED_EVENT
+    reason: "This reserved notification contract has no producer. Artifact publication is a distinct contract and must not be equated with it."
+    reviewWhen: "Review when product semantics authorise an availability notification, a producer is implemented, or the contract is retired."
+    observedRefs:
+      - component:default/notifications
+    evidence:
+      - path: packages/authz-catalog/notify.json
+        sha256: 12eaa4d7828ba2dd5c54cc6c3ce737ef2e3194a67eae4632098d403d633b12d1
+  - code: AGENTDOC_SERVICE_BINDING_UNRESOLVED
+    subject: component:default/koda-cron
+    classification: CROSS_DEPLOYMENT_BINDING
+    reason: "The scheduler binds to a deployed worker published outside this repository, so no in-repository component can match the platform name."
+    reviewWhen: "Review when the target deployment is moved into this repository or its platform name changes."
+    observedRefs:
+      - component:default/koda-cron
+    evidence:
+      - path: workers/koda-cron/wrangler.toml
+        sha256: c1f2e713e9e87eb4e1d095720e080d1e8202ad8696f249919e5feda14e6c3948
+
+output:
+  graph: .agentdoc/graph.json
+  observations: agentdoc/observations
+  report: .agentdoc/report.json
+
+docs:
+  product: docs/PRODUCT.md
+  architecture: docs/ARCHITECTURE.md
+  constraints: docs/CONSTRAINTS.md
+  adrDir: docs/adr

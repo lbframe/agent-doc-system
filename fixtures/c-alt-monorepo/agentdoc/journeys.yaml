@@ -1,0 +1,7 @@
+schemaVersion: agentdoc.dev/journeys/v1
+journeys:
+  - id: edge-to-storage
+    description: "Buffers telemetry at the edge and flushes it into the telemetry database."
+    components:
+      - component:default/edge
+      - component:default/telemetry-api

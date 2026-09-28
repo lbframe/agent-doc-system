@@ -1,0 +1,80 @@
+apiVersion: agentdoc.dev/observation/v1
+kind: ObservationSet
+metadata:
+  name: production
+  description: "Scheduler and platform state read from the production platform during the 2026-09-27 recovery window."
+  environment: production
+  capturedAt: "2026-09-27T18:40:00Z"
+  maxAgeDays: 30
+  sourceSystem: platform-scheduler
+  collector: "platform-cli schedules list --json"
+  evidenceBundle: agentdoc/observations/production/2026-09-27-scheduler.json
+  provenance: "Read from the platform control plane during the cron-recovery incident. The raw response is committed verbatim; no credentials, account identifiers or console URLs appear in it."
+spec:
+  facts:
+    # ── Lesson 1: a repository that declares a binding set the runtime does not have ──
+    # The manifest declares CRON_STATE plus a cross-deployment service binding.
+    # The deployed worker has only CRON_STATE. That divergence is real and is
+    # the point: the manifest is a claim about intent, not about deployment.
+    - id: cron-declared-bindings
+      subject: component:default/koda-cron
+      key: binding.declared
+      value: ["CRON_STATE"]
+      semantics: "The bindings actually present on the deployed worker, read from the platform control plane."
+      detail: "CRON_STATE is present. The manifest's service binding is not part of this deployment."
+      observedRefs:
+        - component:default/koda-cron
+
+    - id: cron-binding-kinds
+      subject: component:default/koda-cron
+      key: binding.kind
+      value: ["kv"]
+      semantics: "The kinds of binding actually present on the deployed worker."
+      observedRefs:
+        - component:default/koda-cron
+
+    # ── Lesson 2: a schedule the manifest and the runtime describe differently ──
+    # The manifest says a single daily trigger. The scheduler has TWO triggers,
+    # and the hourly one gates the work to hour 3. One presumed schedule was
+    # actually an hourly cron with hour-3 gating.
+    - id: cron-triggers
+      subject: component:default/koda-cron
+      key: schedule.cron
+      value: "0 * * * *,3 0 * * *"
+      semantics: "The scheduler evaluates an hourly trigger plus a daily trigger; the hourly trigger is gated to hour 3, so the effective daily behaviour is not the manifest's single daily expression."
+      detail: "Two triggers exist. The presumed 'daily' schedule is an hourly trigger with hour-3 gating."
+      observedRefs:
+        - component:default/calendar
+        - component:default/notifications
+
+    - id: cron-enabled
+      subject: component:default/koda-cron
+      key: schedule.enabled
+      value: true
+      semantics: "Both triggers are enabled in the scheduler."
+
+    - id: cron-target-digest
+      subject: component:default/koda-cron
+      key: schedule.target
+      value: ["/api/internal/notifications/digest-flush"]
+      semantics: "The trigger that fires in hour 3 calls the notifications digest-flush endpoint."
+
+    # ── Lesson 3: an external API that does not accept what the repository assumed ──
+    - id: upload-annotations
+      subject: component:default/uploads
+      key: contract.supports
+      value: ["presign", "confirm", "complete"]
+      semantics: "A live probe of the upload API accepted presign, confirm and complete, and rejected an annotations field on the object payload."
+      detail: "The repository assumed the upload object carried annotations. The deployed API rejects that field."
+
+    # ── Lesson 4: a recovered runtime intentionally different from the desired state ──
+    # The recovery deliberately left a binding present that the governed target
+    # state does not contain. This is a real, accepted divergence, not drift.
+    - id: recovery-binding
+      subject: component:default/koda-cron
+      key: binding.target
+      value: "CRON_STATE (retained by the recovery, absent from the governed target state)"
+      semantics: "The KV binding was deliberately retained during recovery so scheduled state was not lost. The governed target state does not contain it, so the deployment intentionally diverges from desired state."
+      detail: "Intentionally divergent: retained during recovery, pending a follow-up decision."
+      observedRefs:
+        - component:default/koda-cron

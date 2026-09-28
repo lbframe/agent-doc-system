@@ -1,0 +1,14 @@
+# Warning acceptances live in agentdoc/agentdoc.config.yaml. Each one must carry
+# the evidence content hashes as they are *now*; `agentdoc validate` recomputes
+# them and fails when the evidence has moved, forcing a fresh review.
+warningAcceptances:
+  - code: AGENTDOC_UNRESOLVED_FACT
+    subject: component:default/example-service
+    classification: INTENDED_DIVERGENCE
+    reason: "This divergence is intentional and will be reconciled in Q3."
+    reviewWhen: "Review when the platform migration lands or the divergence persists past its stated window."
+    observedRefs:
+      - component:default/example-service
+    evidence:
+      - path: services/example-service/wrangler.toml
+        sha256: "0000000000000000000000000000000000000000000000000000000000000000"

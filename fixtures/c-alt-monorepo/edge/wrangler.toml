@@ -1,0 +1,13 @@
+name = "telemetry-edge"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+FLUSH_CRON_URL = "https://edge.example.com/api/internal/flush"
+
+[[kv_namespaces]]
+binding = "RATE_STATE"
+id = "0000000000000000000000000000000a"

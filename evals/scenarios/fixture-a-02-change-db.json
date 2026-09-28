@@ -1,0 +1,9 @@
+{
+  "id": "a-02",
+  "repository": "fixture-a",
+  "title": "Change the orders database schema",
+  "touch": ["service/db/migrations/0001_orders.sql"],
+  "truth": ["component:default/orders-service", "uses:resource:default/orders-service-postgres", "constraint:service/CONSTRAINTS.md"],
+  "critical": ["uses:resource:default/orders-service-postgres", "constraint:service/CONSTRAINTS.md"],
+  "verification": ["verify:pnpm --filter @orders/service test", "verify:vitest run"]
+}

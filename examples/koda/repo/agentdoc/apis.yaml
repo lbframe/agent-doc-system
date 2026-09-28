@@ -1,0 +1,44 @@
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: accounts-m2m-api
+  description: "Accounts JSON surface for machine-to-machine family reads, identity authority and service-token exchange."
+spec:
+  type: openapi
+  provider: component:default/accounts
+  contract:
+    ref: contracts/accounts-m2m.openapi.yaml
+---
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: accounts-oidc-api
+  description: "Issues and describes the OIDC and OAuth contracts that every service verifies against."
+spec:
+  type: oidc
+  provider: component:default/accounts
+  contract:
+    standard: openid-connect-discovery-1.0
+    discoveryPath: /oidc/.well-known/openid-configuration
+---
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: teacher-ingest-api
+  description: "HMAC-authenticated ingest surface for OCR envelopes and purge relays."
+spec:
+  type: openapi
+  provider: component:default/teacher
+  contract:
+    ref: contracts/teacher-ingest.openapi.yaml
+---
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: calendar-cron-api
+  description: "Internal scheduler triggers for calendar and notifications, all guarded by one bearer secret."
+spec:
+  type: openapi
+  provider: component:default/calendar
+  contract:
+    ref: contracts/calendar-cron.openapi.yaml

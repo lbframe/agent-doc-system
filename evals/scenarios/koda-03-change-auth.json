@@ -1,0 +1,21 @@
+{
+  "id": "koda-03",
+  "repository": "koda",
+  "title": "Change how a service authenticates against accounts",
+  "touch": [
+    "apps/notifications/internal/circle/circle.go"
+  ],
+  "truth": [
+    "component:default/notifications",
+    "consumes:api:default/accounts-oidc-api",
+    "uses:resource:default/notifications-postgres"
+  ],
+  "critical": [
+    "consumes:api:default/accounts-oidc-api",
+    "uses:resource:default/notifications-postgres"
+  ],
+  "verification": [
+    "verify:go test ./...",
+    "verify:go vet ./..."
+  ]
+}

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: calendar
+  description: "Converts OCR calendar artifacts into parent-reviewable school calendar items."
+spec:
+  type: web-app
+  system: school-calendar

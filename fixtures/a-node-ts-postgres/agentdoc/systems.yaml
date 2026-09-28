@@ -1,0 +1,7 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: ordering
+  description: "Creates, reads and transitions orders."
+spec:
+  domain: commerce

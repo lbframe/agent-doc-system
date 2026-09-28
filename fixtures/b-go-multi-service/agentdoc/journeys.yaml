@@ -1,0 +1,7 @@
+schemaVersion: agentdoc.dev/journeys/v1
+journeys:
+  - id: append-to-read
+    description: "Turns an accepted write command into a ledger entry the read API returns."
+    components:
+      - component:default/ingest
+      - component:default/gateway

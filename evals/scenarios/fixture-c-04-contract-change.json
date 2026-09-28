@@ -1,0 +1,9 @@
+{
+  "id": "c-04",
+  "repository": "fixture-c",
+  "title": "Add an operation to the telemetry ingest contract",
+  "touch": ["wire/telemetry.openapi.yaml"],
+  "truth": ["api:default/telemetry-ingest-api", "component:default/telemetry-api", "provides:api:default/telemetry-ingest-api"],
+  "critical": ["provides:api:default/telemetry-ingest-api"],
+  "verification": ["verify:go test ./..."]
+}

@@ -1,0 +1,17 @@
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: telemetry-api-postgres
+  description: "Logical database owned by the telemetry ingest service."
+spec:
+  type: logical-database
+  system: ingest
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: telemetry-cache
+  description: "Redis cache holding recent telemetry counters for the console."
+spec:
+  type: cache
+  system: ingest

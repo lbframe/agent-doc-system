@@ -1,0 +1,11 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: telemetry-api
+  description: "Accepts telemetry writes and serves the internal read API on port 8081."
+spec:
+  type: service
+  system: ingest
+  context:
+    docs:
+      - legacy-docs/backend.md

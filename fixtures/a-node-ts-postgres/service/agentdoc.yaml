@@ -1,0 +1,11 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: orders-service
+  description: "Serves the orders read and write API and owns the orders database."
+spec:
+  type: service
+  system: ordering
+  context:
+    constraints:
+      - service/CONSTRAINTS.md

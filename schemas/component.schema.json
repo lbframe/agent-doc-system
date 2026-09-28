@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/component.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": { "const": "agentdoc.dev/v1" },
+    "kind": { "const": "Component" },
+    "metadata": { "$ref": "common.json#/$defs/metadata" },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["service", "worker", "job", "library", "contract-library", "web-app", "static-site", "cli", "infrastructure", "other"]
+        },
+        "system": { "$ref": "common.json#/$defs/name" },
+        "domain": { "$ref": "common.json#/$defs/name" },
+        "placementRationale": { "$ref": "common.json#/$defs/rationale" },
+        "repositories": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "description": "Published artifacts or remotes this component is consumed through.",
+          "items": { "$ref": "common.json#/$defs/repoPath" }
+        },
+        "context": { "$ref": "common.json#/$defs/context" }
+      },
+      "oneOf": [
+        { "required": ["system"], "not": { "anyOf": [{ "required": ["domain"] }, { "required": ["placementRationale"] }] } },
+        { "required": ["domain"], "not": { "anyOf": [{ "required": ["system"] }, { "required": ["placementRationale"] }] } },
+        { "required": ["placementRationale"], "not": { "anyOf": [{ "required": ["system"] }, { "required": ["domain"] }] } }
+      ]
+    },
+    "extensions": { "$ref": "common.json#/$defs/extensions" }
+  }
+}

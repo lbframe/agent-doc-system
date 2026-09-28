@@ -1,0 +1,2 @@
+{ "name": "@koda/lesson-canon", "version": "1.0.0", "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@koda/authz-catalog": "workspace:*" } }

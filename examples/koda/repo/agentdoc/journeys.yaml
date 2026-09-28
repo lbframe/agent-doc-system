@@ -1,0 +1,8 @@
+schemaVersion: agentdoc.dev/journeys/v1
+journeys:
+  - id: document-to-calendar
+    description: "Turns a confirmed school document into a parent-reviewable calendar item."
+    components:
+      - component:default/uploads
+      - component:default/document-ocr
+      - component:default/calendar

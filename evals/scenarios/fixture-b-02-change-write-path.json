@@ -1,0 +1,9 @@
+{
+  "id": "b-02",
+  "repository": "fixture-b",
+  "title": "Change the only-writer rule for the ledger",
+  "touch": ["services/ingest/internal/relay/relay.go"],
+  "truth": ["component:default/ingest", "system:default/ledger", "provides:api:default/ledger-service"],
+  "critical": ["provides:api:default/ledger-service"],
+  "verification": ["verify:go test ./...", "verify:go vet ./..."]
+}

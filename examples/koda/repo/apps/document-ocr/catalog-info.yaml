@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: document-ocr
+  description: "Classifies uploaded documents and produces OCR artifacts for downstream ingest workers."
+spec:
+  type: service
+  system: document-capture

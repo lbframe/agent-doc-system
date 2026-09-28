@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: teacher
+  description: "Turns lesson artifacts into durable canonical lesson publications."
+spec:
+  type: web-app
+  system: lesson-production

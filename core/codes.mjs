@@ -1,0 +1,118 @@
+// Stable diagnostic/error codes. Every failure the compiler or a gate can
+// produce is named here so tests, CI and the skill can match on identity
+// rather than on human-readable message text.
+export const CODES = {
+  // source & schema
+  UTF8: "AGENTDOC_UTF8",
+  YAML_PARSE: "AGENTDOC_YAML_PARSE",
+  YAML_DUP_KEY: "AGENTDOC_YAML_DUP_KEY",
+  YAML_ANCHOR: "AGENTDOC_YAML_ANCHOR",
+  YAML_ALIAS: "AGENTDOC_YAML_ALIAS",
+  YAML_TAG: "AGENTDOC_YAML_TAG",
+  YAML_MERGE_KEY: "AGENTDOC_YAML_MERGE_KEY",
+  YAML_ENV: "AGENTDOC_YAML_ENV",
+  YAML_UNSUPPORTED: "AGENTDOC_YAML_UNSUPPORTED",
+  YAML_NON_MAP_ROOT: "AGENTDOC_YAML_NON_MAP_ROOT",
+  SCHEMA: "AGENTDOC_SCHEMA",
+  UNKNOWN_FIELD: "AGENTDOC_UNKNOWN_FIELD",
+  PROHIBITED_FIELD: "AGENTDOC_PROHIBITED_FIELD",
+  API_VERSION: "AGENTDOC_API_VERSION",
+  KIND: "AGENTDOC_KIND",
+  LOCATION: "AGENTDOC_LOCATION",
+  CONFIG: "AGENTDOC_CONFIG",
+  GLOB: "AGENTDOC_GLOB",
+  PATH_ESCAPE: "AGENTDOC_PATH_ESCAPE",
+  PATH_UNRESOLVED: "AGENTDOC_PATH_UNRESOLVED",
+  SECRET: "AGENTDOC_SECRET",
+
+  // identity & references
+  NAME_INVALID: "AGENTDOC_NAME_INVALID",
+  REF_INVALID: "AGENTDOC_REF_INVALID",
+  REF_UNRESOLVED: "AGENTDOC_REF_UNRESOLVED",
+  DUPLICATE_IDENTITY: "AGENTDOC_DUPLICATE_IDENTITY",
+
+  // discovery coverage
+  COVERAGE_ZERO: "AGENTDOC_COVERAGE_ZERO",
+  COVERAGE_MULTI: "AGENTDOC_COVERAGE_MULTI",
+  COMPONENT_UNCORROBORATED: "AGENTDOC_COMPONENT_UNCORROBORATED",
+  EVENT_CONTRACT: "AGENTDOC_EVENT_CONTRACT",
+  ARTIFACT_TYPE: "AGENTDOC_ARTIFACT_TYPE",
+
+  // contracts
+  CONTRACT_FORM: "AGENTDOC_CONTRACT_FORM",
+  CONTRACT_SYNTAX: "AGENTDOC_CONTRACT_SYNTAX",
+  CONTRACT_UNCLAIMED: "AGENTDOC_CONTRACT_UNCLAIMED",
+  CONTRACT_SHARED: "AGENTDOC_CONTRACT_SHARED",
+  OIDC_DISCOVERY: "AGENTDOC_OIDC_DISCOVERY",
+
+  // relations
+  RELATION_KIND: "AGENTDOC_RELATION_KIND",
+  RELATION_UNRESOLVED: "AGENTDOC_RELATION_UNRESOLVED",
+  RELATION_AUTHORED: "AGENTDOC_RELATION_AUTHORED",
+  RELATION_MISSING_INVERSE: "AGENTDOC_RELATION_MISSING_INVERSE",
+  RELATION_CONTRACT_DUP: "AGENTDOC_RELATION_CONTRACT_DUP",
+
+  // authority / conflicts
+  CONFLICT_UNRESOLVED: "AGENTDOC_CONFLICT_UNRESOLVED",
+  OBSERVATION_STALE: "AGENTDOC_OBSERVATION_STALE",
+  UNRESOLVED_FACT: "AGENTDOC_UNRESOLVED_FACT",
+
+  // provenance & determinism
+  PROVENANCE: "AGENTDOC_PROVENANCE",
+  NONDETERMINISTIC: "AGENTDOC_NONDETERMINISTIC",
+  GRAPH_SCHEMA: "AGENTDOC_GRAPH_SCHEMA",
+
+  // artifacts & gates
+  STALE_GRAPH: "AGENTDOC_STALE_GRAPH",
+  GRAPH_FRESHNESS: "AGENTDOC_GRAPH_FRESHNESS",
+  GRAPH_MISSING: "AGENTDOC_GRAPH_MISSING",
+  COMPILER_MISMATCH: "AGENTDOC_COMPILER_MISMATCH",
+  DIRTY_SOURCE: "AGENTDOC_DIRTY_SOURCE",
+  WARNING_ACCEPTANCE: "AGENTDOC_WARNING_ACCEPTANCE",
+  OVERRIDE_STALE: "AGENTDOC_OVERRIDE_STALE",
+  JOURNEY: "AGENTDOC_JOURNEY",
+};
+
+// Warning codes that a reviewer may explicitly accept. Anything outside this
+// list is unacceptable: acceptance must never downgrade a hard error.
+export const ACCEPTABLE_WARNING_CODES = Object.freeze([
+  "AGENTDOC_EVENT_UNRESOLVED",
+  "AGENTDOC_RESOURCE_CANDIDATE",
+  "AGENTDOC_SERVICE_BINDING_UNRESOLVED",
+  "AGENTDOC_SCHEDULE_UNRESOLVED",
+  "AGENTDOC_BINDING_AMBIGUOUS",
+  "AGENTDOC_CONFLICT_REVIEWED",
+  "AGENTDOC_OBSERVATION_SUPERSEDED",
+  "AGENTDOC_EXTERNAL_DEPENDENCY_UNCLASSIFIED",
+  "AGENTDOC_DOC_ORPHANED",
+  "AGENTDOC_VERIFICATION_UNTIERED",
+]);
+
+export class AgentDocError extends Error {
+  constructor(code, message, opts = {}) {
+    super(message);
+    this.name = "AgentDocError";
+    this.code = code;
+    this.path = opts.path;
+    this.ref = opts.ref;
+    this.line = opts.line;
+  }
+  format() {
+    const where = [this.path, this.line ? "line " + this.line : null, this.ref].filter(Boolean).join(" ");
+    return this.code + (where ? " [" + where + "]" : "") + ": " + this.message;
+  }
+}
+
+// Run fn, pushing any AgentDocError into errors and returning undefined.
+// A non-AgentDocError is a compiler defect and is rethrown.
+export function collect(fn, errors) {
+  try {
+    return fn();
+  } catch (e) {
+    if (e instanceof AgentDocError) {
+      errors.push(e);
+      return undefined;
+    }
+    throw e;
+  }
+}

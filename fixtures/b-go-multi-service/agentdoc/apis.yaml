@@ -1,0 +1,10 @@
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: ledger-service
+  description: "Canonical protobuf wire contract for ledger reads and writes."
+spec:
+  type: protobuf
+  provider: component:default/ingest
+  contract:
+    ref: proto/ledger.proto

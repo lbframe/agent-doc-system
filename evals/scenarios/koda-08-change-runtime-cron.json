@@ -1,0 +1,23 @@
+{
+  "id": "koda-08",
+  "repository": "koda",
+  "title": "Change the scheduled trigger expression",
+  "touch": [
+    "workers/koda-cron/wrangler.toml"
+  ],
+  "truth": [
+    "component:default/koda-cron",
+    "component:default/calendar",
+    "conflict:schedule.cron",
+    "observation:production",
+    "constraint:workers/koda-cron/CONSTRAINTS.md"
+  ],
+  "critical": [
+    "conflict:schedule.cron",
+    "observation:production",
+    "constraint:workers/koda-cron/CONSTRAINTS.md"
+  ],
+  "verification": [
+    "verify:turbo run test --filter=@koda/koda-cron"
+  ]
+}

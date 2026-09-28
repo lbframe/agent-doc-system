@@ -1,0 +1,38 @@
+apiVersion: agentdoc.dev/config/v1
+namespace: default
+discovery:
+  componentDescriptorName: agentdoc.yaml
+  componentDescriptors:
+    - service/**/agentdoc.yaml
+  centralDescriptors:
+    - agentdoc/domains.yaml
+    - agentdoc/systems.yaml
+    - agentdoc/apis.yaml
+    - agentdoc/resources.yaml
+  journeyDefinitions: agentdoc/journeys.yaml
+  contractRoots:
+    - contracts
+adapters:
+  - node
+  - pnpm
+  - typescript
+  - openapi
+  - database
+  - github-actions
+authority:
+  rules:
+    - id: placement-is-an-ownership-decision
+      keyPattern: " placement\\."
+      elect: [AUTHORED, REVIEWED_OVERRIDE]
+      rationale: "Placement is a human ownership decision; no extractor can discover it."
+      reviewWhen: "Review when ownership of a component moves."
+    - id: deployed-schedule-is-runtime-truth
+      keyPattern: " schedule\\."
+      elect: [OBSERVED_RUNTIME]
+      rationale: "The committed manifest states intent; only the live scheduler states what fires."
+      reviewWhen: "Review when the scheduler configuration changes."
+reviewedOverrides: []
+warningAcceptances: []
+output:
+  graph: .agentdoc/graph.json
+  observations: agentdoc/observations

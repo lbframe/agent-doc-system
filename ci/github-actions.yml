@@ -1,0 +1,28 @@
+# Drift gate. The graph is a build artifact: compile it, then prove the
+# committed one is byte-identical to a fresh compile. A stale or hand-edited
+# graph fails here, not in someone's review three weeks later.
+name: agentdoc
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  agentdoc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Validate and compile
+        run: |
+          node agentdoc/bin/agentdoc.mjs validate
+          node agentdoc/bin/agentdoc.mjs compile
+          node agentdoc/bin/agentdoc.mjs check
+      - name: Reject dirty sources
+        run: node agentdoc/bin/agentdoc.mjs check --require-clean
+      - name: Unit tests
+        run: node --test agentdoc/tests/*.test.mjs
+      - name: Routing evaluation
+        run: node agentdoc/bin/agentdoc.mjs eval routing

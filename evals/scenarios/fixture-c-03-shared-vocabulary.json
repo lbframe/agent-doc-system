@@ -1,0 +1,9 @@
+{
+  "id": "c-03",
+  "repository": "fixture-c",
+  "title": "Change the telemetry subject vocabulary shared across runtimes",
+  "touch": ["shared/index.js"],
+  "truth": ["component:default/shared", "component:default/edge", "component:default/console", "event:corp.telemetry.ingest.v1"],
+  "critical": ["event:corp.telemetry.ingest.v1"],
+  "verification": []
+}

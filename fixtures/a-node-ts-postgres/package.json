@@ -1,0 +1,2 @@
+{ "name": "orders-api-repo", "private": true, "packageManager": "pnpm@10.11.0",
+  "scripts": { "lint": "eslint .", "typecheck": "tsc --noEmit" } }

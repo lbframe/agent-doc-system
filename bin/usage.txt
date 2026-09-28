@@ -1,0 +1,18 @@
+agentdoc — portable documentation & software-catalog system
+
+  agentdoc init [--force]            write a configuration and documentation skeleton
+  agentdoc audit                     inventory the repository, classify every fact
+  agentdoc scaffold [--write]        generate a CREATE-mode skeleton from the audit
+  agentdoc validate                  sources + schemas + semantic checks
+  agentdoc compile [--require-clean] deterministic graph build (atomic write)
+  agentdoc check [--require-clean] [--allow-stale-observations]
+                                    freshness, determinism and gate check
+  agentdoc query <path|ref> [--md] [--budget k=n]
+                                    route minimal context for a task
+  agentdoc impact <paths...>         what a change forces you to keep consistent
+  agentdoc impact --diff <git-ref>   the same, for a commit range
+  agentdoc eval routing [--json]     agent-routing evaluation against thresholds
+  agentdoc pin-evidence [--json]     check/repair digests pinned by reviewed overrides
+  agentdoc doctor                    environment self-check
+
+Exit codes: 0 ok, 1 failure, 2 usage.

@@ -1,0 +1,20 @@
+{
+  "id": "koda-02",
+  "repository": "koda",
+  "title": "Change a database schema in the notifications service",
+  "touch": [
+    "apps/notifications/internal/db/migrations/0007_add_channel.sql"
+  ],
+  "truth": [
+    "component:default/notifications",
+    "uses:resource:default/notifications-postgres",
+    "system:default/identity-access"
+  ],
+  "critical": [
+    "uses:resource:default/notifications-postgres"
+  ],
+  "verification": [
+    "verify:go test ./...",
+    "verify:go vet ./..."
+  ]
+}

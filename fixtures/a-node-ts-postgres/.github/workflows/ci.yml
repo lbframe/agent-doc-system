@@ -1,0 +1,10 @@
+name: ci
+on: { pull_request: {} }
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @orders/service test
+      - run: pnpm --filter @orders/service typecheck

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/system.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": { "const": "agentdoc.dev/v1" },
+    "kind": { "const": "System" },
+    "metadata": { "$ref": "common.json#/$defs/metadata" },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": { "$ref": "common.json#/$defs/name" },
+        "placementRationale": { "$ref": "common.json#/$defs/rationale" },
+        "context": { "$ref": "common.json#/$defs/context" }
+      },
+      "oneOf": [
+        { "required": ["domain"], "not": { "required": ["placementRationale"] } },
+        { "required": ["placementRationale"], "not": { "required": ["domain"] } }
+      ]
+    },
+    "extensions": { "$ref": "common.json#/$defs/extensions" }
+  }
+}

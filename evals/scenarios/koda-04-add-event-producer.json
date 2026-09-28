@@ -1,0 +1,19 @@
+{
+  "id": "koda-04",
+  "repository": "koda",
+  "title": "Add a producer for the canonical lesson artifact event",
+  "touch": [
+    "apps/teacher/src/lib/teacher-events.ts"
+  ],
+  "truth": [
+    "component:default/teacher",
+    "event:koda.lesson.published"
+  ],
+  "critical": [
+    "event:koda.lesson.published"
+  ],
+  "verification": [
+    "verify:turbo run test --filter=@koda/teacher",
+    "verify:pnpm --filter @koda/teacher test"
+  ]
+}

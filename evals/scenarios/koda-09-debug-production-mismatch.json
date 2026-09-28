@@ -1,0 +1,26 @@
+{
+  "id": "koda-09",
+  "repository": "koda",
+  "title": "Debug why the nightly digest does not fire in production",
+  "touch": [
+    "workers/koda-cron/src/jobs.ts"
+  ],
+  "truth": [
+    "component:default/koda-cron",
+    "component:default/calendar",
+    "component:default/notifications",
+    "conflict:schedule.cron",
+    "conflict:schedule.target",
+    "observation:production",
+    "constraint:workers/koda-cron/CONSTRAINTS.md"
+  ],
+  "critical": [
+    "conflict:schedule.cron",
+    "conflict:schedule.target",
+    "observation:production",
+    "constraint:workers/koda-cron/CONSTRAINTS.md"
+  ],
+  "verification": [
+    "verify:turbo run test --filter=@koda/koda-cron"
+  ]
+}

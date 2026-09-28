@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: example-service-postgres
+  description: "Logical database owned by the example service."
+spec:
+  type: logical-database
+  system: example-system

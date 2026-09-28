@@ -1,0 +1,11 @@
+{
+  "_comment": "PRE-REGISTERED THRESHOLDS. Fixed before any scenario was executed against any repository. Moving a number here to convert a FAIL into a PASS invalidates the evaluation.",
+  "_registered_at": "2026-09-28",
+  "minRecall": 0.9,
+  "minCriticalRecall": 0.95,
+  "minVerificationRecall": 0.8,
+  "minPrecision": 0.75,
+  "maxNoise": 0.6,
+  "minRetrievalReduction": 0.4,
+  "minRecallOverBaseline": 0.9
+}

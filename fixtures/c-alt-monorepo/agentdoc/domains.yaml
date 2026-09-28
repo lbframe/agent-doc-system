@@ -1,0 +1,6 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: observability
+  description: "Owns collection, storage and presentation of product telemetry."
+spec: {}

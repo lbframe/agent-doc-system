@@ -1,0 +1,6 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: finance
+  description: "Owns money movement recording and the ledger of financial entries."
+spec: {}

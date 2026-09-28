@@ -1,0 +1,9 @@
+{
+  "id": "a-03",
+  "repository": "fixture-a",
+  "title": "Change order write behaviour and prove it still obeys the money rule",
+  "touch": ["service/src/index.ts"],
+  "truth": ["component:default/orders-service", "constraint:service/CONSTRAINTS.md", "doc:service/README.md"],
+  "critical": ["constraint:service/CONSTRAINTS.md"],
+  "verification": ["verify:pnpm --filter @orders/service test", "verify:vitest run", "verify:tsc --noEmit"]
+}

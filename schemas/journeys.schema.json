@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/journeys.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "journeys"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "agentdoc.dev/journeys/v1"
+    },
+    "journeys": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "components"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.json#/$defs/name"
+          },
+          "description": {
+            "$ref": "common.json#/$defs/description"
+          },
+          "components": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.json#/$defs/componentRef"
+            }
+          },
+          "notes": {
+            "$ref": "common.json#/$defs/rationale"
+          }
+        }
+      }
+    }
+  }
+}

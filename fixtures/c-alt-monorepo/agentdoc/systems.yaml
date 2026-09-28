@@ -1,0 +1,15 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: ingest
+  description: "Accepts telemetry writes, buffers them at the edge and stores them."
+spec:
+  domain: observability
+---
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: edge-ingest
+  description: "Rate limits and buffers telemetry at the network edge before ingest."
+spec:
+  domain: observability

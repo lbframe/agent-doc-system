@@ -1,0 +1,16 @@
+{
+  "id": "koda-07",
+  "repository": "koda",
+  "title": "Change the shared lesson vocabulary package",
+  "touch": [
+    "packages/lesson-canon/src/events.ts"
+  ],
+  "truth": [
+    "component:default/lesson-canon",
+    "component:default/teacher",
+    "component:default/koda-cron",
+    "doc:packages/lesson-canon/README.md"
+  ],
+  "critical": [],
+  "verification": []
+}

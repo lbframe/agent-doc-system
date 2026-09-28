@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: orders-service-postgres
+  description: "Logical database owned by the orders service."
+spec:
+  type: logical-database
+  system: ordering

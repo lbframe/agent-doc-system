@@ -1,0 +1,11 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: koda-cron
+  description: "Triggers governed endpoints on a platform schedule and owns no business logic."
+spec:
+  type: worker
+  system: scheduler
+  context:
+    constraints:
+      - workers/koda-cron/CONSTRAINTS.md

@@ -1,0 +1,10 @@
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: telemetry-ingest-api
+  description: "Canonical JSON HTTP surface for telemetry writes and buffered flushes."
+spec:
+  type: openapi
+  provider: component:default/telemetry-api
+  contract:
+    ref: wire/telemetry.openapi.yaml

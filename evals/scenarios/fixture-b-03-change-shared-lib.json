@@ -1,0 +1,9 @@
+{
+  "id": "b-03",
+  "repository": "fixture-b",
+  "title": "Change the generated wire bindings",
+  "touch": ["libs/protocol/ledger.pb.go"],
+  "truth": ["component:default/protocol", "component:default/ingest", "component:default/gateway", "doc:libs/protocol/README.md"],
+  "critical": [],
+  "verification": []
+}

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: protocol
+  description: "Holds the generated ledger protobuf bindings shared by every ledger service."
+spec:
+  type: contract-library
+  placementRationale: "The wire bindings are a contract shared by both ledger services and belong to neither."

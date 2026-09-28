@@ -1,0 +1,10 @@
+apiVersion: agentdoc.dev/v1
+kind: API
+metadata:
+  name: example-api
+  description: "Canonical JSON HTTP surface served by the example component."
+spec:
+  type: openapi
+  provider: component:default/example-service
+  contract:
+    ref: contracts/example.openapi.yaml

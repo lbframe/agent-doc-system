@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: console
+  description: "Operator console for inspecting telemetry and replaying ingest failures."
+spec:
+  type: web-app
+  system: ingest

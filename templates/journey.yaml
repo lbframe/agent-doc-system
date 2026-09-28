@@ -1,0 +1,7 @@
+schemaVersion: agentdoc.dev/journeys/v1
+journeys:
+  - id: example-end-to-end
+    description: "One sentence describing the user-visible outcome this journey produces."
+    components:
+      - component:default/example-service
+      - component:default/example-consumer

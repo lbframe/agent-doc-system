@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: shared
+  description: "Holds the telemetry event vocabulary and client helpers shared across runtimes."
+spec:
+  type: contract-library
+  system: ingest

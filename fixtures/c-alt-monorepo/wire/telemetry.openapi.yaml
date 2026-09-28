@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Telemetry Ingest
+  version: "1.0.0"
+paths:
+  /api/telemetry:
+    post:
+      operationId: ingestTelemetry
+      responses: { "202": { description: accepted } }
+  /api/internal/flush:
+    post:
+      operationId: flush
+      responses: { "202": { description: accepted } }
+components: {}

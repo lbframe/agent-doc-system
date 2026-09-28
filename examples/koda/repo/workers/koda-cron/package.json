@@ -1,0 +1,2 @@
+{ "name": "@koda/koda-cron", "version": "1.0.0", "scripts": { "test": "vitest run" },
+  "dependencies": { "@koda/lesson-canon": "workspace:*" } }

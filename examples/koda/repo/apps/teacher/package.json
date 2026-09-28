@@ -1,0 +1,4 @@
+{ "name": "@koda/teacher", "version": "1.0.0", "type": "module",
+  "scripts": { "test": "vitest run", "lint": "eslint .", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@koda/lesson-canon": "workspace:*", "zod": "^3.24.0" },
+  "devDependencies": { "vitest": "^2.1.0" } }

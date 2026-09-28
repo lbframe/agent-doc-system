@@ -1,0 +1,9 @@
+{
+  "id": "b-01",
+  "repository": "fixture-b",
+  "title": "Change the ledger protobuf contract",
+  "touch": ["proto/ledger.proto"],
+  "truth": ["api:default/ledger-service", "component:default/ingest", "component:default/protocol", "provides:api:default/ledger-service"],
+  "critical": ["provides:api:default/ledger-service"],
+  "verification": ["verify:go test ./...", "verify:go vet ./..."]
+}

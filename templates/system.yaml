@@ -1,0 +1,10 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: example-system
+  description: "Owns one responsibility inside the example domain."
+spec:
+  domain: example-domain
+  context:
+    docs:
+      - docs/systems/example-system.md

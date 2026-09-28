@@ -1,0 +1,6 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: example-domain
+  description: "A bounded area of the product with its own vocabulary and rules."
+spec: {}

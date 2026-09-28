@@ -1,0 +1,691 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/config.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "namespace",
+    "discovery",
+    "adapters",
+    "authority",
+    "output"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "agentdoc.dev/config/v1"
+    },
+    "namespace": {
+      "description": "Ref namespace for this repository. Entity refs read <kind>:<namespace>/<name>.",
+      "$ref": "common.json#/$defs/namespace"
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "componentDescriptorName",
+        "componentDescriptors",
+        "centralDescriptors"
+      ],
+      "properties": {
+        "componentDescriptorName": {
+          "description": "Descriptor file name that must sit at the root of every discovered unit.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "pattern": "^[A-Za-z0-9._-]+\\.ya?ml$"
+        },
+        "componentDescriptors": {
+          "description": "Globs enumerating component descriptor files. Typically one per workspace layout.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "common.json#/$defs/repoPath"
+          }
+        },
+        "centralDescriptors": {
+          "description": "Globs enumerating central Domain/System/API/Resource descriptor files.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "common.json#/$defs/repoPath"
+          }
+        },
+        "supplementalRoots": {
+          "description": "Directories that are units even when no adapter marker is present.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "common.json#/$defs/repoPath"
+          }
+        },
+        "journeyDefinitions": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "notUnitRoots": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "common.json#/$defs/repoPath"
+          }
+        },
+        "contractRoots": {
+          "description": "Directories whose canonical contract files must each be claimed by exactly one API descriptor.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "common.json#/$defs/repoPath"
+          }
+        },
+        "eventContracts": {
+          "description": "Declared event pattern catalogs: path + optional format. Consumers of the catalog are derived.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "consumer"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "common.json#/$defs/repoPath"
+              },
+              "consumer": {
+                "$ref": "common.json#/$defs/componentRef"
+              },
+              "format": {
+                "enum": [
+                  "json-map",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "eventPatternPrefixes": {
+          "description": "Accepted event subject prefixes. Empty or absent means accept any non-empty subject token.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          }
+        },
+        "docCandidates": {
+          "description": "Conventional per-component doc file names.",
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          }
+        },
+        "externalDependencies": {
+          "description": "Third-party services a component depends on. Adapters match production dependencies against these patterns; nothing else is classified as an external dependency, because a package in a lockfile is not an architectural dependency.",
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "match",
+              "name",
+              "mechanism",
+              "role"
+            ],
+            "properties": {
+              "match": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Regular expression matched against the dependency name."
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "mechanism": {
+                "enum": [
+                  "sdk",
+                  "http",
+                  "smtp",
+                  "webhook",
+                  "platform-binding",
+                  "file"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "resourceType": {
+                "description": "When set, a component depending on this service also uses the single authored Resource of this type. A broker client binds to the event bus; a cache client to the cache.",
+                "enum": [
+                  "logical-database",
+                  "logical-dataset",
+                  "event-bus",
+                  "queue",
+                  "cache",
+                  "search-index",
+                  "object-store",
+                  "secret-store",
+                  "other"
+                ]
+              }
+            }
+          }
+        },
+        "verificationPreference": {
+          "description": "Which verification command wins when a task graph and a package script both cover the same tier. 'task-graph' keeps one runnable command per component per tier; 'script' keeps the package script; 'both' keeps everything.",
+          "enum": [
+            "task-graph",
+            "script",
+            "both"
+          ],
+          "default": "task-graph"
+        },
+        "capabilities": {
+          "description": "Capability detectors: a regular expression over a component's production sources, producing a named capability. A package in a manifest cannot tell you a component can use web speech; a source literal can.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "match"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "match": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          }
+        },
+        "generatedClientPatterns": {
+          "description": "Path fragments marking generated client code. A generated client references a route; only a component that declares the route serves it. Used to disambiguate scheduled trigger targets.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "generatedDirs": {
+          "description": "Additional directories to treat as build output and never as repository authority. Replaces the built-in list when present.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "constraintCandidates": {
+          "description": "Conventional per-component constraint file names.",
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          }
+        },
+        "runbookCandidates": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          }
+        }
+      }
+    },
+    "adapters": {
+      "description": "Enabled extractor adapters. The generic adapter is always on and needs no entry.",
+      "type": "array",
+      "maxItems": 48,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rules"
+      ],
+      "properties": {
+        "rules": {
+          "description": "Per-fact authority elections. There is deliberately NO default global precedence: a fact with no matching rule stays unresolved.",
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "keyPattern",
+              "elect",
+              "rationale",
+              "reviewWhen"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "common.json#/$defs/name"
+              },
+              "keyPattern": {
+                "description": "Regular expression matched against '<subject> <key>'.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "elect": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "AUTHORED",
+                    "DERIVED",
+                    "OBSERVED_RUNTIME",
+                    "EXTERNAL_STANDARD",
+                    "REVIEWED_OVERRIDE"
+                  ]
+                }
+              },
+              "rationale": {
+                "$ref": "common.json#/$defs/rationale"
+              },
+              "reviewWhen": {
+                "$ref": "common.json#/$defs/rationale"
+              },
+              "degradeOnStale": {
+                "description": "What to do when the elected evidence class is stale. Default: keep the election and raise a staleness conflict.",
+                "enum": [
+                  "conflict",
+                  "unresolved"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "reviewedOverrides": {
+      "description": "Bounded reviewed interpretations for facts deterministic discovery cannot resolve. Never a silent default.",
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fact",
+          "subject",
+          "reason",
+          "reviewWhen",
+          "evidence"
+        ],
+        "properties": {
+          "fact": {
+            "enum": [
+              "runtime-call",
+              "api-consumer",
+              "external-dependency-role",
+              "binding",
+              "capability",
+              "component-placement",
+              "event-producer",
+              "event-consumer"
+            ]
+          },
+          "subject": {
+            "type": "string",
+            "pattern": "^\\S+$"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^\\S+$"
+          },
+          "transport": {
+            "enum": [
+              "http",
+              "service-binding",
+              "signed-http",
+              "grpc",
+              "queue",
+              "in-process"
+            ]
+          },
+          "contractRef": {
+            "$ref": "common.json#/$defs/repoPath"
+          },
+          "deliverySemantics": {
+            "enum": [
+              "request-response",
+              "at-least-once",
+              "at-most-once",
+              "best-effort",
+              "exactly-once"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "logicalResourceRef": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "domain": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "eventPattern": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "reason": {
+            "$ref": "common.json#/$defs/rationale"
+          },
+          "reviewWhen": {
+            "description": "The condition under which this interpretation must be re-examined. Required: a review that states no re-examination condition is a review that is never revisited.",
+            "type": "string",
+            "minLength": 12
+          },
+          "evidence": {
+            "description": "Evidence the interpretation rests on, pinned by content hash. The digests are re-verified on every compile: if a cited file changes, the override stops applying and a fresh review is forced. A digest recorded but never compared would be decoration.",
+            "allOf": [
+              {
+                "$ref": "common.json#/$defs/evidence"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "const": "runtime-call"
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "target",
+                "transport",
+                "contractRef"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "transport"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "const": "api-consumer"
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "target"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "transport"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "contractRef"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "deliverySemantics"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "const": "external-dependency-role"
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "target",
+                "role"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "transport"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "contractRef"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "deliverySemantics"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "const": "binding"
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "kind"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "transport"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "const": "capability"
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "kind"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "transport"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "enum": [
+                    "event-producer",
+                    "event-consumer"
+                  ]
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "eventPattern"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "transport"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "warningAcceptances": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "common.json#/$defs/warningAcceptance"
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph",
+        "observations"
+      ],
+      "properties": {
+        "graph": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "observations": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "report": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "gitignoreGraph": {
+          "type": "boolean"
+        }
+      }
+    },
+    "docs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "product": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "architecture": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "constraints": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "adrDir": {
+          "$ref": "common.json#/$defs/repoPath"
+        },
+        "runbookDir": {
+          "$ref": "common.json#/$defs/repoPath"
+        }
+      }
+    }
+  }
+}

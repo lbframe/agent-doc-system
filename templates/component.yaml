@@ -1,0 +1,14 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: example-service
+  description: "Serves the example read model for the example domain."
+spec:
+  type: service
+  # Choose exactly one of system, domain, or placementRationale.
+  system: example-system
+  context:
+    docs:
+      - services/example-service/README.md
+    constraints:
+      - services/example-service/CONSTRAINTS.md
