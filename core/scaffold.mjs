@@ -11,11 +11,12 @@
 //     report it as a question rather than the scaffolder guessing.
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 
-const TEMPLATES_DIR = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "templates");
+const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
 function yamlStr(s) {
   return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';

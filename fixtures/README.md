@@ -9,9 +9,9 @@ its own scenarios against it.
 | `b-go-multi-service` | multi-service Go, protobuf, shared library, resources | contracts that are not HTTP |
 | `c-alt-monorepo` | `backend`/`frontend`/`shared`/`edge`, mixed runtimes, stale docs | the engine must not assume `apps`+`packages`+`workers` |
 
-Each is a real repository: it has its own git history, its own
-`agentdoc/agentdoc.config.yaml`, and its own committed graph inputs. The tag
-lives in `.agentdoc-fixture.json`.
+Each is a self-contained cataloged repository: its own
+`agentdoc/agentdoc.config.yaml` and committed graph inputs, tracked in this
+repository's history. The tag lives in `.agentdoc-fixture.json`.
 
 Commands below assume the `agentdoc` CLI is on PATH — installed globally
 (`npm install -g github:lbframe/agent-doc-system`) or via `npm link` in this

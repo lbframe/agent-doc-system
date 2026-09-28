@@ -20,6 +20,8 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: '24' }
+      # Pin a tag for reproducibility, e.g. github:lbframe/agent-doc-system#v1.0.0 —
+      # a compiler upgrade intentionally invalidates every committed graph.
       - run: npm install -g github:lbframe/agent-doc-system
       - run: agentdoc validate
       - run: agentdoc compile

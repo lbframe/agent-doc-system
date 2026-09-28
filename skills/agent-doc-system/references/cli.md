@@ -29,9 +29,13 @@ agentdoc audit              # inventory the repo, classify every fact (JSON)
 agentdoc scaffold [--write] # generate descriptors for what can be proven
 ```
 
-`init` never overwrites an existing file without `--force`. `scaffold` is a dry
-run without `--write`. `audit` works even when the repository cannot compile
-yet; it reports the compilation failures as part of its output.
+`init` never overwrites an existing file without `--force`, and run inside a
+subdirectory of a cataloged repository it writes at the catalog root, not the
+current directory. `scaffold` is a dry run without `--write`; with `--write` it
+is a superset of `init` — it also installs anything missing from the config,
+doc skeleton and CI workflow, not only component descriptors. `audit` works
+even when the repository cannot compile yet; it reports the compilation
+failures as part of its output.
 
 ## Validation
 

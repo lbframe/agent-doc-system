@@ -41,8 +41,22 @@ function findRoot(start) {
 const ROOT = findRoot(process.cwd());
 const argv = process.argv.slice(2);
 const cmd = argv[0];
-const flags = new Set(argv.filter((a) => a.startsWith("--")).map((a) => a.replace(/^--/, "").split("=")[0]));
-const positional = argv.slice(1).filter((a) => !a.startsWith("--"));
+// Flags that consume the next token as a value. Anything else is boolean; a
+// `--flag value` pair must not leak the value into `positional`
+// (`agentdoc query --budget relations=10 svc/api` must query svc/api).
+const VALUE_FLAGS = new Set(["budget", "diff", "from"]);
+const flags = new Set();
+const positional = [];
+for (let i = 1; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith("--")) {
+    const name = a.replace(/^--/, "").split("=")[0];
+    flags.add(name);
+    if (!a.includes("=") && VALUE_FLAGS.has(name) && argv[i + 1] && !argv[i + 1].startsWith("--")) i++;
+    continue;
+  }
+  positional.push(a);
+}
 const flag = (name, dflt = null) => {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--" + name) {
@@ -261,14 +275,14 @@ try {
   } else if (cmd === "eval") {
     const which = positional[0] || "routing";
     if (which !== "routing") { console.error("usage: agentdoc eval routing [--json]"); process.exit(2); }
-    // The evaluation corpora are development material and are not shipped in
-    // the installed package, so the harness is loaded lazily: it must not make
-    // every other command fail on a missing directory it never uses.
+    // The harness ships, but it is loaded lazily so a trimmed or damaged
+    // installation cannot make every other command fail on a module the user
+    // never asked for.
     let runRoutingEval;
     try {
       ({ runRoutingEval } = await import("../evals/harness.mjs"));
     } catch {
-      console.error("agentdoc eval: the routing evaluation is not included in the installed package — run it from an agent-doc-system source checkout");
+      console.error("agentdoc eval: the evaluation harness is missing from this installation — reinstall the agentdoc CLI, or run it from a source checkout");
       process.exit(1);
     }
     const report = runRoutingEval(ROOT, { json: flags.has("json") });

@@ -26,6 +26,9 @@ agentdoc --version
 agentdoc doctor        # machine self-check
 ```
 
+Unpinned installs track `main`. For reproducible CI, pin a tag or commit:
+`github:lbframe/agent-doc-system#v1.0.0`.
+
 The install footprint is the CLI only — `bin/`, `core/`, `adapters/`,
 `schemas/`, `templates/`, `evals/`, docs and the agent skill. Nothing is ever
 copied into a project that uses AgentDoc.

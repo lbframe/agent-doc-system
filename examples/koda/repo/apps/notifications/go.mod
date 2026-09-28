@@ -1,4 +1,4 @@
-module github.com/kodalabs-io/koda/apps/notifications
+module example.com/koda/apps/notifications
 
 go 1.24
 

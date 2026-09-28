@@ -83,8 +83,9 @@ not work around it: run `agentdoc compile`, review the diff, commit the graph.
 ## Rules that are never optional
 
 - **Never vendor the CLI.** A project gets `agentdoc/` project data (config,
-  descriptors, observations) and `.agentdoc/graph.json` — never a copy of the
-  agentdoc source tree (`core/`, `adapters/`, `schemas/`, `bin/`, `tests/`).
+  descriptors, observations), `docs/` skeletons, `.agentdoc/graph.json` and a
+  CI workflow — never a copy of the agentdoc source tree (`core/`, `bin/`,
+  `adapters/`, `schemas/`, `templates/`, `evals/`, `tests/`).
 - **Never promote uncertainty.** Heuristic guesses do not become authored
   facts; they become `reviewedOverrides` with evidence, or they stay out.
 - **Never reconcile a conflict by editing one side.** Add an authority rule for

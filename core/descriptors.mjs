@@ -12,6 +12,7 @@
 //   - refs and context paths must resolve
 import path from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { AgentDocError, CODES, collect } from "./codes.mjs";
 import { assertRepoPath, expandGlob, sha256Hex } from "./fsx.mjs";
@@ -92,7 +93,7 @@ function checkOneSentence(desc, pathStr) {
 // repository must not be able to loosen validation by editing a schema. Their
 // content hashes are folded into the graph input hash so upgrading a schema
 // correctly invalidates every graph compiled against the old one.
-const SYSTEM_ROOT = path.posix.join(path.dirname(new URL(import.meta.url).pathname), "..");
+const SYSTEM_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export function loadSchemaBundle() {
   const abs = path.join(SYSTEM_ROOT, "schemas");

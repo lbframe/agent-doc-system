@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '24' }
       - name: Install the agentdoc CLI
+        # Unpinned tracks main. For CI reproducibility pin a tag or commit:
+        #   github:lbframe/agent-doc-system#v1.0.0
+        # A compiler upgrade intentionally invalidates committed graphs.
         run: npm install -g github:lbframe/agent-doc-system
       - name: Validate and compile
         run: |

@@ -14,7 +14,8 @@ agentdoc — portable documentation & software-catalog system
                                      route minimal context for a task
   agentdoc impact <paths...>         what a change forces you to keep consistent
   agentdoc impact --diff <git-ref>   the same, for a commit range
-  agentdoc eval routing [--json]     agent-routing evaluation (source checkout only)
+  agentdoc eval routing [--json]     agent-routing evaluation against registered
+                                     scenarios (SKIP when the repo has none)
   agentdoc pin-evidence [--json]     check/repair digests pinned by reviewed overrides
   agentdoc doctor                    machine self-check: is this CLI install healthy
   agentdoc doctor --project          the same, plus the current project's catalog health
