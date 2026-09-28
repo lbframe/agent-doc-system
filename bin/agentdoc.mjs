@@ -16,12 +16,14 @@ import { impact } from "../core/impact.mjs";
 import { audit, scaffoldProposal } from "../core/audit.mjs";
 import { observationFreshness, stalenessDiagnostics } from "../core/observations.mjs";
 import { assertNoSecretsInText } from "../core/secrets.mjs";
-import { runRoutingEval } from "../evals/harness.mjs";
 import { installTemplates } from "../core/scaffold.mjs";
 import { loadSchemaBundle, loadConfig } from "../core/descriptors.mjs";
 import { execFileSync } from "node:child_process";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const PACKAGE_ROOT = path.join(HERE, "..");
+const VERSION = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")).version;
+const MIN_NODE_MAJOR = 22;
 // Commands are run from wherever the agent happens to be. Walk up until the
 // configuration is found, so `agentdoc query src/foo.ts` works from a
 // subdirectory instead of failing with a misleading missing-file error.
@@ -56,6 +58,12 @@ function fail(errors, stats) {
   for (const e of errors) console.error("ERROR " + (e.format ? e.format() : e.code + ": " + e.message));
   if (stats) console.error("agentdoc: " + JSON.stringify(stats));
   process.exit(1);
+}
+
+function usage(exitCode) {
+  const text = fs.readFileSync(path.join(HERE, "usage.txt"), "utf8");
+  (exitCode === 0 ? process.stdout : process.stderr).write(text);
+  process.exit(exitCode);
 }
 
 function printDiagnostics(res) {
@@ -115,6 +123,13 @@ function out(obj, asJson) {
 }
 
 try {
+  if (cmd === "--version" || cmd === "-v" || cmd === "version") {
+    console.log("agentdoc " + VERSION);
+    process.exit(0);
+  }
+  if (cmd === "--help" || cmd === "-h" || cmd === "help" || flags.has("help") || argv.includes("-h")) {
+    usage(0);
+  }
   if (cmd === "validate") {
     const res = compile(ROOT);
     printDiagnostics(res);
@@ -246,6 +261,16 @@ try {
   } else if (cmd === "eval") {
     const which = positional[0] || "routing";
     if (which !== "routing") { console.error("usage: agentdoc eval routing [--json]"); process.exit(2); }
+    // The evaluation corpora are development material and are not shipped in
+    // the installed package, so the harness is loaded lazily: it must not make
+    // every other command fail on a missing directory it never uses.
+    let runRoutingEval;
+    try {
+      ({ runRoutingEval } = await import("../evals/harness.mjs"));
+    } catch {
+      console.error("agentdoc eval: the routing evaluation is not included in the installed package — run it from an agent-doc-system source checkout");
+      process.exit(1);
+    }
     const report = runRoutingEval(ROOT, { json: flags.has("json") });
     if (flags.has("json")) { out(report, true); process.exit(report.verdict === "FAIL" ? 1 : 0); }
     else {
@@ -294,45 +319,70 @@ try {
     }
     if (results.some((r) => r.status !== "CURRENT")) process.exit(1);
   } else if (cmd === "doctor") {
-    // Actually check, rather than asserting. A doctor that always reports
-    // "selfContained: true" is worse than no doctor.
+    // Two scopes, kept explicit: `doctor` is a machine check — is this
+    // installation of the CLI itself healthy — and never fails because a
+    // project happens not to be configured yet. `doctor --project` adds the
+    // project checks and fails on those too.
     const major = Number(process.versions.node.split(".")[0]);
-    const checks = {
+    const machine = {
+      agentdoc: VERSION,
       node: process.version,
-      nodeSupported: major >= 18,
+      nodeSupported: major >= MIN_NODE_MAJOR,
+      nodeRequired: ">=" + MIN_NODE_MAJOR,
       compiler: COMPILER_NAME + "@" + COMPILER_VERSION,
       graphSchema: GRAPH_SCHEMA_VERSION,
-      root: ROOT,
-      configurationFound: fs.existsSync(path.join(ROOT, "agentdoc", "agentdoc.config.yaml")),
+      installRoot: PACKAGE_ROOT,
       schemaBundle: null,
       gitAvailable: false,
-      writable: null,
       externalRuntimeDependencies: [],
     };
     try {
-      const { bundle, versionInputs } = loadSchemaBundle();
-      checks.schemaBundle = { ok: true, schemas: versionInputs.length };
+      const { versionInputs } = loadSchemaBundle();
+      machine.schemaBundle = { ok: true, schemas: versionInputs.length };
     } catch (e) {
-      checks.schemaBundle = { ok: false, error: e.code + ": " + e.message };
+      machine.schemaBundle = { ok: false, error: (e.code ? e.code + ": " : "") + e.message };
     }
     try {
-      execFileSync("git", ["rev-parse", "--git-dir"], { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] });
-      checks.gitAvailable = true;
+      execFileSync("git", ["--version"], { stdio: ["ignore", "pipe", "ignore"] });
+      machine.gitAvailable = true;
     } catch {
-      checks.gitAvailable = false;
+      machine.gitAvailable = false;
     }
-    try {
-      fs.accessSync(ROOT, fs.constants.W_OK);
-      checks.writable = true;
-    } catch {
-      checks.writable = false;
+    let machineOk = machine.nodeSupported && machine.schemaBundle.ok;
+
+    const report = { scope: "machine", ok: machineOk, machine };
+    if (flags.has("project")) {
+      const configFound = fs.existsSync(path.join(ROOT, "agentdoc", "agentdoc.config.yaml"));
+      const project = {
+        root: ROOT,
+        configurationFound: configFound,
+        configPath: "agentdoc/agentdoc.config.yaml",
+        writable: null,
+        graphPresent: false,
+      };
+      try {
+        fs.accessSync(ROOT, fs.constants.W_OK);
+        project.writable = true;
+      } catch {
+        project.writable = false;
+      }
+      if (configFound) {
+        try {
+          const cfg = loadConfig(new Repo(ROOT), loadSchemaBundle().bundle);
+          project.graphPath = cfg.output?.graph || ".agentdoc/graph.json";
+          project.graphPresent = fs.existsSync(path.join(ROOT, project.graphPath));
+        } catch (e) {
+          project.configError = (e.code ? e.code + ": " : "") + e.message;
+        }
+      }
+      report.scope = "machine+project";
+      report.project = project;
+      report.ok = machineOk && configFound && project.writable === true && !project.configError;
     }
-    const bad = !checks.nodeSupported || !checks.configurationFound || !checks.schemaBundle.ok || !checks.writable;
-    out(checks, true);
-    if (bad) process.exit(1);
+    out(report, true);
+    if (!report.ok) process.exit(1);
   } else {
-    console.error(fs.readFileSync(path.join(HERE, "..", "bin", "usage.txt"), "utf8"));
-    process.exit(2);
+    usage(2);
   }
 } catch (e) {
   if (e instanceof AgentDocError) {

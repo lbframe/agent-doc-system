@@ -277,8 +277,9 @@ at a known time, with a durable reference to the raw evidence.
    bundle, or anywhere else in this directory. Run \`agentdoc validate\`; it
    fails on secret-shaped input.
 2. Every fact needs a \`subject\` (an entity ref that exists) and a \`key\`
-   (see SPEC.md "Fact keys"). Two observation sets must not use the same key on
-   the same subject.
+   (see "Fact keys" in the AgentDoc specification,
+   docs/SPEC.md of https://github.com/lbframe/agent-doc-system). Two
+   observation sets must not use the same key on the same subject.
 3. \`evidenceBundle\` must be a committed, repository-relative file. A temp
    path, a console URL with a session token, or a screenshot filename is not
    evidence.
@@ -288,7 +289,8 @@ at a known time, with a durable reference to the raw evidence.
 
 ## Shape
 
-See \`templates/observation.yaml\`.
+See the \`observation.yaml\` template shipped with the agentdoc CLI
+(templates/observation.yaml in the installed package).
 `;
 
 export function templatePaths() {

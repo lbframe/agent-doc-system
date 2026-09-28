@@ -1,6 +1,10 @@
 # Drift gate. The graph is a build artifact: compile it, then prove the
 # committed one is byte-identical to a fresh compile. A stale or hand-edited
 # graph fails here, not in someone's review three weeks later.
+#
+# This is the workflow `agentdoc init` installs as
+# .github/workflows/agentdoc.yml (see templates/ci.yml). It assumes nothing
+# about the repository beyond a supported Node toolchain.
 name: agentdoc
 on:
   pull_request:
@@ -14,15 +18,15 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with: { node-version: '22' }
+        with: { node-version: '24' }
+      - name: Install the agentdoc CLI
+        run: npm install -g github:lbframe/agent-doc-system
       - name: Validate and compile
         run: |
-          node agentdoc/bin/agentdoc.mjs validate
-          node agentdoc/bin/agentdoc.mjs compile
-          node agentdoc/bin/agentdoc.mjs check
+          agentdoc validate
+          agentdoc compile
+          agentdoc check
       - name: Reject dirty sources
-        run: node agentdoc/bin/agentdoc.mjs check --require-clean
-      - name: Unit tests
-        run: node --test agentdoc/tests/*.test.mjs
+        run: agentdoc check --require-clean
       - name: Routing evaluation
-        run: node agentdoc/bin/agentdoc.mjs eval routing
+        run: agentdoc eval routing

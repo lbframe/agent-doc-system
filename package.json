@@ -2,17 +2,30 @@
   "name": "agent-doc-system",
   "version": "1.0.0",
   "type": "module",
-  "description": "Portable documentation and software-catalog system with an explicit authority model",
+  "description": "Portable documentation and software-catalog system with an explicit authority model, for AI coding agents",
+  "keywords": [
+    "agentdoc",
+    "software-catalog",
+    "documentation",
+    "ai-agents",
+    "architecture",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lbframe/agent-doc-system.git"
+  },
+  "homepage": "https://github.com/lbframe/agent-doc-system",
+  "bugs": "https://github.com/lbframe/agent-doc-system/issues",
   "bin": {
     "agentdoc": "./bin/agentdoc.mjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "eval": "node evals/run-all.mjs",
-    "check": "node bin/agentdoc.mjs check",
     "selfcheck": "node bin/agentdoc.mjs doctor",
     "compare": "python3 scripts/compare-koda.py"
   },
@@ -21,15 +34,12 @@
   "files": [
     "adapters",
     "bin",
-    "ci",
     "core",
+    "docs",
     "evals",
-    "examples",
-    "fixtures",
     "schemas",
-    "scripts",
+    "skills",
     "templates",
-    "tests",
-    "*.md"
+    "INSTALL_FOR_AGENTS.md"
   ]
 }

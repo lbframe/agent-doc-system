@@ -7,7 +7,7 @@ safely on that subject, and refuse to answer from a stale graph.
 ## Contract
 
 ```bash
-node agentdoc/bin/agentdoc.mjs query <repo-path|entity-ref> [--json] [--md]
+agentdoc query <repo-path|entity-ref> [--json] [--md]
 ```
 
 Resolution order:
@@ -151,8 +151,8 @@ Triggers governed endpoints on a platform schedule and owns no business logic.
 ## Change impact
 
 ```bash
-node agentdoc/bin/agentdoc.mjs impact <paths...>
-node agentdoc/bin/agentdoc.mjs impact --diff <git-ref>
+agentdoc impact <paths...>
+agentdoc impact --diff <git-ref>
 ```
 
 Impact answers a question about the working tree, so it compiles in memory and

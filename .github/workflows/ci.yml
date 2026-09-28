@@ -1,0 +1,63 @@
+# CI for the agent-doc-system repository itself.
+#
+# Matrix job: the test suite, CLI smoke and the clean npm-pack install test run
+# on every supported Node version. A separate job runs the heavyweight
+# aggregate evaluation once — triplicating it would triple the cost without
+# adding signal.
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24', '26']
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: ${{ matrix.node }} }
+      - name: CLI smoke
+        run: |
+          node bin/agentdoc.mjs --version
+          node bin/agentdoc.mjs --help
+          node bin/agentdoc.mjs doctor
+      - name: Tests (unit, adversarial, modes, packaging incl. npm pack install)
+        run: node --test tests/*.test.mjs
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - name: Aggregate routing evaluation
+        run: node evals/run-all.mjs
+      - name: Corpora gates
+        run: |
+          set -e
+          for repo in fixtures/a-node-ts-postgres fixtures/b-go-multi-service fixtures/c-alt-monorepo examples/koda/repo; do
+            echo "=== $repo ==="
+            (cd "$repo" \
+              && node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" validate \
+              && node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" compile \
+              && node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" check --require-clean)
+          done
+      - name: Determinism — three compiles are byte-identical
+        run: |
+          set -e
+          cd examples/koda/repo
+          node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" compile >/dev/null
+          h1=$(shasum -a 256 .agentdoc/graph.json | cut -d' ' -f1)
+          node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" compile >/dev/null
+          h2=$(shasum -a 256 .agentdoc/graph.json | cut -d' ' -f1)
+          node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" compile >/dev/null
+          h3=$(shasum -a 256 .agentdoc/graph.json | cut -d' ' -f1)
+          test "$h1" = "$h2" && test "$h2" = "$h3"
+          echo "byte-identical across three compiles: $h1"

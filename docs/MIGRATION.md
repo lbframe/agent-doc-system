@@ -20,7 +20,7 @@ few components there are.
 ## The audit
 
 ```bash
-node agentdoc/bin/agentdoc.mjs audit
+agentdoc audit
 ```
 
 `audit` runs even when the repository cannot compile, and reports compilation
@@ -92,14 +92,14 @@ The list a human must work through:
 ## CREATE
 
 ```bash
-node agentdoc/bin/agentdoc.mjs init          # configuration + doc skeleton
+agentdoc init          # configuration + doc skeleton
 $EDITOR agentdoc/agentdoc.config.yaml        # layout, namespace, adapters
-node agentdoc/bin/agentdoc.mjs audit         # what is provable
-node agentdoc/bin/agentdoc.mjs scaffold --write
+agentdoc audit         # what is provable
+agentdoc scaffold --write
 $EDITOR '**/agentdoc.yaml'                   # every generated description
-node agentdoc/bin/agentdoc.mjs validate
-node agentdoc/bin/agentdoc.mjs compile
-node agentdoc/bin/agentdoc.mjs check
+agentdoc validate
+agentdoc compile
+agentdoc check
 ```
 
 `init` writes `agentdoc/agentdoc.config.yaml`, the four central descriptor
@@ -125,9 +125,9 @@ nobody trusts.
 ## MIGRATE
 
 ```bash
-node agentdoc/bin/agentdoc.mjs init
+agentdoc init
 # set componentDescriptors to the real layout; enable the right adapters
-node agentdoc/bin/agentdoc.mjs audit > migration-report.json
+agentdoc audit > migration-report.json
 ```
 
 Then, in order:
@@ -184,8 +184,8 @@ the graph says *what*.
 ## Finishing
 
 ```bash
-node agentdoc/bin/agentdoc.mjs validate && node agentdoc/bin/agentdoc.mjs check
-node agentdoc/bin/agentdoc.mjs eval routing
+agentdoc validate && agentdoc check
+agentdoc eval routing
 git add -A && git commit
 ```
 

@@ -19,14 +19,18 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with: { node-version: '22' }
-      - run: node agentdoc/bin/agentdoc.mjs validate
-      - run: node agentdoc/bin/agentdoc.mjs compile
-      - run: node agentdoc/bin/agentdoc.mjs check
-      - run: node agentdoc/bin/agentdoc.mjs check --require-clean
-      - run: node --test agentdoc/tests/*.test.mjs
-      - run: node agentdoc/bin/agentdoc.mjs eval routing
+        with: { node-version: '24' }
+      - run: npm install -g github:lbframe/agent-doc-system
+      - run: agentdoc validate
+      - run: agentdoc compile
+      - run: agentdoc check
+      - run: agentdoc check --require-clean
+      - run: agentdoc eval routing
 ```
+
+`agentdoc init` writes this workflow to `.github/workflows/agentdoc.yml` (from
+`templates/ci.yml` in the CLI package). The same file is kept at
+`docs/ci/github-actions.yml` for reference.
 
 `fetch-depth: 0` is recommended: `--diff <ref>` needs history, and `dirty` is
 more meaningful against a real `HEAD`.
@@ -45,10 +49,11 @@ Two things to decide per repository:
   architecture reviewable in the pull request, which is valuable in a mature
   repository. Ignoring it keeps diffs small. The gate works either way, because
   the workflow compiles before checking.
-- **Run the full routing evaluation or not.** The aggregate gate
-  (`node evals/run-all.mjs`) is the meaningful one, and it fails when any single
-  corpus fails. `agentdoc eval routing` skips cleanly on a repository with no
-  registered scenarios, so it is safe to run everywhere.
+- **Run the routing evaluation or not.** `agentdoc eval routing` skips cleanly
+  on a repository with no registered scenarios, so it is safe to run
+  everywhere. The aggregate gate over every corpus (`node evals/run-all.mjs`)
+  is development tooling — it belongs to this repository's own CI, not to a
+  project that merely uses the catalog.
 
 ## Failure modes worth knowing
 
@@ -106,10 +111,9 @@ both are true the first is the one that matters.
 ## Local parity
 
 ```bash
-node agentdoc/bin/agentdoc.mjs validate
-node agentdoc/bin/agentdoc.mjs compile
-node agentdoc/bin/agentdoc.mjs check --require-clean
-node --test agentdoc/tests/*.test.mjs
+agentdoc validate
+agentdoc compile
+agentdoc check --require-clean
 ```
 
 The same commands, the same codes, the same exit status. There is no CI-only
@@ -121,9 +125,10 @@ The gate is four commands and an exit code. Any runner works:
 
 ```sh
 set -e
-node agentdoc/bin/agentdoc.mjs validate
-node agentdoc/bin/agentdoc.mjs compile
-node agentdoc/bin/agentdoc.mjs check --require-clean
+agentdoc validate
+agentdoc compile
+agentdoc check --require-clean
 ```
 
-`ci/generic-ci.sh` is exactly that, with the argument handling removed.
+`ci/generic-ci.sh` (next to this document) is exactly that, plus a clear
+failure when the `agentdoc` CLI is not installed on the runner.
