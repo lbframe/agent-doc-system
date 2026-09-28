@@ -348,7 +348,7 @@ try {
     } catch {
       machine.gitAvailable = false;
     }
-    let machineOk = machine.nodeSupported && machine.schemaBundle.ok;
+    const machineOk = machine.nodeSupported && machine.schemaBundle.ok;
 
     const report = { scope: "machine", ok: machineOk, machine };
     if (flags.has("project")) {

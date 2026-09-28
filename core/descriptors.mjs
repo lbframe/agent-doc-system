@@ -123,7 +123,23 @@ const KIND_SCHEMA_ID = {
 export const CONFIG_PATH = "agentdoc/agentdoc.config.yaml";
 
 export function loadConfig(repo, bundle) {
-  const docs = parseYamlDocuments(repo.readText(CONFIG_PATH), CONFIG_PATH);
+  let text;
+  try {
+    text = repo.readText(CONFIG_PATH);
+  } catch (e) {
+    // A missing configuration is the normal "not onboarded yet" state, so the
+    // error must say that — `AGENTDOC_PATH_UNRESOLVED` reads like a defect.
+    if (e instanceof AgentDocError && e.code === CODES.PATH_UNRESOLVED) {
+      throw new AgentDocError(
+        CODES.CONFIG,
+        "no agentdoc configuration found — expected " + CONFIG_PATH +
+          "; commands search upward from the working directory, and `agentdoc init` creates the catalog",
+        { path: CONFIG_PATH }
+      );
+    }
+    throw e;
+  }
+  const docs = parseYamlDocuments(text, CONFIG_PATH);
   if (docs.length !== 1) {
     throw new AgentDocError(CODES.CONFIG, "agentdoc.config.yaml must contain exactly one document", { path: CONFIG_PATH });
   }
