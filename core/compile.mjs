@@ -531,13 +531,13 @@ export function compile(root, opts = {}) {
   for (const o of observationOut) {
     if (o.supersedes) {
       const prior = observationOut.find((x) => x.id === o.supersedes);
-      if (prior) supersededAt.add(prior.capturedAt + " " + prior.environment);
+      if (prior) supersededAt.add(prior.capturedAt + "\u0000" + prior.environment);
     }
   }
   for (const f of facts.facts) {
     if (f.evidenceClass !== "OBSERVED_RUNTIME") continue;
     const fo = f.observed;
-    if (!fo || !supersededAt.has(fo.at + " " + fo.environment)) continue;
+    if (!fo || !supersededAt.has(fo.at + "\u0000" + fo.environment)) continue;
     f.status = "superseded";
     // Supersession is a claim a human made, so it is a reviewable claim. Silence
     // would let any observation quietly void any other: the code is in
