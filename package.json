@@ -43,5 +43,6 @@
     "skills",
     "templates",
     "INSTALL_FOR_AGENTS.md"
-  ]
+  ],
+  "license": "MIT"
 }
