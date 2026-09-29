@@ -59,6 +59,10 @@ export class AuthorityEngine {
 export function resolveAssertions(assertions, authority) {
   const groups = new Map();
   for (const a of assertions) {
+    // An assertion a later observation supersedes stays in the graph as
+    // history but does not compete here: it cannot win an election and cannot
+    // anchor a conflict.
+    if (a.status === "superseded") continue;
     const gk = a.subject + "\u0000" + a.key;
     if (!groups.has(gk)) groups.set(gk, []);
     groups.get(gk).push(a);
@@ -209,31 +213,6 @@ function classifyConflict(list, election, candidateOnly) {
   if (candidateOnly) return "ambiguity";
   if (classes.size > 1) return "contradiction";
   return "ambiguity";
-}
-
-// A rule may say what a stale election means. Implemented, not decorative: a
-// staleness conflict is raised for the observation, and a rule can require the
-// election to degrade to unresolved instead.
-export function staleObservationsFor(assertions, now) {
-  const out = [];
-  for (const a of assertions) {
-    if (a.evidenceClass !== "OBSERVED_RUNTIME" || !a.observed || !a.observed.at) continue;
-    const age = (now - Date.parse(a.observed.at)) / 86400000;
-    if (!Number.isFinite(age)) continue;
-    out.push({ assertion: a, ageDays: Math.floor(age) });
-  }
-  return out;
-}
-
-// Observations that a later set explicitly supersedes do not compete. The
-// assertion carries `observed.supersedes` (the name of the set it replaces), and
-// a set that is superseded by any other loses its assertions for election
-// purposes while staying in the graph as history.
-export function applySupersession(assertions, observationSupersededBy) {
-  for (const a of assertions) {
-    if (a.evidenceClass !== "OBSERVED_RUNTIME") continue;
-    if (observationSupersededBy.has(a.observed && a.observed.at)) a.status = "superseded";
-  }
 }
 
 export function distinctValues(list) {

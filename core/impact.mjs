@@ -14,8 +14,7 @@ import { ContextIndex } from "./query.mjs";
 // Sources of truth, all from the graph:
 //   - the canonical contract of every API entity                  -> contract
 //   - every file the compiler read                                 -> input
-//   - every extractor identity, which names the technology        -> deployment /
-//                                                                    dependency /
+//   - every extractor identity, which names the technology        -> dependency /
 //                                                                    verification
 //   - every documentation and constraint path on an entity         -> documentation
 function classify(graph, p, idx) {
@@ -53,7 +52,6 @@ export function impact(graph, changedPaths) {
   const contracts = new Set();
   const docs = new Set();
   const resources = new Set();
-  const deployment = new Set();
   const verificationPaths = new Set();
   const dependencyPaths = new Set();
   const catalogPaths = new Set();
@@ -66,7 +64,6 @@ export function impact(graph, changedPaths) {
     // `resource:` ref in a list an agent reads as "components you must check",
     // while the components actually bound to it went unmentioned.
     if (entity && entity.kind === "Component") add(entity.ref, "direct file change inside " + entity.ref);
-    else if (entity) unmatched.push(p);
     else unmatched.push(p);
     const kind = classify(graph, p, idx);
     if (kind === "contract") contracts.add(p);
@@ -157,7 +154,6 @@ export function impact(graph, changedPaths) {
     affectedContracts: [...contracts].sort(),
     affectedDocs: [...docs].sort(),
     affectedResources: [...resources].sort(),
-    affectedDeployment: [...deployment].sort(),
     affectedInputs: [...dependencyPaths].sort(),
     affectedVerification: [...verificationPaths].sort(),
     affectedCatalog: [...catalogPaths].sort(),

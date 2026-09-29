@@ -176,7 +176,15 @@ export class Repo {
   }
 
   git(args) {
-    return execFileSync("git", args, { cwd: this.root, encoding: "utf8" }).trim();
+    // stderr must be piped, not inherited: every caller treats a non-zero exit
+    // as a signal to degrade (unborn HEAD, detached worktree, missing remote),
+    // and execFileSync would otherwise print git's own "fatal:" line to the
+    // user's terminal while the command reports success.
+    return execFileSync("git", args, {
+      cwd: this.root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
   }
   hasGit() {
     if (this.noGit) return false;
@@ -202,6 +210,31 @@ export class Repo {
       return "0000000";
     }
   }
+  // Git reports paths relative to the git toplevel, which may be above
+  // this.root when the cataloged project sits inside a larger checkout — a
+  // corpus fixture inside this repository, or a vendored sub-project. Anything
+  // outside this.root is not a catalog input and must not mark it dirty;
+  // anything inside must be re-keyed to the root-relative form the read
+  // tracker uses.
+  gitPrefix() {
+    if (this.noGit || !this.hasGit()) return null;
+    try {
+      return this.git(["rev-parse", "--show-prefix"]);
+    } catch {
+      return null;
+    }
+  }
+  toRepoPaths(gitPaths) {
+    const prefix = this.gitPrefix();
+    if (prefix === null) return [];
+    const out = [];
+    for (const p of gitPaths) {
+      if (prefix && !p.startsWith(prefix) && p !== prefix.slice(0, -1)) continue;
+      const rel = prefix ? p.slice(prefix.length) : p;
+      if (rel) out.push(rel);
+    }
+    return out;
+  }
   dirtyPaths() {
     if (this.noGit || !this.hasGit()) return [];
     let raw;
@@ -211,20 +244,26 @@ export class Repo {
       return [];
     }
     const paths = [];
+    let skipNext = false;
     for (const rec of raw.split("\0")) {
       if (!rec) continue;
-      const p = rec.slice(3);
-      const arrow = p.indexOf(" -> ");
-      paths.push(arrow >= 0 ? p.slice(arrow + 4) : p);
+      // In -z format a rename/copy is two records: `XY <to>` then a bare
+      // `<from>` with no status. The bare record must be consumed, not parsed
+      // as a status line.
+      if (skipNext) { skipNext = false; continue; }
+      if (rec[0] === "R" || rec[0] === "C" || rec[1] === "R" || rec[1] === "C") skipNext = true;
+      paths.push(rec.slice(3));
     }
-    return paths;
+    return this.toRepoPaths(paths);
   }
+  // null on failure (bad ref, missing object store) so callers can tell
+  // "the diff failed" apart from "the diff is empty".
   diffPaths(fromRef) {
-    if (this.noGit || !this.hasGit()) return [];
+    if (this.noGit || !this.hasGit()) return null;
     try {
-      return this.git(["diff", "--name-only", fromRef]).split("\n").filter(Boolean);
+      return this.toRepoPaths(this.git(["diff", "--name-only", fromRef]).split("\n").filter(Boolean));
     } catch {
-      return [];
+      return null;
     }
   }
 }

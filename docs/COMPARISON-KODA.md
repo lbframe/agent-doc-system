@@ -1,6 +1,7 @@
 # Koda comparison
 
-Reference: `kodalabs-io/koda` at `origin/main` = `19b2227f17d0116ef5e8d8a6dd1e86ff1fdb913b`.
+Reference: the Koda production repository (private) at `origin/main` =
+`19b2227f17d0116ef5e8d8a6dd1e86ff1fdb913b`.
 The portable system was run against a working copy of that commit. No Koda source,
 configuration or production behaviour was modified.
 

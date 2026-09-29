@@ -12,6 +12,7 @@
 //   - refs and context paths must resolve
 import path from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { AgentDocError, CODES, collect } from "./codes.mjs";
 import { assertRepoPath, expandGlob, sha256Hex } from "./fsx.mjs";
@@ -92,7 +93,7 @@ function checkOneSentence(desc, pathStr) {
 // repository must not be able to loosen validation by editing a schema. Their
 // content hashes are folded into the graph input hash so upgrading a schema
 // correctly invalidates every graph compiled against the old one.
-const SYSTEM_ROOT = path.posix.join(path.dirname(new URL(import.meta.url).pathname), "..");
+const SYSTEM_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export function loadSchemaBundle() {
   const abs = path.join(SYSTEM_ROOT, "schemas");
@@ -123,7 +124,23 @@ const KIND_SCHEMA_ID = {
 export const CONFIG_PATH = "agentdoc/agentdoc.config.yaml";
 
 export function loadConfig(repo, bundle) {
-  const docs = parseYamlDocuments(repo.readText(CONFIG_PATH), CONFIG_PATH);
+  let text;
+  try {
+    text = repo.readText(CONFIG_PATH);
+  } catch (e) {
+    // A missing configuration is the normal "not onboarded yet" state, so the
+    // error must say that — `AGENTDOC_PATH_UNRESOLVED` reads like a defect.
+    if (e instanceof AgentDocError && e.code === CODES.PATH_UNRESOLVED) {
+      throw new AgentDocError(
+        CODES.CONFIG,
+        "no agentdoc configuration found — expected " + CONFIG_PATH +
+          "; commands search upward from the working directory, and `agentdoc init` creates the catalog",
+        { path: CONFIG_PATH }
+      );
+    }
+    throw e;
+  }
+  const docs = parseYamlDocuments(text, CONFIG_PATH);
   if (docs.length !== 1) {
     throw new AgentDocError(CODES.CONFIG, "agentdoc.config.yaml must contain exactly one document", { path: CONFIG_PATH });
   }
@@ -140,7 +157,7 @@ export function loadConfig(repo, bundle) {
     }
   }
   for (const p of [
-    cfg.output.graph, cfg.output.observations, cfg.output.report,
+    cfg.output.graph, cfg.output.observations,
     ...(cfg.discovery.supplementalRoots || []),
     ...(cfg.discovery.contractRoots || []),
     ...(cfg.docs ? Object.values(cfg.docs) : []),
@@ -153,6 +170,13 @@ export function loadConfig(repo, bundle) {
 function descriptorGlobs(repo, cfg) {
   const componentFiles = new Set();
   for (const g of cfg.discovery.componentDescriptors) for (const f of expandGlob(repo, g)) componentFiles.add(f);
+  // A supplementalRoots unit is declared by configuration, not discovered by a
+  // glob — its descriptor lives at a fixed path and must be loaded even when
+  // no componentDescriptors glob happens to cover that directory.
+  for (const r of cfg.discovery.supplementalRoots || []) {
+    const f = String(r).replace(/\/+$/, "") + "/" + cfg.discovery.componentDescriptorName;
+    if (repo.exists(f)) componentFiles.add(f);
+  }
   const centralFiles = new Set();
   for (const g of cfg.discovery.centralDescriptors) for (const f of expandGlob(repo, g)) centralFiles.add(f);
   return { componentFiles: [...componentFiles].sort(), centralFiles: [...centralFiles].sort() };

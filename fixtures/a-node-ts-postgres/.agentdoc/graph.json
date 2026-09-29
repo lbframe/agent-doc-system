@@ -1,0 +1,938 @@
+{
+  "schemaVersion": "agentdoc.dev/graph/v1",
+  "source": {
+    "commit": "2fe6659302e5f37f5ec9a9d3928cf109777f5042",
+    "dirty": false,
+    "inputHash": "sha256:10911270419e956a14c0445772cbd6baf522064a8b5f57461fee1532ecf98d30"
+  },
+  "compiler": {
+    "name": "agentdoc-compiler",
+    "version": "1.0.0",
+    "adapters": [
+      {
+        "name": "database",
+        "version": "1.0.0"
+      },
+      {
+        "name": "generic",
+        "version": "1.0.0"
+      },
+      {
+        "name": "github-actions",
+        "version": "1.0.0"
+      },
+      {
+        "name": "node",
+        "version": "1.0.0"
+      },
+      {
+        "name": "openapi",
+        "version": "1.0.0"
+      },
+      {
+        "name": "pnpm",
+        "version": "1.0.0"
+      },
+      {
+        "name": "typescript",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "entities": [
+    {
+      "ref": "api:default/orders-api",
+      "kind": "API",
+      "name": "orders-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "orders-api",
+          "description": "Canonical JSON HTTP surface for order capture and reads."
+        },
+        "spec": {
+          "type": "openapi",
+          "provider": "component:default/orders-service",
+          "contract": {
+            "ref": "contracts/orders.openapi.yaml"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "component:default/orders-service",
+      "kind": "Component",
+      "name": "orders-service",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "orders-service",
+          "description": "Serves the orders read and write API and owns the orders database."
+        },
+        "spec": {
+          "type": "service",
+          "system": "ordering",
+          "context": {
+            "constraints": [
+              "service/CONSTRAINTS.md"
+            ]
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "service/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "service",
+        "docs": [
+          "service/README.md"
+        ],
+        "constraints": [
+          "service/CONSTRAINTS.md"
+        ],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "service/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "service/tsconfig.json"
+          }
+        ],
+        "migrationAuthority": "service/db/migrations/0001_orders.sql",
+        "bindings": [
+          {
+            "kind": "database",
+            "logicalResourceRef": "resource:default/orders-service-postgres",
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0019"
+            ]
+          }
+        ],
+        "healthContracts": [
+          {
+            "path": "service/src/routes/health.ts",
+            "route": "/healthz",
+            "semantics": "liveness",
+            "provenanceIds": [
+              "p-0027"
+            ]
+          }
+        ],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": true,
+          "references": 0
+        }
+      }
+    },
+    {
+      "ref": "domain:default/commerce",
+      "kind": "Domain",
+      "name": "commerce",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "commerce",
+          "description": "Owns order capture, pricing presentation and order state transitions."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/orders-service-postgres",
+      "kind": "Resource",
+      "name": "orders-service-postgres",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "orders-service-postgres",
+          "description": "Logical database owned by the orders service."
+        },
+        "spec": {
+          "type": "logical-database",
+          "system": "ordering"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/ordering",
+      "kind": "System",
+      "name": "ordering",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "ordering",
+          "description": "Creates, reads and transitions orders."
+        },
+        "spec": {
+          "domain": "commerce"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/orders-api",
+      "targetRef": "component:default/orders-service",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0002"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/commerce",
+      "targetRef": "system:default/ordering",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0009"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ordering",
+      "targetRef": "component:default/orders-service",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0017"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ordering",
+      "targetRef": "resource:default/orders-service-postgres",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0006"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/orders-service",
+      "targetRef": "system:default/ordering",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0017"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/orders-service-postgres",
+      "targetRef": "system:default/ordering",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0006"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/ordering",
+      "targetRef": "domain:default/commerce",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0009"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/orders-service",
+      "targetRef": "api:default/orders-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0002"
+      ]
+    },
+    {
+      "type": "resourceUsedBy",
+      "sourceRef": "resource:default/orders-service-postgres",
+      "targetRef": "component:default/orders-service",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0019"
+      ]
+    },
+    {
+      "type": "usesResource",
+      "sourceRef": "component:default/orders-service",
+      "targetRef": "resource:default/orders-service-postgres",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0019"
+      ]
+    }
+  ],
+  "interfaces": {
+    "events": []
+  },
+  "externalDependencies": [],
+  "capabilities": [],
+  "verification": [
+    {
+      "id": "ci:-github-workflows-ci-yml:checks:2",
+      "componentRefs": [
+        "component:default/orders-service"
+      ],
+      "tier": "unit",
+      "command": "pnpm --filter @orders/service test",
+      "configPaths": [
+        ".github/workflows/ci.yml"
+      ],
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "id": "ci:-github-workflows-ci-yml:checks:3",
+      "componentRefs": [
+        "component:default/orders-service"
+      ],
+      "tier": "static",
+      "command": "pnpm --filter @orders/service typecheck",
+      "configPaths": [
+        ".github/workflows/ci.yml"
+      ],
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "id": "component:default/orders-service:build",
+      "componentRefs": [
+        "component:default/orders-service"
+      ],
+      "tier": "build",
+      "command": "tsc",
+      "configPaths": [
+        "service/package.json"
+      ],
+      "provenanceIds": [
+        "p-0023"
+      ]
+    },
+    {
+      "id": "component:default/orders-service:lint",
+      "componentRefs": [
+        "component:default/orders-service"
+      ],
+      "tier": "static",
+      "command": "eslint .",
+      "configPaths": [
+        "service/package.json"
+      ],
+      "provenanceIds": [
+        "p-0024"
+      ]
+    },
+    {
+      "id": "component:default/orders-service:test",
+      "componentRefs": [
+        "component:default/orders-service"
+      ],
+      "tier": "unit",
+      "command": "vitest run",
+      "configPaths": [
+        "service/package.json"
+      ],
+      "provenanceIds": [
+        "p-0025"
+      ]
+    },
+    {
+      "id": "component:default/orders-service:typecheck",
+      "componentRefs": [
+        "component:default/orders-service"
+      ],
+      "tier": "static",
+      "command": "tsc --noEmit",
+      "configPaths": [
+        "service/package.json"
+      ],
+      "provenanceIds": [
+        "p-0026"
+      ]
+    }
+  ],
+  "journeys": [],
+  "gates": [],
+  "contracts": [
+    {
+      "apiRef": "api:default/orders-api",
+      "ref": "contracts/orders.openapi.yaml",
+      "operations": [
+        {
+          "method": "GET",
+          "route": "/orders/{id}",
+          "operationId": "getOrder"
+        },
+        {
+          "method": "GET",
+          "route": "/orders",
+          "operationId": "listOrders"
+        },
+        {
+          "method": "POST",
+          "route": "/orders",
+          "operationId": "createOrder"
+        }
+      ],
+      "title": "Orders API",
+      "provenanceIds": [
+        "p-0011"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-0001",
+      "subject": "component:default/orders-service",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0021",
+        "p-0028"
+      ]
+    },
+    {
+      "id": "a-0002",
+      "subject": "component:default/orders-service",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0021",
+        "p-0028"
+      ]
+    },
+    {
+      "id": "a-0003",
+      "subject": "component:default/orders-service",
+      "key": "resource.ownership",
+      "value": "orders-service-postgres",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0019"
+      ],
+      "semantics": "migration and connection authority in this root resolve to the authored logical database"
+    },
+    {
+      "id": "a-0004",
+      "subject": "component:default/orders-service",
+      "key": "placement.system",
+      "value": "ordering",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0018"
+      ]
+    },
+    {
+      "id": "a-0005",
+      "subject": "resource:default/orders-service-postgres",
+      "key": "placement.system",
+      "value": "ordering",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "id": "a-0006",
+      "subject": "system:default/ordering",
+      "key": "placement.domain",
+      "value": "commerce",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0010"
+      ]
+    }
+  ],
+  "conflicts": [],
+  "observations": [],
+  "provenance": [
+    {
+      "id": "p-0001",
+      "class": "observed",
+      "path": ".github/workflows/ci.yml",
+      "extractor": {
+        "name": "ci-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d5ff50c8e196e861ecd3cf0a5abedb5b4cbde539ef50d0d62eeb46c0e9ea0e5b",
+      "subjects": [
+        "/verification/0",
+        "/verification/1"
+      ]
+    },
+    {
+      "id": "p-0002",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cfe6eca82d8aebeec8472a2a799bd0b7cc6b035c83e24b91c4df0031a81ddd28",
+      "subjects": [
+        "/relations/0",
+        "/relations/7"
+      ]
+    },
+    {
+      "id": "p-0003",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cfe6eca82d8aebeec8472a2a799bd0b7cc6b035c83e24b91c4df0031a81ddd28",
+      "subjects": [
+        "/entities/0",
+        "/entities/0/entity/apiVersion",
+        "/entities/0/entity/kind",
+        "/entities/0/entity/metadata",
+        "/entities/0/entity/metadata/description",
+        "/entities/0/entity/metadata/name",
+        "/entities/0/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0004",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8630b01455330426a84f77c7aa7e58ad69ceaacd06333da9f6e057bc2cd91314",
+      "subjects": [
+        "/entities/2",
+        "/entities/2/entity/apiVersion",
+        "/entities/2/entity/kind",
+        "/entities/2/entity/metadata",
+        "/entities/2/entity/metadata/description",
+        "/entities/2/entity/metadata/name",
+        "/entities/2/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0005",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:46f61deac5317da3c8d6eaccfdf2693d6693338866123c68a6fb4072e99ba00c",
+      "subjects": [
+        "/entities/3",
+        "/entities/3/entity/apiVersion",
+        "/entities/3/entity/kind",
+        "/entities/3/entity/metadata",
+        "/entities/3/entity/metadata/description",
+        "/entities/3/entity/metadata/name",
+        "/entities/3/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0006",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:46f61deac5317da3c8d6eaccfdf2693d6693338866123c68a6fb4072e99ba00c",
+      "subjects": [
+        "/relations/3",
+        "/relations/5"
+      ]
+    },
+    {
+      "id": "p-0007",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:46f61deac5317da3c8d6eaccfdf2693d6693338866123c68a6fb4072e99ba00c",
+      "subjects": [
+        "/assertions/4"
+      ]
+    },
+    {
+      "id": "p-0008",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d75b5637a4f98e308d7fa4a96158d1c1145ecebe1a864156639e2d293790a715",
+      "subjects": [
+        "/entities/4",
+        "/entities/4/entity/apiVersion",
+        "/entities/4/entity/kind",
+        "/entities/4/entity/metadata",
+        "/entities/4/entity/metadata/description",
+        "/entities/4/entity/metadata/name",
+        "/entities/4/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0009",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d75b5637a4f98e308d7fa4a96158d1c1145ecebe1a864156639e2d293790a715",
+      "subjects": [
+        "/relations/1",
+        "/relations/6"
+      ]
+    },
+    {
+      "id": "p-0010",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d75b5637a4f98e308d7fa4a96158d1c1145ecebe1a864156639e2d293790a715",
+      "subjects": [
+        "/assertions/5"
+      ]
+    },
+    {
+      "id": "p-0011",
+      "class": "observed",
+      "path": "contracts/orders.openapi.yaml",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5064288b4396ea449804dfe72a201eb7e6b467ecf40f2913c310894ed51bb4ad",
+      "subjects": [
+        "/contracts/0"
+      ]
+    },
+    {
+      "id": "p-0012",
+      "class": "observed",
+      "path": "service/CONSTRAINTS.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:71e14aa7fa30df9fed8d5136c16a57cfe78b02021991ebadf5640118c8dff7e0",
+      "subjects": [
+        "/entities/1/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0013",
+      "class": "observed",
+      "path": "service/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:578cffa92e2b9fcbf6d660f7a5584ff51b7fbbee7872f8ea49495c93afb2ce90",
+      "subjects": [
+        "/entities/1/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0014",
+      "class": "observed",
+      "path": "service/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:658799502c5a2d3bfe96e51e39aaf52e5e048c6917272334f35783f915ad31c8",
+      "subjects": [
+        "/entities/1/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0015",
+      "class": "declared",
+      "path": "service/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:658799502c5a2d3bfe96e51e39aaf52e5e048c6917272334f35783f915ad31c8",
+      "subjects": [
+        "/entities/1/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0016",
+      "class": "declared",
+      "path": "service/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:658799502c5a2d3bfe96e51e39aaf52e5e048c6917272334f35783f915ad31c8",
+      "subjects": [
+        "/entities/1",
+        "/entities/1/entity/apiVersion",
+        "/entities/1/entity/kind",
+        "/entities/1/entity/metadata",
+        "/entities/1/entity/metadata/description",
+        "/entities/1/entity/metadata/name",
+        "/entities/1/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0017",
+      "class": "declared",
+      "path": "service/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:658799502c5a2d3bfe96e51e39aaf52e5e048c6917272334f35783f915ad31c8",
+      "subjects": [
+        "/relations/2",
+        "/relations/4"
+      ]
+    },
+    {
+      "id": "p-0018",
+      "class": "declared",
+      "path": "service/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:658799502c5a2d3bfe96e51e39aaf52e5e048c6917272334f35783f915ad31c8",
+      "subjects": [
+        "/assertions/3"
+      ]
+    },
+    {
+      "id": "p-0019",
+      "class": "observed",
+      "path": "service/db/migrations/0001_orders.sql",
+      "extractor": {
+        "name": "migration-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:f98b8b76514397725ddee301fd80a5fc190d2d5438794569534875ca818f5a6b",
+      "subjects": [
+        "/assertions/2",
+        "/entities/1/derived/bindings",
+        "/relations/8",
+        "/relations/9"
+      ]
+    },
+    {
+      "id": "p-0020",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/entities/1/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0021",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0022",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/entities/1/derived/artifact",
+        "/entities/1/derived/languages",
+        "/entities/1/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0023",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/verification/2"
+      ]
+    },
+    {
+      "id": "p-0024",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/verification/3"
+      ]
+    },
+    {
+      "id": "p-0025",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/verification/4"
+      ]
+    },
+    {
+      "id": "p-0026",
+      "class": "observed",
+      "path": "service/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:58fbd6163539a638e5ab864de07ad0b386b93c09dc503b1bd05a9b3cb29252e1",
+      "subjects": [
+        "/verification/5"
+      ]
+    },
+    {
+      "id": "p-0027",
+      "class": "observed",
+      "path": "service/src/routes/health.ts",
+      "extractor": {
+        "name": "health-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4a93a91561246f00f59d0b069aa898dafa8ebbd0d544b6f6bcc0cbd4f0d22799",
+      "subjects": [
+        "/entities/1/derived/healthContracts"
+      ]
+    },
+    {
+      "id": "p-0028",
+      "class": "observed",
+      "path": "service/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:708f5388523aaa781fb4732f0c85885485cb2f2bf5b0f4a3d8e70de2c6491862",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0029",
+      "class": "observed",
+      "path": "service/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:708f5388523aaa781fb4732f0c85885485cb2f2bf5b0f4a3d8e70de2c6491862",
+      "subjects": [
+        "/entities/1/derived/languages"
+      ]
+    }
+  ],
+  "diagnostics": []
+}

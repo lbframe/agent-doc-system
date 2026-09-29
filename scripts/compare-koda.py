@@ -95,7 +95,8 @@ def main():
 
     p("# Koda comparison")
     p("")
-    p("Reference: `kodalabs-io/koda` at `origin/main` = `19b2227f17d0116ef5e8d8a6dd1e86ff1fdb913b`.")
+    p("Reference: the Koda production repository (private) at `origin/main` =")
+    p("`19b2227f17d0116ef5e8d8a6dd1e86ff1fdb913b`.")
     p("The portable system was run against a working copy of that commit. No Koda source,")
     p("configuration or production behaviour was modified.")
     p("")

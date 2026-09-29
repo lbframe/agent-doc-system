@@ -1,1 +1,2 @@
-/.agentdoc/
+# The compiled graph (.agentdoc/graph.json) is committed deliberately: this
+# corpus demonstrates the commit-the-graph gate mode (see docs/CI.md).

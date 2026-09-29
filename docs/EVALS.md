@@ -122,10 +122,13 @@ shared across runtimes; add an operation to a contract.
 ## Running it
 
 ```bash
-node agentdoc/bin/agentdoc.mjs eval routing --json   # one repository
-node evals/run-all.mjs                                # aggregate gate
-node evals/run-all.mjs --json                         # machine-readable
+agentdoc eval routing --json      # one repository (from a corpus directory)
+node evals/run-all.mjs            # aggregate gate — source checkout only
+node evals/run-all.mjs --json     # machine-readable
 ```
+
+`run-all.mjs` iterates the corpora in `fixtures/` and `examples/`, so it only
+exists in a source checkout; it is not part of the installed CLI's job.
 
 ## What the evaluation changed
 

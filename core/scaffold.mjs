@@ -11,11 +11,12 @@
 //     report it as a question rather than the scaffolder guessing.
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 
-const TEMPLATES_DIR = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "templates");
+const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
 function yamlStr(s) {
   return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
@@ -39,7 +40,7 @@ function sentence(s) {
   return /[.!?]$/.test(t) ? t : t + ".";
 }
 
-export function installTemplates(repo, cfg, { write, root, force = false } = {}) {
+export function installTemplates(repo, cfg, { write, root, force = false, eligible = null } = {}) {
   const written = [];
   const skipped = [];
   const targetRoot = root || (repo ? repo.root : process.cwd());
@@ -73,7 +74,11 @@ export function installTemplates(repo, cfg, { write, root, force = false } = {})
 
   // ── per-unit component descriptors ──────────────────────────────────────
   if (cfg) {
-    const units = discoverUnitNames(r, cfg);
+    // When the caller ran the compiler's discovery first, write for the units
+    // the compiler itself counts as eligible — adapter-discovered roots
+    // (go.work members, pnpm workspace packages, supplementalRoots) may have
+    // no marker file the layout scan would find on its own.
+    const units = discoverUnitNames(r, cfg, eligible);
     for (const u of units) {
       put(u.root + "/" + cfg.discovery.componentDescriptorName, componentDescriptor(u));
     }
@@ -118,7 +123,7 @@ function scanLayout(repo) {
   return [...candidates.values()].sort((a, b) => (a.root < b.root ? -1 : 1));
 }
 
-function discoverUnitNames(repo, cfg) {
+function discoverUnitNames(repo, cfg, eligible = null) {
   const out = [];
   const nameFor = (root) => {
     const pkg = root + "/package.json";
@@ -136,26 +141,44 @@ function discoverUnitNames(repo, cfg) {
     return kebab(path.basename(root));
   };
   const seen = new Set();
-  for (const u of scanLayout(repo)) {
-    if (u.root === "." || !u.root) continue;
+  const seenRoots = new Set();
+  // Union, not replacement: compiler-eligible units (adapter roots,
+  // supplementalRoots) cover what markers cannot see, while the layout scan
+  // still covers marker-bearing dirs that no adapter claims.
+  const units = [
+    ...(eligible || []).map((u) => ({
+      root: u.root,
+      kinds: (u.markers || []).map((m) => m.adapter).sort(),
+      deployable: Boolean(u.deployable),
+      importable: Boolean(u.importable),
+    })),
+    ...scanLayout(repo).map((u) => ({ root: u.root, kinds: [...u.kinds].sort(), deployable: false, importable: false })),
+  ];
+  for (const u of units) {
+    if (u.root === "." || !u.root || seenRoots.has(u.root)) continue;
+    seenRoots.add(u.root);
     const name = nameFor(u.root);
     if (seen.has(name)) continue;
     seen.add(name);
-    out.push({ root: u.root, name, kinds: [...u.kinds].sort() });
+    out.push({ ...u, name });
   }
   void cfg;
   return out;
 }
 
 function componentDescriptor(u) {
-  const deployable = u.kinds.some((k) => k === "docker" || k === "platform");
-  const type = deployable ? "service" : "library";
+  const deployable = u.deployable || u.kinds.some((k) => k === "docker" || k === "platform");
+  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
+  // "library" and "service" both have to be corroborated by artifact evidence
+  // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
+  // shows neither, so claiming a concrete type would manufacture an error.
+  const type = deployable ? "service" : importable ? "library" : "other";
   return [
     "apiVersion: agentdoc.dev/v1",
     "kind: Component",
     "metadata:",
     "  name: " + u.name,
-    "  description: " + yamlStr(sentence("TODO: " + u.name + " (" + u.kinds.join("/") + " at " + u.root + ") — state its single current responsibility")),
+    "  description: " + yamlStr(sentence("TODO: " + u.name + " (" + (u.kinds.length ? u.kinds.join("/") : "configured") + " at " + u.root + ") — state its single current responsibility")),
     "spec:",
     "  type: " + type,
     "  # Choose exactly one of the three lines below. Uncomment one.",
@@ -209,6 +232,8 @@ function buildConfig(layout) {
     "# agentdoc configuration — the only project-specific file in the system.",
     "# Everything the engine does is derived from this plus the repository.",
     "apiVersion: agentdoc.dev/config/v1",
+    "# namespace prefixes every entity ref (component:<namespace>/<name>).",
+    "# 'default' is a placeholder — pick the name this repository calls itself.",
     "namespace: default",
     "",
     "discovery:",
@@ -255,7 +280,6 @@ function buildConfig(layout) {
     "output:",
     "  graph: .agentdoc/graph.json",
     "  observations: agentdoc/observations",
-    "  report: .agentdoc/report.json",
     "",
     "docs:",
     "  product: docs/PRODUCT.md",
@@ -277,8 +301,9 @@ at a known time, with a durable reference to the raw evidence.
    bundle, or anywhere else in this directory. Run \`agentdoc validate\`; it
    fails on secret-shaped input.
 2. Every fact needs a \`subject\` (an entity ref that exists) and a \`key\`
-   (see SPEC.md "Fact keys"). Two observation sets must not use the same key on
-   the same subject.
+   (see "Fact keys" in the AgentDoc specification,
+   docs/SPEC.md of https://github.com/lbframe/agent-doc-system). Two
+   observation sets must not use the same key on the same subject.
 3. \`evidenceBundle\` must be a committed, repository-relative file. A temp
    path, a console URL with a session token, or a screenshot filename is not
    evidence.
@@ -288,7 +313,8 @@ at a known time, with a durable reference to the raw evidence.
 
 ## Shape
 
-See \`templates/observation.yaml\`.
+See the \`observation.yaml\` template shipped with the agentdoc CLI
+(templates/observation.yaml in the installed package).
 `;
 
 export function templatePaths() {

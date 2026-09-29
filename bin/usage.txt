@@ -1,18 +1,26 @@
 agentdoc — portable documentation & software-catalog system
 
+  agentdoc --version                 print the installed version
+  agentdoc --help                    show this help (also: agentdoc <command> --help)
+
   agentdoc init [--force]            write a configuration and documentation skeleton
   agentdoc audit                     inventory the repository, classify every fact
   agentdoc scaffold [--write]        generate a CREATE-mode skeleton from the audit
   agentdoc validate                  sources + schemas + semantic checks
   agentdoc compile [--require-clean] deterministic graph build (atomic write)
   agentdoc check [--require-clean] [--allow-stale-observations]
-                                    freshness, determinism and gate check
-  agentdoc query <path|ref> [--md] [--budget k=n]
-                                    route minimal context for a task
+                                     freshness, determinism and gate check
+  agentdoc query <path|ref> [--md] [--json] [--budget k=n]
+                                     route minimal context for a task
   agentdoc impact <paths...>         what a change forces you to keep consistent
   agentdoc impact --diff <git-ref>   the same, for a commit range
-  agentdoc eval routing [--json]     agent-routing evaluation against thresholds
-  agentdoc pin-evidence [--json]     check/repair digests pinned by reviewed overrides
-  agentdoc doctor                    environment self-check
+  agentdoc eval routing [--json]     agent-routing evaluation against registered
+                                     scenarios (SKIP when the repo has none)
+  agentdoc pin-evidence [--json]     verify digests pinned by reviewed overrides
+  agentdoc doctor                    machine self-check: is this CLI install healthy
+  agentdoc doctor --project          the same, plus the current project's catalog health
+
+Commands that operate on a catalog run from anywhere inside the repository;
+the configuration is found by walking up to agentdoc/agentdoc.config.yaml.
 
 Exit codes: 0 ok, 1 failure, 2 usage.

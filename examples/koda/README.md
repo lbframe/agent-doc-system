@@ -57,14 +57,17 @@ merges them.
 
 ## Running it
 
+With the `agentdoc` CLI on PATH (installed globally, or `npm link` in this
+checkout):
+
 ```bash
 cd examples/koda/repo
-node ../../bin/agentdoc.mjs validate
-node ../../bin/agentdoc.mjs compile
-node ../../bin/agentdoc.mjs check
-node ../../bin/agentdoc.mjs query workers/koda-cron
-node ../../bin/agentdoc.mjs impact contracts/teacher-ingest.openapi.yaml
-node ../../bin/agentdoc.mjs eval routing
+agentdoc validate
+agentdoc compile
+agentdoc check
+agentdoc query workers/koda-cron
+agentdoc impact contracts/teacher-ingest.openapi.yaml
+agentdoc eval routing
 ```
 
 ## The profile is one file

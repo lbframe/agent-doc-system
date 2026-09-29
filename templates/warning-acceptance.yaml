@@ -2,7 +2,7 @@
 # the evidence content hashes as they are *now*; `agentdoc validate` recomputes
 # them and fails when the evidence has moved, forcing a fresh review.
 warningAcceptances:
-  - code: AGENTDOC_UNRESOLVED_FACT
+  - code: AGENTDOC_SERVICE_BINDING_UNRESOLVED
     subject: component:default/example-service
     classification: INTENDED_DIVERGENCE
     reason: "This divergence is intentional and will be reconciled in Q3."

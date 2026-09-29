@@ -315,7 +315,7 @@ Two things follow, and both are enforced rather than asserted:
 
 None. The YAML subset parser, the JSON Schema validator, the TOML reader, the
 glob matcher, the hashing and the deterministic serializer are all in-tree.
-Node 18 or newer. No network, no service, no hosted anything.
+Node 22 or newer. No network, no service, no hosted anything.
 
 ## Reviewed overrides are re-verified, and so are their review conditions
 

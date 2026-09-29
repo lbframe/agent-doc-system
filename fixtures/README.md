@@ -9,15 +9,19 @@ its own scenarios against it.
 | `b-go-multi-service` | multi-service Go, protobuf, shared library, resources | contracts that are not HTTP |
 | `c-alt-monorepo` | `backend`/`frontend`/`shared`/`edge`, mixed runtimes, stale docs | the engine must not assume `apps`+`packages`+`workers` |
 
-Each is a real repository: it has its own git history, its own
-`agentdoc/agentdoc.config.yaml`, and its own committed graph inputs. The tag
-lives in `.agentdoc-fixture.json`.
+Each is a self-contained cataloged repository: its own
+`agentdoc/agentdoc.config.yaml` and committed graph inputs, tracked in this
+repository's history. The tag lives in `.agentdoc-fixture.json`.
+
+Commands below assume the `agentdoc` CLI is on PATH — installed globally
+(`npm install -g github:lbframe/agent-doc-system`) or via `npm link` in this
+checkout.
 
 ```bash
 cd fixtures/c-alt-monorepo
-node ../../bin/agentdoc.mjs validate && node ../../bin/agentdoc.mjs compile && node ../../bin/agentdoc.mjs check
-node ../../bin/agentdoc.mjs query edge/wrangler.toml
-node ../../bin/agentdoc.mjs audit          # finds the stale legacy documentation
+agentdoc validate && agentdoc compile && agentdoc check
+agentdoc query edge/wrangler.toml
+agentdoc audit          # finds the stale legacy documentation
 ```
 
 ## The one that matters most
@@ -29,7 +33,7 @@ directory named `wire`, and a `legacy-docs/` directory whose claims contradict
 the code.
 
 ```bash
-node ../../bin/agentdoc.mjs audit | jq '.documentationContradictions, .documentation.orphanDocs'
+agentdoc audit | jq '.documentationContradictions, .documentation.orphanDocs'
 ```
 
 It reports a negated component claim, a port mismatch, an unlinked port claim,

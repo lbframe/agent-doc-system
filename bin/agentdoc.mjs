@@ -16,12 +16,14 @@ import { impact } from "../core/impact.mjs";
 import { audit, scaffoldProposal } from "../core/audit.mjs";
 import { observationFreshness, stalenessDiagnostics } from "../core/observations.mjs";
 import { assertNoSecretsInText } from "../core/secrets.mjs";
-import { runRoutingEval } from "../evals/harness.mjs";
 import { installTemplates } from "../core/scaffold.mjs";
 import { loadSchemaBundle, loadConfig } from "../core/descriptors.mjs";
 import { execFileSync } from "node:child_process";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const PACKAGE_ROOT = path.join(HERE, "..");
+const VERSION = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8")).version;
+const MIN_NODE_MAJOR = 22;
 // Commands are run from wherever the agent happens to be. Walk up until the
 // configuration is found, so `agentdoc query src/foo.ts` works from a
 // subdirectory instead of failing with a misleading missing-file error.
@@ -39,8 +41,26 @@ function findRoot(start) {
 const ROOT = findRoot(process.cwd());
 const argv = process.argv.slice(2);
 const cmd = argv[0];
-const flags = new Set(argv.filter((a) => a.startsWith("--")).map((a) => a.replace(/^--/, "").split("=")[0]));
-const positional = argv.slice(1).filter((a) => !a.startsWith("--"));
+// Flags that consume the next token as a value. Anything else is boolean; a
+// `--flag value` pair must not leak the value into `positional`
+// (`agentdoc query --budget relations=10 svc/api` must query svc/api).
+const VALUE_FLAGS = new Set(["budget", "diff", "from"]);
+const flags = new Set();
+const positional = [];
+for (let i = 1; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith("--")) {
+    const name = a.replace(/^--/, "").split("=")[0];
+    if (a.includes("=") && !VALUE_FLAGS.has(name)) {
+      console.error("agentdoc: --" + name + " does not take a value");
+      process.exit(2);
+    }
+    flags.add(name);
+    if (!a.includes("=") && VALUE_FLAGS.has(name) && argv[i + 1] && !argv[i + 1].startsWith("--")) i++;
+    continue;
+  }
+  positional.push(a);
+}
 const flag = (name, dflt = null) => {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--" + name) {
@@ -56,6 +76,12 @@ function fail(errors, stats) {
   for (const e of errors) console.error("ERROR " + (e.format ? e.format() : e.code + ": " + e.message));
   if (stats) console.error("agentdoc: " + JSON.stringify(stats));
   process.exit(1);
+}
+
+function usage(exitCode) {
+  const text = fs.readFileSync(path.join(HERE, "usage.txt"), "utf8");
+  (exitCode === 0 ? process.stdout : process.stderr).write(text);
+  process.exit(exitCode);
 }
 
 function printDiagnostics(res) {
@@ -74,16 +100,51 @@ function gateObservationFreshness(res) {
   const abs = path.join(ROOT, res.graphPath);
   if (!fs.existsSync(abs)) return null;
   const { graph } = readGraph(res.repo, res.graphPath);
-  const fresh = observationFreshness(graph.observations, new Date());
+  const fresh = observationFreshness(graph.observations || [], new Date());
   const stale = stalenessDiagnostics(fresh);
-  if (stale.length && !flags.has("allow-stale-observations")) {
+  if (!stale.length) return fresh;
+  if (!flags.has("allow-stale-observations")) {
     for (const d of stale) console.error("ERROR " + d.code + ": " + d.message);
+    process.exit(1);
+  }
+  // Staleness was explicitly allowed through. This is where a rule's
+  // degradeOnStale is applied — at gate time, never at compile time, so a
+  // compile stays a pure function of the checkout. `conflict` keeps the
+  // election and warns; `unresolved` refuses to stand on a stale observation.
+  // Match the elected assertion to the stale observation *set* by capturedAt
+  // + environment — capturedAt alone can collide across sets.
+  const staleSets = new Set(fresh.filter((f) => f.stale).map((f) => f.capturedAt + "\u0000" + f.environment));
+  const assertionById = new Map((graph.assertions || []).map((a) => [a.id, a]));
+  const rules = new Map((((res.cfg || {}).authority || {}).rules || []).map((r) => [r.id, r]));
+  const degraded = [];
+  for (const c of graph.conflicts || []) {
+    if (c.status !== "resolved" || !c.election || !c.election.electedAssertionId) continue;
+    const rule = rules.get(c.election.ruleId);
+    if (!rule || !rule.degradeOnStale) continue;
+    const elected = assertionById.get(c.election.electedAssertionId);
+    const obs = elected && elected.observed;
+    if (!obs || !obs.at || !staleSets.has(obs.at + "\u0000" + obs.environment)) continue;
+    if (rule.degradeOnStale === "unresolved") {
+      degraded.push(
+        c.subject + " " + c.key + " — the elected observation (" + obs.at + ") is past its maxAgeDays " +
+        "and authority rule " + rule.id + " requires the election to degrade to unresolved"
+      );
+    } else {
+      console.error(
+        "WARN  " + CODES.ELECTION_STALE + ": " + c.subject + " " + c.key +
+        " — the elected observation (" + obs.at + ") is past its maxAgeDays; authority rule " +
+        rule.id + " keeps the election"
+      );
+    }
+  }
+  if (degraded.length) {
+    for (const m of degraded) console.error("ERROR " + CODES.CONFLICT_UNRESOLVED + ": " + m);
     process.exit(1);
   }
   return fresh;
 }
 
-function requireFresh(res) {
+function requireFresh(res, fresh) {
   const abs = path.join(ROOT, res.graphPath);
   if (!fs.existsSync(abs)) {
     fail([new AgentDocError(CODES.GRAPH_MISSING, "no compiled graph at " + res.graphPath + " — run `agentdoc compile`")]);
@@ -105,7 +166,10 @@ function requireFresh(res) {
       "catalog inputs differ from HEAD (" + res.stats.commit + ") — CI/publish evidence requires a clean source; commit the change and rebuild"
     )], res.stats);
   }
-  return { graph, text, fresh: gateObservationFreshness(res) || [] };
+  // `fresh` is normally precomputed by the caller — gateObservationFreshness
+  // also evaluates election degradation, so calling it twice would print the
+  // same staleness warning twice. The fallback keeps a forgotten call-site safe.
+  return { graph, text, fresh: fresh === undefined ? (gateObservationFreshness(res) || []) : fresh };
 }
 
 function out(obj, asJson) {
@@ -115,6 +179,13 @@ function out(obj, asJson) {
 }
 
 try {
+  if (cmd === "--version" || cmd === "-v" || cmd === "version") {
+    console.log("agentdoc " + VERSION);
+    process.exit(0);
+  }
+  if (cmd === "--help" || cmd === "-h" || cmd === "help" || flags.has("help") || argv.includes("-h")) {
+    usage(0);
+  }
   if (cmd === "validate") {
     const res = compile(ROOT);
     printDiagnostics(res);
@@ -137,8 +208,8 @@ try {
     const res = compile(ROOT);
     printDiagnostics(res);
     if (res.errors.length) fail(res.errors, res.stats);
-    gateObservationFreshness(res);
-    const { graph, text, fresh } = requireFresh(res);
+    const preFresh = gateObservationFreshness(res);
+    const { graph, text, fresh } = requireFresh(res, preFresh);
     // `source.commit` records which checkout produced the graph, and a checkout
     // without VCS — an extracted archive, a vendored dependency — compiles to
     // `0000000`. That is a difference in provenance, not in content, and failing
@@ -149,8 +220,7 @@ try {
     if (withoutCommit(text) !== withoutCommit(res.serialized)) {
       fail([new AgentDocError(
         CODES.STALE_GRAPH,
-        "compiled graph differs from a fresh deterministic compile — commit the descriptor or authority change and rebuild" +
-          (text === res.serialized ? "" : " (only source.commit differs, which is tolerated: this checkout has no VCS history)")
+        "compiled graph differs from a fresh deterministic compile — commit the descriptor or authority change and rebuild"
       )]);
     }
     const gj = JSON.stringify(graph, null, 2) + "\n";
@@ -166,14 +236,18 @@ try {
     // Time-dependent gates first, for the same reason as `check`: a stale
     // observation is a different problem from a stale graph and sends the reader
     // somewhere else entirely.
-    gateObservationFreshness(res);
-    const { graph } = requireFresh(res);
+    const preFresh = gateObservationFreshness(res);
+    const { graph } = requireFresh(res, preFresh);
     // `--budget` exists because the default budgets are generous enough that a
     // focused query never truncates, which makes the truncation contract
     // untestable and unreachable from the CLI. An agent working in a tight
     // context needs to be able to say so.
     let budget = {};
     const raw = flag("budget");
+    if (raw === true || raw === "") {
+      console.error("usage: --budget section=limit,... (limits are positive integers)");
+      process.exit(2);
+    }
     if (raw) {
       for (const pair of raw.split(",")) {
         const [k, v] = pair.split("=");
@@ -199,7 +273,15 @@ try {
     const fromRef = flag("diff") || flag("from");
     let paths = positional;
     if (fromRef && fromRef !== true) {
+      if (!res.repo.hasGit()) {
+        console.error("agentdoc impact --diff requires a git repository; this checkout has no VCS");
+        process.exit(2);
+      }
       paths = res.repo.diffPaths(fromRef);
+      if (paths === null) {
+        console.error("cannot resolve diff ref '" + fromRef + "' — is it a valid commit, branch or range?");
+        process.exit(2);
+      }
       if (!paths.length) {
         console.error("no changed files between " + fromRef + " and HEAD");
         process.exit(2);
@@ -228,24 +310,51 @@ try {
   } else if (cmd === "scaffold") {
     const res = compile(ROOT);
     const write = flags.has("write") || flag("write");
-    if (!res.graph) {
+    // Scaffolding is how a repository reaches a compiling state: requiring the
+    // compile to succeed first deadlocks CREATE on every repository whose units
+    // are discovered by adapters (go.work, pnpm-workspace, supplementalRoots)
+    // rather than already carrying descriptors. When a usable configuration
+    // exists, write what can be proven and report what still blocks the compile.
+    if (!res.cfg) {
       out({
         scaffolded: [],
         blocked: res.errors.map((e) => ({ code: e.code, message: e.message })),
         note: "the repository cannot compile yet; install the configuration first with `agentdoc init`",
       }, true);
-      process.exit(0);
+      process.exit(1);
     }
-    const report = audit(res.repo, res.cfg, res);
-    const proposal = scaffoldProposal(res.repo, res.cfg, report);
-    const result = installTemplates(res.repo, res.cfg, { write: Boolean(write) });
-    out({ ...result, proposal }, true);
+    const report = res.graph ? audit(res.repo, res.cfg, res) : null;
+    const proposal = report ? scaffoldProposal(res.repo, res.cfg, report) : null;
+    const result = installTemplates(res.repo, res.cfg, {
+      write: Boolean(write),
+      eligible: res.discovery && res.discovery.eligible,
+    });
+    out({
+      ...result,
+      ...(proposal ? { proposal } : {}),
+      ...(res.errors.length
+        ? { blocked: res.errors.map((e) => ({ code: e.code, message: e.message })) }
+        : {}),
+    }, true);
   } else if (cmd === "init") {
     const result = installTemplates(null, null, { write: true, root: ROOT, force: flags.has("force") });
     out(result, true);
   } else if (cmd === "eval") {
     const which = positional[0] || "routing";
     if (which !== "routing") { console.error("usage: agentdoc eval routing [--json]"); process.exit(2); }
+    // The harness ships, but it is loaded lazily so a trimmed or damaged
+    // installation cannot make every other command fail on a module the user
+    // never asked for.
+    let runRoutingEval;
+    try {
+      ({ runRoutingEval } = await import("../evals/harness.mjs"));
+    } catch (e) {
+      if (e && e.code === "ERR_MODULE_NOT_FOUND") {
+        console.error("agentdoc eval: the evaluation harness is missing from this installation — reinstall the agentdoc CLI, or run it from a source checkout");
+        process.exit(1);
+      }
+      throw e;
+    }
     const report = runRoutingEval(ROOT, { json: flags.has("json") });
     if (flags.has("json")) { out(report, true); process.exit(report.verdict === "FAIL" ? 1 : 0); }
     else {
@@ -294,45 +403,70 @@ try {
     }
     if (results.some((r) => r.status !== "CURRENT")) process.exit(1);
   } else if (cmd === "doctor") {
-    // Actually check, rather than asserting. A doctor that always reports
-    // "selfContained: true" is worse than no doctor.
+    // Two scopes, kept explicit: `doctor` is a machine check — is this
+    // installation of the CLI itself healthy — and never fails because a
+    // project happens not to be configured yet. `doctor --project` adds the
+    // project checks and fails on those too.
     const major = Number(process.versions.node.split(".")[0]);
-    const checks = {
+    const machine = {
+      agentdoc: VERSION,
       node: process.version,
-      nodeSupported: major >= 18,
+      nodeSupported: major >= MIN_NODE_MAJOR,
+      nodeRequired: ">=" + MIN_NODE_MAJOR,
       compiler: COMPILER_NAME + "@" + COMPILER_VERSION,
       graphSchema: GRAPH_SCHEMA_VERSION,
-      root: ROOT,
-      configurationFound: fs.existsSync(path.join(ROOT, "agentdoc", "agentdoc.config.yaml")),
+      installRoot: PACKAGE_ROOT,
       schemaBundle: null,
       gitAvailable: false,
-      writable: null,
       externalRuntimeDependencies: [],
     };
     try {
-      const { bundle, versionInputs } = loadSchemaBundle();
-      checks.schemaBundle = { ok: true, schemas: versionInputs.length };
+      const { versionInputs } = loadSchemaBundle();
+      machine.schemaBundle = { ok: true, schemas: versionInputs.length };
     } catch (e) {
-      checks.schemaBundle = { ok: false, error: e.code + ": " + e.message };
+      machine.schemaBundle = { ok: false, error: (e.code ? e.code + ": " : "") + e.message };
     }
     try {
-      execFileSync("git", ["rev-parse", "--git-dir"], { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] });
-      checks.gitAvailable = true;
+      execFileSync("git", ["--version"], { stdio: ["ignore", "pipe", "ignore"] });
+      machine.gitAvailable = true;
     } catch {
-      checks.gitAvailable = false;
+      machine.gitAvailable = false;
     }
-    try {
-      fs.accessSync(ROOT, fs.constants.W_OK);
-      checks.writable = true;
-    } catch {
-      checks.writable = false;
+    const machineOk = machine.nodeSupported && machine.schemaBundle.ok;
+
+    const report = { scope: "machine", ok: machineOk, machine };
+    if (flags.has("project")) {
+      const configFound = fs.existsSync(path.join(ROOT, "agentdoc", "agentdoc.config.yaml"));
+      const project = {
+        root: ROOT,
+        configurationFound: configFound,
+        configPath: "agentdoc/agentdoc.config.yaml",
+        writable: null,
+        graphPresent: false,
+      };
+      try {
+        fs.accessSync(ROOT, fs.constants.W_OK);
+        project.writable = true;
+      } catch {
+        project.writable = false;
+      }
+      if (configFound) {
+        try {
+          const cfg = loadConfig(new Repo(ROOT), loadSchemaBundle().bundle);
+          project.graphPath = cfg.output?.graph || ".agentdoc/graph.json";
+          project.graphPresent = fs.existsSync(path.join(ROOT, project.graphPath));
+        } catch (e) {
+          project.configError = (e.code ? e.code + ": " : "") + e.message;
+        }
+      }
+      report.scope = "machine+project";
+      report.project = project;
+      report.ok = machineOk && configFound && project.writable === true && !project.configError;
     }
-    const bad = !checks.nodeSupported || !checks.configurationFound || !checks.schemaBundle.ok || !checks.writable;
-    out(checks, true);
-    if (bad) process.exit(1);
+    out(report, true);
+    if (!report.ok) process.exit(1);
   } else {
-    console.error(fs.readFileSync(path.join(HERE, "..", "bin", "usage.txt"), "utf8"));
-    process.exit(2);
+    usage(2);
   }
 } catch (e) {
   if (e instanceof AgentDocError) {
