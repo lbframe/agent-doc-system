@@ -1,0 +1,1407 @@
+{
+  "schemaVersion": "agentdoc.dev/graph/v1",
+  "source": {
+    "commit": "452440eed014302856fd5dd8f43265978e04f47a",
+    "dirty": false,
+    "inputHash": "sha256:84cf07c1c5628765c59f3360fdeaf093cc401670042fe410565d40a6282945c2"
+  },
+  "compiler": {
+    "name": "agentdoc-compiler",
+    "version": "1.0.0",
+    "adapters": [
+      {
+        "name": "database",
+        "version": "1.0.0"
+      },
+      {
+        "name": "dockerfile",
+        "version": "1.0.0"
+      },
+      {
+        "name": "events",
+        "version": "1.0.0"
+      },
+      {
+        "name": "generic",
+        "version": "1.0.0"
+      },
+      {
+        "name": "github-actions",
+        "version": "1.0.0"
+      },
+      {
+        "name": "go",
+        "version": "1.0.0"
+      },
+      {
+        "name": "protobuf",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "entities": [
+    {
+      "ref": "api:default/ledger-service",
+      "kind": "API",
+      "name": "ledger-service",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "ledger-service",
+          "description": "Canonical protobuf wire contract for ledger reads and writes."
+        },
+        "spec": {
+          "type": "protobuf",
+          "provider": "component:default/ingest",
+          "contract": {
+            "ref": "proto/ledger.proto"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "component:default/gateway",
+      "kind": "Component",
+      "name": "gateway",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "gateway",
+          "description": "Serves the ledger read API over the gateway service."
+        },
+        "spec": {
+          "type": "service",
+          "system": "ledger",
+          "context": {
+            "constraints": [
+              "services/gateway/CONSTRAINTS.md"
+            ]
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "services/gateway/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "services/gateway",
+        "docs": [
+          "services/gateway/README.md"
+        ],
+        "constraints": [
+          "services/gateway/CONSTRAINTS.md"
+        ],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "go",
+            "path": "services/gateway/go.mod"
+          }
+        ],
+        "migrationAuthority": "services/gateway/internal/store/migrations/0001_ledger.sql",
+        "bindings": [
+          {
+            "kind": "database",
+            "logicalResourceRef": "resource:default/gateway-postgres",
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0032"
+            ]
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "go"
+        ],
+        "runtimes": [
+          "go"
+        ],
+        "goModule": "example.com/ledger/services/gateway"
+      }
+    },
+    {
+      "ref": "component:default/ingest",
+      "kind": "Component",
+      "name": "ingest",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "ingest",
+          "description": "Accepts ledger write commands and is the only writer of ledger entries."
+        },
+        "spec": {
+          "type": "service",
+          "system": "ledger"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "services/ingest/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "services/ingest",
+        "docs": [
+          "services/ingest/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "go",
+            "path": "services/ingest/go.mod"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "go"
+        ],
+        "runtimes": [
+          "go"
+        ],
+        "goModule": "example.com/ledger/services/ingest"
+      }
+    },
+    {
+      "ref": "component:default/protocol",
+      "kind": "Component",
+      "name": "protocol",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "protocol",
+          "description": "Holds the generated ledger protobuf bindings shared by every ledger service."
+        },
+        "spec": {
+          "type": "contract-library",
+          "placementRationale": "The wire bindings are a contract shared by both ledger services and belong to neither."
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "libs/protocol/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "libs/protocol",
+        "docs": [
+          "libs/protocol/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "go",
+            "path": "libs/protocol/go.mod"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "go"
+        ],
+        "runtimes": [
+          "go"
+        ],
+        "goModule": "example.com/ledger/libs/protocol"
+      }
+    },
+    {
+      "ref": "domain:default/finance",
+      "kind": "Domain",
+      "name": "finance",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "finance",
+          "description": "Owns money movement recording and the ledger of financial entries."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/gateway-postgres",
+      "kind": "Resource",
+      "name": "gateway-postgres",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "gateway-postgres",
+          "description": "Logical database owned by the gateway read model."
+        },
+        "spec": {
+          "type": "logical-database",
+          "system": "ledger"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/ledger-commands",
+      "kind": "Resource",
+      "name": "ledger-commands",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "ledger-commands",
+          "description": "Durable queue carrying accepted ledger write commands to the read model."
+        },
+        "spec": {
+          "type": "queue",
+          "system": "ledger"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/ledger",
+      "kind": "System",
+      "name": "ledger",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "ledger",
+          "description": "Records and reads ledger entries through one write path and one read path."
+        },
+        "spec": {
+          "domain": "finance"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "apiConsumedBy",
+      "sourceRef": "api:default/ledger-service",
+      "targetRef": "component:default/protocol",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "source-reference"
+        ]
+      },
+      "provenanceIds": [
+        "p-0020"
+      ]
+    },
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/ledger-service",
+      "targetRef": "component:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/protocol",
+      "targetRef": "component:default/gateway",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "go-module"
+        ]
+      },
+      "provenanceIds": [
+        "p-0031"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/protocol",
+      "targetRef": "component:default/ingest",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "go-module"
+        ]
+      },
+      "provenanceIds": [
+        "p-0040"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/gateway",
+      "targetRef": "component:default/protocol",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "go-module"
+        ]
+      },
+      "provenanceIds": [
+        "p-0031"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/ingest",
+      "targetRef": "component:default/protocol",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "go-module"
+        ]
+      },
+      "provenanceIds": [
+        "p-0040"
+      ]
+    },
+    {
+      "type": "consumesApi",
+      "sourceRef": "component:default/protocol",
+      "targetRef": "api:default/ledger-service",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "source-reference"
+        ]
+      },
+      "provenanceIds": [
+        "p-0020"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/finance",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0012"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ledger",
+      "targetRef": "component:default/gateway",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ledger",
+      "targetRef": "component:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0036"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ledger",
+      "targetRef": "resource:default/gateway-postgres",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ledger",
+      "targetRef": "resource:default/ledger-commands",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0008"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/gateway",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/ingest",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0036"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/gateway-postgres",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/ledger-commands",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0008"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/ledger",
+      "targetRef": "domain:default/finance",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0012"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/ingest",
+      "targetRef": "api:default/ledger-service",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "type": "resourceUsedBy",
+      "sourceRef": "resource:default/gateway-postgres",
+      "targetRef": "component:default/gateway",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0032"
+      ]
+    },
+    {
+      "type": "usesResource",
+      "sourceRef": "component:default/gateway",
+      "targetRef": "resource:default/gateway-postgres",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0032"
+      ]
+    }
+  ],
+  "interfaces": {
+    "events": []
+  },
+  "externalDependencies": [],
+  "capabilities": [],
+  "verification": [
+    {
+      "id": "component:default/gateway:go-test",
+      "componentRefs": [
+        "component:default/gateway"
+      ],
+      "tier": "unit",
+      "command": "go test ./...",
+      "configPaths": [
+        "services/gateway/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0031"
+      ]
+    },
+    {
+      "id": "component:default/gateway:go-vet",
+      "componentRefs": [
+        "component:default/gateway"
+      ],
+      "tier": "static",
+      "command": "go vet ./...",
+      "configPaths": [
+        "services/gateway/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0031"
+      ]
+    },
+    {
+      "id": "component:default/ingest:go-test",
+      "componentRefs": [
+        "component:default/ingest"
+      ],
+      "tier": "unit",
+      "command": "go test ./...",
+      "configPaths": [
+        "services/ingest/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0040"
+      ]
+    },
+    {
+      "id": "component:default/ingest:go-vet",
+      "componentRefs": [
+        "component:default/ingest"
+      ],
+      "tier": "static",
+      "command": "go vet ./...",
+      "configPaths": [
+        "services/ingest/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0040"
+      ]
+    },
+    {
+      "id": "component:default/protocol:go-test",
+      "componentRefs": [
+        "component:default/protocol"
+      ],
+      "tier": "unit",
+      "command": "go test ./...",
+      "configPaths": [
+        "libs/protocol/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0019"
+      ]
+    },
+    {
+      "id": "component:default/protocol:go-vet",
+      "componentRefs": [
+        "component:default/protocol"
+      ],
+      "tier": "static",
+      "command": "go vet ./...",
+      "configPaths": [
+        "libs/protocol/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0019"
+      ]
+    }
+  ],
+  "journeys": [
+    {
+      "id": "append-to-read",
+      "description": "Turns an accepted write command into a ledger entry the read API returns.",
+      "components": [
+        "component:default/ingest",
+        "component:default/gateway"
+      ],
+      "provenanceIds": [
+        "p-0004"
+      ]
+    }
+  ],
+  "gates": [],
+  "contracts": [
+    {
+      "apiRef": "api:default/ledger-service",
+      "ref": "proto/ledger.proto",
+      "services": 1,
+      "methods": [
+        {
+          "service": "LedgerService",
+          "method": "AppendEntry",
+          "request": "AppendEntryRequest",
+          "streaming": false
+        },
+        {
+          "service": "LedgerService",
+          "method": "GetEntry",
+          "request": "GetEntryRequest",
+          "streaming": false
+        }
+      ],
+      "packages": [
+        "ledger"
+      ],
+      "provenanceIds": [
+        "p-0021"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-0001",
+      "subject": "component:default/protocol",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0018"
+      ]
+    },
+    {
+      "id": "a-0002",
+      "subject": "component:default/protocol",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0018"
+      ]
+    },
+    {
+      "id": "a-0003",
+      "subject": "component:default/gateway",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0030"
+      ]
+    },
+    {
+      "id": "a-0004",
+      "subject": "component:default/gateway",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0030"
+      ]
+    },
+    {
+      "id": "a-0005",
+      "subject": "component:default/gateway",
+      "key": "resource.ownership",
+      "value": "gateway-postgres",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0032"
+      ],
+      "semantics": "migration and connection authority in this root resolve to the authored logical database"
+    },
+    {
+      "id": "a-0006",
+      "subject": "component:default/ingest",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0039"
+      ]
+    },
+    {
+      "id": "a-0007",
+      "subject": "component:default/ingest",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0039"
+      ]
+    },
+    {
+      "id": "a-0008",
+      "subject": "component:default/gateway",
+      "key": "placement.system",
+      "value": "ledger",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0028"
+      ]
+    },
+    {
+      "id": "a-0009",
+      "subject": "component:default/ingest",
+      "key": "placement.system",
+      "value": "ledger",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0037"
+      ]
+    },
+    {
+      "id": "a-0010",
+      "subject": "resource:default/gateway-postgres",
+      "key": "placement.system",
+      "value": "ledger",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0009"
+      ]
+    },
+    {
+      "id": "a-0011",
+      "subject": "resource:default/ledger-commands",
+      "key": "placement.system",
+      "value": "ledger",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0010"
+      ]
+    },
+    {
+      "id": "a-0012",
+      "subject": "system:default/ledger",
+      "key": "placement.domain",
+      "value": "finance",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0013"
+      ]
+    }
+  ],
+  "conflicts": [],
+  "observations": [],
+  "provenance": [
+    {
+      "id": "p-0001",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:36136997b9444846248b6c9bf5e3ca4287e3bbb541b5d06942bee2800f999c82",
+      "subjects": [
+        "/relations/1",
+        "/relations/17"
+      ]
+    },
+    {
+      "id": "p-0002",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:36136997b9444846248b6c9bf5e3ca4287e3bbb541b5d06942bee2800f999c82",
+      "subjects": [
+        "/entities/0",
+        "/entities/0/entity/apiVersion",
+        "/entities/0/entity/kind",
+        "/entities/0/entity/metadata",
+        "/entities/0/entity/metadata/description",
+        "/entities/0/entity/metadata/name",
+        "/entities/0/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0003",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:3698a043b001acb1400f919b599f14816e60794dd5015702d975c76e5ad37262",
+      "subjects": [
+        "/entities/4",
+        "/entities/4/entity/apiVersion",
+        "/entities/4/entity/kind",
+        "/entities/4/entity/metadata",
+        "/entities/4/entity/metadata/description",
+        "/entities/4/entity/metadata/name",
+        "/entities/4/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0004",
+      "class": "declared",
+      "path": "agentdoc/journeys.yaml",
+      "extractor": {
+        "name": "journey-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d87616befa4d5173c9955be9e3bb825badc7f6f2fb9da8799af1d79a66e89638",
+      "subjects": [
+        "/journeys/0"
+      ]
+    },
+    {
+      "id": "p-0005",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8ea5c739e6a34885c45c764c009bc1a145c82efc59325951c2e813682d2e12a8",
+      "subjects": [
+        "/entities/5",
+        "/entities/5/entity/apiVersion",
+        "/entities/5/entity/kind",
+        "/entities/5/entity/metadata",
+        "/entities/5/entity/metadata/description",
+        "/entities/5/entity/metadata/name",
+        "/entities/5/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0006",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8ea5c739e6a34885c45c764c009bc1a145c82efc59325951c2e813682d2e12a8",
+      "subjects": [
+        "/entities/6",
+        "/entities/6/entity/apiVersion",
+        "/entities/6/entity/kind",
+        "/entities/6/entity/metadata",
+        "/entities/6/entity/metadata/description",
+        "/entities/6/entity/metadata/name",
+        "/entities/6/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0007",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8ea5c739e6a34885c45c764c009bc1a145c82efc59325951c2e813682d2e12a8",
+      "subjects": [
+        "/relations/10",
+        "/relations/14"
+      ]
+    },
+    {
+      "id": "p-0008",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8ea5c739e6a34885c45c764c009bc1a145c82efc59325951c2e813682d2e12a8",
+      "subjects": [
+        "/relations/11",
+        "/relations/15"
+      ]
+    },
+    {
+      "id": "p-0009",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8ea5c739e6a34885c45c764c009bc1a145c82efc59325951c2e813682d2e12a8",
+      "subjects": [
+        "/assertions/9"
+      ]
+    },
+    {
+      "id": "p-0010",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8ea5c739e6a34885c45c764c009bc1a145c82efc59325951c2e813682d2e12a8",
+      "subjects": [
+        "/assertions/10"
+      ]
+    },
+    {
+      "id": "p-0011",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:df9e01db07dfc79ff653e43a10a70e61b0416573436fb93fd1272fcbdcbc778a",
+      "subjects": [
+        "/entities/7",
+        "/entities/7/entity/apiVersion",
+        "/entities/7/entity/kind",
+        "/entities/7/entity/metadata",
+        "/entities/7/entity/metadata/description",
+        "/entities/7/entity/metadata/name",
+        "/entities/7/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0012",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:df9e01db07dfc79ff653e43a10a70e61b0416573436fb93fd1272fcbdcbc778a",
+      "subjects": [
+        "/relations/16",
+        "/relations/7"
+      ]
+    },
+    {
+      "id": "p-0013",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:df9e01db07dfc79ff653e43a10a70e61b0416573436fb93fd1272fcbdcbc778a",
+      "subjects": [
+        "/assertions/11"
+      ]
+    },
+    {
+      "id": "p-0014",
+      "class": "observed",
+      "path": "libs/protocol/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:13048372fb679d742d9baba28a9d121166fa4e737b07cd82c863551694330801",
+      "subjects": [
+        "/entities/3/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0015",
+      "class": "observed",
+      "path": "libs/protocol/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da1bfec33344171b155d03a66eccbc345a106a569ec44dbd2c668a55d8bc7f55",
+      "subjects": [
+        "/entities/3/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0016",
+      "class": "declared",
+      "path": "libs/protocol/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da1bfec33344171b155d03a66eccbc345a106a569ec44dbd2c668a55d8bc7f55",
+      "subjects": [
+        "/entities/3",
+        "/entities/3/entity/apiVersion",
+        "/entities/3/entity/kind",
+        "/entities/3/entity/metadata",
+        "/entities/3/entity/metadata/description",
+        "/entities/3/entity/metadata/name",
+        "/entities/3/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0017",
+      "class": "observed",
+      "path": "libs/protocol/go.mod",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9ea89ae1db56cc4f4307d183be47cbd482291df02f05ad34a1f7a1f893d7d4a1",
+      "subjects": [
+        "/entities/3/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0018",
+      "class": "observed",
+      "path": "libs/protocol/go.mod",
+      "extractor": {
+        "name": "discovery-go",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9ea89ae1db56cc4f4307d183be47cbd482291df02f05ad34a1f7a1f893d7d4a1",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/3/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0019",
+      "class": "observed",
+      "path": "libs/protocol/go.mod",
+      "extractor": {
+        "name": "gomod-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9ea89ae1db56cc4f4307d183be47cbd482291df02f05ad34a1f7a1f893d7d4a1",
+      "subjects": [
+        "/entities/3/derived/languages",
+        "/entities/3/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0020",
+      "class": "observed",
+      "path": "libs/protocol/ledger.pb.go",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c2e0eacbf0217088e2fbf254c8a9c4c33f94da74c0f052017453e5b2f6bf9483",
+      "subjects": [
+        "/relations/0",
+        "/relations/6"
+      ]
+    },
+    {
+      "id": "p-0021",
+      "class": "observed",
+      "path": "proto/ledger.proto",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:65629f1c2b19526fcf1687f03078af8f1734ca15932095abc19a1bc5b416e961",
+      "subjects": [
+        "/contracts/0"
+      ]
+    },
+    {
+      "id": "p-0022",
+      "class": "observed",
+      "path": "services/gateway/CONSTRAINTS.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:fa4a6724e319d12a53bc75f2da0681d7e6f5fa18aa2a075969f0117469d81623",
+      "subjects": [
+        "/entities/1/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0023",
+      "class": "observed",
+      "path": "services/gateway/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:324f6e3fa1ac4268ec0ad1b5f867a7fa4ec4ebb3124c690d573b0fabc3f586ea",
+      "subjects": [
+        "/entities/1/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0024",
+      "class": "observed",
+      "path": "services/gateway/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1587b21ea4730eb47fc548137dd6451712d0faece5f48655630de9325c4a6a39",
+      "subjects": [
+        "/entities/1/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0025",
+      "class": "declared",
+      "path": "services/gateway/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1587b21ea4730eb47fc548137dd6451712d0faece5f48655630de9325c4a6a39",
+      "subjects": [
+        "/entities/1/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0026",
+      "class": "declared",
+      "path": "services/gateway/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1587b21ea4730eb47fc548137dd6451712d0faece5f48655630de9325c4a6a39",
+      "subjects": [
+        "/entities/1",
+        "/entities/1/entity/apiVersion",
+        "/entities/1/entity/kind",
+        "/entities/1/entity/metadata",
+        "/entities/1/entity/metadata/description",
+        "/entities/1/entity/metadata/name",
+        "/entities/1/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0027",
+      "class": "declared",
+      "path": "services/gateway/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1587b21ea4730eb47fc548137dd6451712d0faece5f48655630de9325c4a6a39",
+      "subjects": [
+        "/relations/12",
+        "/relations/8"
+      ]
+    },
+    {
+      "id": "p-0028",
+      "class": "declared",
+      "path": "services/gateway/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1587b21ea4730eb47fc548137dd6451712d0faece5f48655630de9325c4a6a39",
+      "subjects": [
+        "/assertions/7"
+      ]
+    },
+    {
+      "id": "p-0029",
+      "class": "observed",
+      "path": "services/gateway/go.mod",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8935d6a178fcaef1b2163717a3ef4407be3faeeeea5e615c6146db53b655fce6",
+      "subjects": [
+        "/entities/1/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0030",
+      "class": "observed",
+      "path": "services/gateway/go.mod",
+      "extractor": {
+        "name": "discovery-go",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8935d6a178fcaef1b2163717a3ef4407be3faeeeea5e615c6146db53b655fce6",
+      "subjects": [
+        "/assertions/2",
+        "/assertions/3",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0031",
+      "class": "observed",
+      "path": "services/gateway/go.mod",
+      "extractor": {
+        "name": "gomod-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8935d6a178fcaef1b2163717a3ef4407be3faeeeea5e615c6146db53b655fce6",
+      "subjects": [
+        "/entities/1/derived/languages",
+        "/entities/1/derived/runtimes",
+        "/relations/2",
+        "/relations/4"
+      ]
+    },
+    {
+      "id": "p-0032",
+      "class": "observed",
+      "path": "services/gateway/internal/store/migrations/0001_ledger.sql",
+      "extractor": {
+        "name": "migration-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:71f36cb1825849ff850bedaa4e06586b2ca5241cb8dce3ea64ea9828fe319ca9",
+      "subjects": [
+        "/assertions/4",
+        "/entities/1/derived/bindings",
+        "/relations/18",
+        "/relations/19"
+      ]
+    },
+    {
+      "id": "p-0033",
+      "class": "observed",
+      "path": "services/ingest/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c51a52e88a3cfd4cb635aab20d22e01cc78ef571948d2ea3d7bcc5390c40334a",
+      "subjects": [
+        "/entities/2/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0034",
+      "class": "observed",
+      "path": "services/ingest/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:179f1a5b568206c18b0bce5fde0ba46f0911b77fe3a50a07699b81a7110c794e",
+      "subjects": [
+        "/entities/2/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0035",
+      "class": "declared",
+      "path": "services/ingest/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:179f1a5b568206c18b0bce5fde0ba46f0911b77fe3a50a07699b81a7110c794e",
+      "subjects": [
+        "/entities/2",
+        "/entities/2/entity/apiVersion",
+        "/entities/2/entity/kind",
+        "/entities/2/entity/metadata",
+        "/entities/2/entity/metadata/description",
+        "/entities/2/entity/metadata/name",
+        "/entities/2/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0036",
+      "class": "declared",
+      "path": "services/ingest/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:179f1a5b568206c18b0bce5fde0ba46f0911b77fe3a50a07699b81a7110c794e",
+      "subjects": [
+        "/relations/13",
+        "/relations/9"
+      ]
+    },
+    {
+      "id": "p-0037",
+      "class": "declared",
+      "path": "services/ingest/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:179f1a5b568206c18b0bce5fde0ba46f0911b77fe3a50a07699b81a7110c794e",
+      "subjects": [
+        "/assertions/8"
+      ]
+    },
+    {
+      "id": "p-0038",
+      "class": "observed",
+      "path": "services/ingest/go.mod",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:fde8684164fb50f93299c98b5172cafa407e69e2f254698f2f28736ca7c8227e",
+      "subjects": [
+        "/entities/2/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0039",
+      "class": "observed",
+      "path": "services/ingest/go.mod",
+      "extractor": {
+        "name": "discovery-go",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:fde8684164fb50f93299c98b5172cafa407e69e2f254698f2f28736ca7c8227e",
+      "subjects": [
+        "/assertions/5",
+        "/assertions/6",
+        "/entities/2/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0040",
+      "class": "observed",
+      "path": "services/ingest/go.mod",
+      "extractor": {
+        "name": "gomod-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:fde8684164fb50f93299c98b5172cafa407e69e2f254698f2f28736ca7c8227e",
+      "subjects": [
+        "/entities/2/derived/languages",
+        "/entities/2/derived/runtimes",
+        "/relations/3",
+        "/relations/5"
+      ]
+    }
+  ],
+  "diagnostics": []
+}

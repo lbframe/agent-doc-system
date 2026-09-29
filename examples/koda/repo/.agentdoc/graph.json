@@ -1,0 +1,5957 @@
+{
+  "schemaVersion": "agentdoc.dev/graph/v1",
+  "source": {
+    "commit": "452440eed014302856fd5dd8f43265978e04f47a",
+    "dirty": false,
+    "inputHash": "sha256:e128731090240305fbb2ea3fd518a131a10470ab9c00c881744b3612c367a922"
+  },
+  "compiler": {
+    "name": "agentdoc-compiler",
+    "version": "1.0.0",
+    "adapters": [
+      {
+        "name": "database",
+        "version": "1.0.0"
+      },
+      {
+        "name": "deploy-config",
+        "version": "1.0.0"
+      },
+      {
+        "name": "dockerfile",
+        "version": "1.0.0"
+      },
+      {
+        "name": "events",
+        "version": "1.0.0"
+      },
+      {
+        "name": "generic",
+        "version": "1.0.0"
+      },
+      {
+        "name": "github-actions",
+        "version": "1.0.0"
+      },
+      {
+        "name": "go",
+        "version": "1.0.0"
+      },
+      {
+        "name": "node",
+        "version": "1.0.0"
+      },
+      {
+        "name": "oidc",
+        "version": "1.0.0"
+      },
+      {
+        "name": "openapi",
+        "version": "1.0.0"
+      },
+      {
+        "name": "pnpm",
+        "version": "1.0.0"
+      },
+      {
+        "name": "turborepo",
+        "version": "1.0.0"
+      },
+      {
+        "name": "typescript",
+        "version": "1.0.0"
+      },
+      {
+        "name": "wrangler",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "entities": [
+    {
+      "ref": "api:default/accounts-m2m-api",
+      "kind": "API",
+      "name": "accounts-m2m-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "accounts-m2m-api",
+          "description": "Accounts JSON surface for machine-to-machine family reads, identity authority and service-token exchange."
+        },
+        "spec": {
+          "type": "openapi",
+          "provider": "component:default/accounts",
+          "contract": {
+            "ref": "contracts/accounts-m2m.openapi.yaml"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "api:default/accounts-oidc-api",
+      "kind": "API",
+      "name": "accounts-oidc-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "accounts-oidc-api",
+          "description": "Issues and describes the OIDC and OAuth contracts that every service verifies against."
+        },
+        "spec": {
+          "type": "oidc",
+          "provider": "component:default/accounts",
+          "contract": {
+            "standard": "openid-connect-discovery-1.0",
+            "discoveryPath": "/oidc/.well-known/openid-configuration"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "api:default/calendar-cron-api",
+      "kind": "API",
+      "name": "calendar-cron-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "calendar-cron-api",
+          "description": "Internal scheduler triggers for calendar and notifications, all guarded by one bearer secret."
+        },
+        "spec": {
+          "type": "openapi",
+          "provider": "component:default/calendar",
+          "contract": {
+            "ref": "contracts/calendar-cron.openapi.yaml"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "api:default/teacher-ingest-api",
+      "kind": "API",
+      "name": "teacher-ingest-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "teacher-ingest-api",
+          "description": "HMAC-authenticated ingest surface for OCR envelopes and purge relays."
+        },
+        "spec": {
+          "type": "openapi",
+          "provider": "component:default/teacher",
+          "contract": {
+            "ref": "contracts/teacher-ingest.openapi.yaml"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "component:default/accounts",
+      "kind": "Component",
+      "name": "accounts",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "accounts",
+          "description": "Provides identity, family relationships, sessions and shared authorization contracts."
+        },
+        "spec": {
+          "type": "web-app",
+          "system": "identity-access",
+          "context": {
+            "constraints": [
+              "apps/accounts/CONSTRAINTS.md"
+            ]
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/accounts/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/accounts",
+        "docs": [
+          "apps/accounts/README.md"
+        ],
+        "constraints": [
+          "apps/accounts/CONSTRAINTS.md"
+        ],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "dockerfile",
+            "path": "apps/accounts/Dockerfile"
+          },
+          {
+            "adapter": "node",
+            "path": "apps/accounts/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "apps/accounts/tsconfig.json"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [
+          "apps/accounts/Dockerfile"
+        ],
+        "healthContracts": [],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": false,
+          "references": 0
+        },
+        "routes": [
+          {
+            "path": "apps/accounts/src/app/api/health/route.ts",
+            "route": "/api/health",
+            "provenanceIds": null,
+            "_provs": {}
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/authz-catalog",
+      "kind": "Component",
+      "name": "authz-catalog",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "authz-catalog",
+          "description": "Holds the shared authorization and notification subject catalog consumed across services."
+        },
+        "spec": {
+          "type": "contract-library",
+          "placementRationale": "The subject catalog is a contract shared by several systems and belongs to no single one."
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "packages/authz-catalog/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "packages/authz-catalog",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "packages/authz-catalog/package.json"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "javascript"
+        ],
+        "runtimes": [
+          "node"
+        ]
+      }
+    },
+    {
+      "ref": "component:default/calendar",
+      "kind": "Component",
+      "name": "calendar",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "calendar",
+          "description": "Converts OCR calendar artifacts into parent-reviewable school calendar items."
+        },
+        "spec": {
+          "type": "web-app",
+          "system": "school-calendar"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/calendar/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/calendar",
+        "docs": [
+          "apps/calendar/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "dockerfile",
+            "path": "apps/calendar/Dockerfile"
+          },
+          {
+            "adapter": "node",
+            "path": "apps/calendar/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "apps/calendar/tsconfig.json"
+          }
+        ],
+        "migrationAuthority": "apps/calendar/src/db/migrations/0001_items.sql",
+        "bindings": [
+          {
+            "kind": "database",
+            "logicalResourceRef": "resource:default/calendar-postgres",
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0072"
+            ]
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [
+          "apps/calendar/Dockerfile"
+        ],
+        "healthContracts": [],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": false,
+          "references": 0
+        },
+        "routes": [
+          {
+            "path": "apps/calendar/src/app/api/health/route.ts",
+            "route": "/api/health",
+            "provenanceIds": null,
+            "_provs": {}
+          },
+          {
+            "path": "apps/calendar/src/app/api/internal/calendar/pending-approval/route.ts",
+            "route": "/api/internal/calendar/pending-approval",
+            "provenanceIds": null,
+            "_provs": {}
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/document-ocr",
+      "kind": "Component",
+      "name": "document-ocr",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "document-ocr",
+          "description": "Classifies uploaded documents and produces OCR artifacts for downstream ingest workers."
+        },
+        "spec": {
+          "type": "service",
+          "system": "document-capture"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/document-ocr/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/document-ocr",
+        "docs": [
+          "apps/document-ocr/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "dockerfile",
+            "path": "apps/document-ocr/Dockerfile"
+          },
+          {
+            "adapter": "node",
+            "path": "apps/document-ocr/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "apps/document-ocr/tsconfig.json"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [
+          "apps/document-ocr/Dockerfile"
+        ],
+        "healthContracts": [],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": false,
+          "references": 0
+        },
+        "routes": [
+          {
+            "path": "apps/document-ocr/src/app/api/health/route.ts",
+            "route": "/api/health",
+            "provenanceIds": null,
+            "_provs": {}
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/koda-cron",
+      "kind": "Component",
+      "name": "koda-cron",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "koda-cron",
+          "description": "Triggers governed endpoints on a platform schedule and owns no business logic."
+        },
+        "spec": {
+          "type": "worker",
+          "system": "scheduler",
+          "context": {
+            "constraints": [
+              "workers/koda-cron/CONSTRAINTS.md"
+            ]
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "workers/koda-cron/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "workers/koda-cron",
+        "docs": [
+          "workers/koda-cron/README.md"
+        ],
+        "constraints": [
+          "workers/koda-cron/CONSTRAINTS.md"
+        ],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "workers/koda-cron/package.json"
+          },
+          {
+            "adapter": "wrangler",
+            "path": "workers/koda-cron/wrangler.toml"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "javascript"
+        ],
+        "runtimes": [
+          "cloudflare-workers",
+          "node"
+        ],
+        "bindings": [
+          {
+            "kind": "kv",
+            "locator": {
+              "binding": "CRON_STATE"
+            },
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0171"
+            ]
+          },
+          {
+            "kind": "service-binding",
+            "locator": {
+              "binding": "TEACHER",
+              "service": "teacher-service"
+            },
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0171"
+            ]
+          }
+        ],
+        "serviceBindings": [
+          {
+            "binding": "TEACHER",
+            "service": "teacher-service"
+          }
+        ],
+        "schedules": [
+          "0 3 * * *"
+        ],
+        "scheduleTargets": [
+          {
+            "var": "PENDING_APPROVAL_CRON_URL",
+            "route": "/api/internal/calendar/pending-approval"
+          },
+          {
+            "var": "DIGEST_CRON_URL",
+            "route": "/api/internal/notifications/digest-flush"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/learning-event-relay",
+      "kind": "Component",
+      "name": "learning-event-relay",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "learning-event-relay",
+          "description": "Relays lesson and OCR artifacts to the teacher and learn ingest endpoints."
+        },
+        "spec": {
+          "type": "service",
+          "system": "lesson-production"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/learning-event-relay/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/learning-event-relay",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "go",
+            "path": "apps/learning-event-relay/go.mod"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "go"
+        ],
+        "runtimes": [
+          "go"
+        ],
+        "goModule": "example.com/koda/apps/learning-event-relay"
+      }
+    },
+    {
+      "ref": "component:default/lesson-canon",
+      "kind": "Component",
+      "name": "lesson-canon",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "lesson-canon",
+          "description": "Holds the canonical lesson artifact vocabulary shared by the lesson-production system."
+        },
+        "spec": {
+          "type": "contract-library",
+          "system": "lesson-production"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "packages/lesson-canon/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "packages/lesson-canon",
+        "docs": [
+          "packages/lesson-canon/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "packages/lesson-canon/package.json"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "javascript"
+        ],
+        "runtimes": [
+          "node"
+        ]
+      }
+    },
+    {
+      "ref": "component:default/notifications",
+      "kind": "Component",
+      "name": "notifications",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "notifications",
+          "description": "Fans out notifications over in-app and push transports and owns the notify subject catalog."
+        },
+        "spec": {
+          "type": "service",
+          "system": "identity-access"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/notifications/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/notifications",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "go",
+            "path": "apps/notifications/go.mod"
+          }
+        ],
+        "migrationAuthority": "apps/notifications/internal/db/migrations/0001_init.sql",
+        "bindings": [
+          {
+            "kind": "database",
+            "logicalResourceRef": "resource:default/notifications-postgres",
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0106"
+            ]
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "go"
+        ],
+        "runtimes": [
+          "go"
+        ],
+        "goModule": "example.com/koda/apps/notifications"
+      }
+    },
+    {
+      "ref": "component:default/teacher",
+      "kind": "Component",
+      "name": "teacher",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "teacher",
+          "description": "Turns lesson artifacts into durable canonical lesson publications."
+        },
+        "spec": {
+          "type": "web-app",
+          "system": "lesson-production"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/teacher/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/teacher",
+        "docs": [
+          "apps/teacher/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "dockerfile",
+            "path": "apps/teacher/Dockerfile"
+          },
+          {
+            "adapter": "node",
+            "path": "apps/teacher/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "apps/teacher/tsconfig.json"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [
+          "apps/teacher/Dockerfile"
+        ],
+        "healthContracts": [],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": false,
+          "references": 0
+        },
+        "routes": [
+          {
+            "path": "apps/teacher/src/app/api/health/route.ts",
+            "route": "/api/health",
+            "provenanceIds": null,
+            "_provs": {}
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/uploads",
+      "kind": "Component",
+      "name": "uploads",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "uploads",
+          "description": "Presigns and confirms school-document upload batches."
+        },
+        "spec": {
+          "type": "web-app",
+          "system": "document-capture"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/uploads/catalog-info.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/uploads",
+        "docs": [
+          "apps/uploads/README.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "dockerfile",
+            "path": "apps/uploads/Dockerfile"
+          },
+          {
+            "adapter": "node",
+            "path": "apps/uploads/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "apps/uploads/tsconfig.json"
+          }
+        ],
+        "deployConfigs": [],
+        "dockerfiles": [
+          "apps/uploads/Dockerfile"
+        ],
+        "healthContracts": [],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": false,
+          "references": 0
+        },
+        "routes": [
+          {
+            "path": "apps/uploads/src/app/api/health/route.ts",
+            "route": "/api/health",
+            "provenanceIds": null,
+            "_provs": {}
+          }
+        ]
+      }
+    },
+    {
+      "ref": "domain:default/identity-family",
+      "kind": "Domain",
+      "name": "identity-family",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "identity-family",
+          "description": "Defines family actors, relationships, consent, identity and access boundaries."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "domain:default/learning",
+      "kind": "Domain",
+      "name": "learning",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "learning",
+          "description": "Produces, publishes, presents and tracks canonical learning material."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "domain:default/school-life",
+      "kind": "Domain",
+      "name": "school-life",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "school-life",
+          "description": "Turns school documents into parent-reviewed school information with provenance."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/accounts-postgres",
+      "kind": "Resource",
+      "name": "accounts-postgres",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "accounts-postgres",
+          "description": "Logical database owned by the accounts identity service."
+        },
+        "spec": {
+          "type": "logical-database",
+          "system": "identity-access"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/calendar-postgres",
+      "kind": "Resource",
+      "name": "calendar-postgres",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "calendar-postgres",
+          "description": "Logical database owned by the calendar application."
+        },
+        "spec": {
+          "type": "logical-database",
+          "system": "school-calendar"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/koda-events",
+      "kind": "Resource",
+      "name": "koda-events",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "koda-events",
+          "description": "Provides shared event transport for product events."
+        },
+        "spec": {
+          "type": "event-bus",
+          "placementRationale": "Cross-domain event transport belongs to no single product bounded context."
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/notifications-postgres",
+      "kind": "Resource",
+      "name": "notifications-postgres",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "notifications-postgres",
+          "description": "Logical database owned by the notifications service."
+        },
+        "spec": {
+          "type": "logical-database",
+          "system": "identity-access"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/upload-object-dataset",
+      "kind": "Resource",
+      "name": "upload-object-dataset",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "upload-object-dataset",
+          "description": "Stores uploaded document objects shared by the document-capture pipeline."
+        },
+        "spec": {
+          "type": "logical-dataset",
+          "system": "document-capture"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/document-capture",
+      "kind": "System",
+      "name": "document-capture",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "document-capture",
+          "description": "Authorizes, deposits, confirms and classifies school-document uploads."
+        },
+        "spec": {
+          "domain": "school-life"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/identity-access",
+      "kind": "System",
+      "name": "identity-access",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "identity-access",
+          "description": "Provides identity, family relationships, sessions and shared authorization contracts."
+        },
+        "spec": {
+          "domain": "identity-family"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/lesson-production",
+      "kind": "System",
+      "name": "lesson-production",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "lesson-production",
+          "description": "Converts lesson artifacts into durable canonical lesson publications."
+        },
+        "spec": {
+          "domain": "learning"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/scheduler",
+      "kind": "System",
+      "name": "scheduler",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "scheduler",
+          "description": "Triggers governed endpoints on a platform schedule and owns no business logic."
+        },
+        "spec": {
+          "domain": "learning"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/school-calendar",
+      "kind": "System",
+      "name": "school-calendar",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "school-calendar",
+          "description": "Converts OCR calendar artifacts into parent-reviewable school calendar items."
+        },
+        "spec": {
+          "domain": "school-life"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "apiConsumedBy",
+      "sourceRef": "api:default/accounts-m2m-api",
+      "targetRef": "component:default/calendar",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "source-reference"
+        ]
+      },
+      "provenanceIds": [
+        "p-0073"
+      ]
+    },
+    {
+      "type": "apiConsumedBy",
+      "sourceRef": "api:default/accounts-oidc-api",
+      "targetRef": "component:default/calendar",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "oidc-client"
+        ]
+      },
+      "provenanceIds": [
+        "p-0074"
+      ]
+    },
+    {
+      "type": "apiConsumedBy",
+      "sourceRef": "api:default/accounts-oidc-api",
+      "targetRef": "component:default/notifications",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "oidc-client"
+        ]
+      },
+      "provenanceIds": [
+        "p-0105"
+      ]
+    },
+    {
+      "type": "apiConsumedBy",
+      "sourceRef": "api:default/teacher-ingest-api",
+      "targetRef": "component:default/learning-event-relay",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "source-reference"
+        ]
+      },
+      "provenanceIds": [
+        "p-0097"
+      ]
+    },
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/accounts-m2m-api",
+      "targetRef": "component:default/accounts",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0002"
+      ]
+    },
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/accounts-oidc-api",
+      "targetRef": "component:default/accounts",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0003"
+      ]
+    },
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/calendar-cron-api",
+      "targetRef": "component:default/calendar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0004"
+      ]
+    },
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/teacher-ingest-api",
+      "targetRef": "component:default/teacher",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0005"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/authz-catalog",
+      "targetRef": "component:default/lesson-canon",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@koda/authz-catalog"
+      },
+      "provenanceIds": [
+        "p-0151"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/lesson-canon",
+      "targetRef": "component:default/koda-cron",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@koda/lesson-canon"
+      },
+      "provenanceIds": [
+        "p-0169"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/lesson-canon",
+      "targetRef": "component:default/teacher",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@koda/lesson-canon"
+      },
+      "provenanceIds": [
+        "p-0117"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/notifications",
+      "targetRef": "component:default/learning-event-relay",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "go-module"
+        ]
+      },
+      "provenanceIds": [
+        "p-0096"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/koda-cron",
+      "targetRef": "component:default/lesson-canon",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@koda/lesson-canon"
+      },
+      "provenanceIds": [
+        "p-0169"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/learning-event-relay",
+      "targetRef": "component:default/notifications",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "go-module"
+        ]
+      },
+      "provenanceIds": [
+        "p-0096"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/lesson-canon",
+      "targetRef": "component:default/authz-catalog",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@koda/authz-catalog"
+      },
+      "provenanceIds": [
+        "p-0151"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/teacher",
+      "targetRef": "component:default/lesson-canon",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@koda/lesson-canon"
+      },
+      "provenanceIds": [
+        "p-0117"
+      ]
+    },
+    {
+      "type": "consumesApi",
+      "sourceRef": "component:default/calendar",
+      "targetRef": "api:default/accounts-m2m-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "source-reference"
+        ]
+      },
+      "provenanceIds": [
+        "p-0073"
+      ]
+    },
+    {
+      "type": "consumesApi",
+      "sourceRef": "component:default/calendar",
+      "targetRef": "api:default/accounts-oidc-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "oidc-client"
+        ]
+      },
+      "provenanceIds": [
+        "p-0074"
+      ]
+    },
+    {
+      "type": "consumesApi",
+      "sourceRef": "component:default/learning-event-relay",
+      "targetRef": "api:default/teacher-ingest-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "source-reference"
+        ]
+      },
+      "provenanceIds": [
+        "p-0097"
+      ]
+    },
+    {
+      "type": "consumesApi",
+      "sourceRef": "component:default/notifications",
+      "targetRef": "api:default/accounts-oidc-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "oidc-client"
+        ]
+      },
+      "provenanceIds": [
+        "p-0105"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/identity-family",
+      "targetRef": "system:default/identity-access",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0034"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/learning",
+      "targetRef": "system:default/lesson-production",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0035"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/learning",
+      "targetRef": "system:default/scheduler",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0036"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/school-life",
+      "targetRef": "system:default/document-capture",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0037"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/school-life",
+      "targetRef": "system:default/school-calendar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0038"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/document-capture",
+      "targetRef": "component:default/document-ocr",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0082"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/document-capture",
+      "targetRef": "component:default/uploads",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0127"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/document-capture",
+      "targetRef": "resource:default/upload-object-dataset",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0021"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/identity-access",
+      "targetRef": "component:default/accounts",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0051"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/identity-access",
+      "targetRef": "component:default/notifications",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0100"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/identity-access",
+      "targetRef": "resource:default/accounts-postgres",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0022"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/identity-access",
+      "targetRef": "resource:default/notifications-postgres",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0023"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/lesson-production",
+      "targetRef": "component:default/learning-event-relay",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0092"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/lesson-production",
+      "targetRef": "component:default/lesson-canon",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0147"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/lesson-production",
+      "targetRef": "component:default/teacher",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0113"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/scheduler",
+      "targetRef": "component:default/koda-cron",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0165"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/school-calendar",
+      "targetRef": "component:default/calendar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0064"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/school-calendar",
+      "targetRef": "resource:default/calendar-postgres",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0024"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/accounts",
+      "targetRef": "system:default/identity-access",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0051"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/calendar",
+      "targetRef": "system:default/school-calendar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0064"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/document-ocr",
+      "targetRef": "system:default/document-capture",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0082"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/koda-cron",
+      "targetRef": "system:default/scheduler",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0165"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/learning-event-relay",
+      "targetRef": "system:default/lesson-production",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0092"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/lesson-canon",
+      "targetRef": "system:default/lesson-production",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0147"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/notifications",
+      "targetRef": "system:default/identity-access",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0100"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/teacher",
+      "targetRef": "system:default/lesson-production",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0113"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/uploads",
+      "targetRef": "system:default/document-capture",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0127"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/accounts-postgres",
+      "targetRef": "system:default/identity-access",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0022"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/calendar-postgres",
+      "targetRef": "system:default/school-calendar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0024"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/notifications-postgres",
+      "targetRef": "system:default/identity-access",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0023"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/upload-object-dataset",
+      "targetRef": "system:default/document-capture",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0021"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/document-capture",
+      "targetRef": "domain:default/school-life",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0037"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/identity-access",
+      "targetRef": "domain:default/identity-family",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0034"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/lesson-production",
+      "targetRef": "domain:default/learning",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0035"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/scheduler",
+      "targetRef": "domain:default/learning",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0036"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/school-calendar",
+      "targetRef": "domain:default/school-life",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0038"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/accounts",
+      "targetRef": "api:default/accounts-m2m-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0002"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/accounts",
+      "targetRef": "api:default/accounts-oidc-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0003"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/calendar",
+      "targetRef": "api:default/calendar-cron-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0004"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/teacher",
+      "targetRef": "api:default/teacher-ingest-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0005"
+      ]
+    },
+    {
+      "type": "resourceUsedBy",
+      "sourceRef": "resource:default/calendar-postgres",
+      "targetRef": "component:default/calendar",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0072"
+      ]
+    },
+    {
+      "type": "resourceUsedBy",
+      "sourceRef": "resource:default/notifications-postgres",
+      "targetRef": "component:default/notifications",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0106"
+      ]
+    },
+    {
+      "type": "scheduledBy",
+      "sourceRef": "component:default/calendar",
+      "targetRef": "component:default/koda-cron",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "declared-trigger-target"
+        ],
+        "route": "/api/internal/calendar/pending-approval"
+      },
+      "provenanceIds": [
+        "p-0071",
+        "p-0172"
+      ]
+    },
+    {
+      "type": "scheduledBy",
+      "sourceRef": "component:default/notifications",
+      "targetRef": "component:default/koda-cron",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "declared-trigger-target"
+        ],
+        "route": "/api/internal/notifications/digest-flush"
+      },
+      "provenanceIds": [
+        "p-0107",
+        "p-0173"
+      ]
+    },
+    {
+      "type": "schedules",
+      "sourceRef": "component:default/koda-cron",
+      "targetRef": "component:default/calendar",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "declared-trigger-target"
+        ],
+        "route": "/api/internal/calendar/pending-approval"
+      },
+      "provenanceIds": [
+        "p-0071",
+        "p-0172"
+      ]
+    },
+    {
+      "type": "schedules",
+      "sourceRef": "component:default/koda-cron",
+      "targetRef": "component:default/notifications",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "declared-trigger-target"
+        ],
+        "route": "/api/internal/notifications/digest-flush"
+      },
+      "provenanceIds": [
+        "p-0107",
+        "p-0173"
+      ]
+    },
+    {
+      "type": "usesResource",
+      "sourceRef": "component:default/calendar",
+      "targetRef": "resource:default/calendar-postgres",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0072"
+      ]
+    },
+    {
+      "type": "usesResource",
+      "sourceRef": "component:default/notifications",
+      "targetRef": "resource:default/notifications-postgres",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0106"
+      ]
+    }
+  ],
+  "interfaces": {
+    "events": [
+      {
+        "pattern": "koda.flow.help.requested",
+        "producers": [],
+        "consumers": [
+          "component:default/notifications"
+        ],
+        "contract": {
+          "format": "declared-catalog",
+          "ref": "packages/authz-catalog/notify.json"
+        },
+        "resolution": "unresolved",
+        "provenanceIds": [
+          "p-0140"
+        ]
+      },
+      {
+        "pattern": "koda.flow.lesson.available",
+        "producers": [],
+        "consumers": [
+          "component:default/notifications"
+        ],
+        "contract": {
+          "format": "declared-catalog",
+          "ref": "packages/authz-catalog/notify.json"
+        },
+        "resolution": "unresolved",
+        "provenanceIds": [
+          "p-0140"
+        ]
+      },
+      {
+        "pattern": "koda.lesson.published",
+        "producers": [
+          "component:default/lesson-canon",
+          "component:default/teacher"
+        ],
+        "consumers": [],
+        "contract": {
+          "format": "declared-catalog",
+          "ref": "packages/authz-catalog/notify.json"
+        },
+        "resolution": "resolved",
+        "provenanceIds": [
+          "p-0119",
+          "p-0152",
+          "p-0153"
+        ]
+      },
+      {
+        "pattern": "koda.ocr.batch.ready.*",
+        "producers": [],
+        "consumers": [
+          "component:default/notifications"
+        ],
+        "contract": {
+          "format": "declared-catalog",
+          "ref": "packages/authz-catalog/notify.json"
+        },
+        "resolution": "unresolved",
+        "provenanceIds": [
+          "p-0140"
+        ]
+      }
+    ]
+  },
+  "externalDependencies": [],
+  "capabilities": [],
+  "verification": [
+    {
+      "id": "ci:-github-workflows-ci-yml:checks:2",
+      "componentRefs": [
+        "component:default/calendar",
+        "component:default/teacher"
+      ],
+      "tier": "unit",
+      "command": "pnpm --filter @koda/teacher test",
+      "configPaths": [
+        ".github/workflows/ci.yml"
+      ],
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "id": "ci:-github-workflows-ci-yml:checks:3",
+      "componentRefs": [
+        "component:default/calendar",
+        "component:default/teacher"
+      ],
+      "tier": "unit",
+      "command": "pnpm --filter @koda/calendar test",
+      "configPaths": [
+        ".github/workflows/ci.yml"
+      ],
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "id": "component:default/learning-event-relay:go-test",
+      "componentRefs": [
+        "component:default/learning-event-relay"
+      ],
+      "tier": "unit",
+      "command": "go test ./...",
+      "configPaths": [
+        "apps/learning-event-relay/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0096"
+      ]
+    },
+    {
+      "id": "component:default/learning-event-relay:go-vet",
+      "componentRefs": [
+        "component:default/learning-event-relay"
+      ],
+      "tier": "static",
+      "command": "go vet ./...",
+      "configPaths": [
+        "apps/learning-event-relay/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0096"
+      ]
+    },
+    {
+      "id": "component:default/notifications:go-test",
+      "componentRefs": [
+        "component:default/notifications"
+      ],
+      "tier": "unit",
+      "command": "go test ./...",
+      "configPaths": [
+        "apps/notifications/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0104"
+      ]
+    },
+    {
+      "id": "component:default/notifications:go-vet",
+      "componentRefs": [
+        "component:default/notifications"
+      ],
+      "tier": "static",
+      "command": "go vet ./...",
+      "configPaths": [
+        "apps/notifications/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0104"
+      ]
+    },
+    {
+      "id": "tg:component:default/accounts:lint",
+      "componentRefs": [
+        "component:default/accounts"
+      ],
+      "tier": "static",
+      "command": "turbo run lint --filter=@koda/accounts",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0154"
+      ]
+    },
+    {
+      "id": "tg:component:default/accounts:test",
+      "componentRefs": [
+        "component:default/accounts"
+      ],
+      "tier": "unit",
+      "command": "turbo run test --filter=@koda/accounts",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0154"
+      ]
+    },
+    {
+      "id": "tg:component:default/accounts:typecheck",
+      "componentRefs": [
+        "component:default/accounts"
+      ],
+      "tier": "static",
+      "command": "turbo run typecheck --filter=@koda/accounts",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0154"
+      ]
+    },
+    {
+      "id": "tg:component:default/calendar:lint",
+      "componentRefs": [
+        "component:default/calendar"
+      ],
+      "tier": "static",
+      "command": "turbo run lint --filter=@koda/calendar",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0155"
+      ]
+    },
+    {
+      "id": "tg:component:default/calendar:test",
+      "componentRefs": [
+        "component:default/calendar"
+      ],
+      "tier": "unit",
+      "command": "turbo run test --filter=@koda/calendar",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0155"
+      ]
+    },
+    {
+      "id": "tg:component:default/calendar:typecheck",
+      "componentRefs": [
+        "component:default/calendar"
+      ],
+      "tier": "static",
+      "command": "turbo run typecheck --filter=@koda/calendar",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0155"
+      ]
+    },
+    {
+      "id": "tg:component:default/document-ocr:lint",
+      "componentRefs": [
+        "component:default/document-ocr"
+      ],
+      "tier": "static",
+      "command": "turbo run lint --filter=@koda/document-ocr",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0156"
+      ]
+    },
+    {
+      "id": "tg:component:default/document-ocr:test",
+      "componentRefs": [
+        "component:default/document-ocr"
+      ],
+      "tier": "unit",
+      "command": "turbo run test --filter=@koda/document-ocr",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0156"
+      ]
+    },
+    {
+      "id": "tg:component:default/document-ocr:typecheck",
+      "componentRefs": [
+        "component:default/document-ocr"
+      ],
+      "tier": "static",
+      "command": "turbo run typecheck --filter=@koda/document-ocr",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0156"
+      ]
+    },
+    {
+      "id": "tg:component:default/koda-cron:test",
+      "componentRefs": [
+        "component:default/koda-cron"
+      ],
+      "tier": "unit",
+      "command": "turbo run test --filter=@koda/koda-cron",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0157"
+      ]
+    },
+    {
+      "id": "tg:component:default/teacher:lint",
+      "componentRefs": [
+        "component:default/teacher"
+      ],
+      "tier": "static",
+      "command": "turbo run lint --filter=@koda/teacher",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0158"
+      ]
+    },
+    {
+      "id": "tg:component:default/teacher:test",
+      "componentRefs": [
+        "component:default/teacher"
+      ],
+      "tier": "unit",
+      "command": "turbo run test --filter=@koda/teacher",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0158"
+      ]
+    },
+    {
+      "id": "tg:component:default/teacher:typecheck",
+      "componentRefs": [
+        "component:default/teacher"
+      ],
+      "tier": "static",
+      "command": "turbo run typecheck --filter=@koda/teacher",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0158"
+      ]
+    },
+    {
+      "id": "tg:component:default/uploads:lint",
+      "componentRefs": [
+        "component:default/uploads"
+      ],
+      "tier": "static",
+      "command": "turbo run lint --filter=@koda/uploads",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0159"
+      ]
+    },
+    {
+      "id": "tg:component:default/uploads:test",
+      "componentRefs": [
+        "component:default/uploads"
+      ],
+      "tier": "unit",
+      "command": "turbo run test --filter=@koda/uploads",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0159"
+      ]
+    },
+    {
+      "id": "tg:component:default/uploads:typecheck",
+      "componentRefs": [
+        "component:default/uploads"
+      ],
+      "tier": "static",
+      "command": "turbo run typecheck --filter=@koda/uploads",
+      "configPaths": [
+        "turbo.json"
+      ],
+      "provenanceIds": [
+        "p-0159"
+      ]
+    }
+  ],
+  "journeys": [
+    {
+      "id": "document-to-calendar",
+      "description": "Turns a confirmed school document into a parent-reviewable calendar item.",
+      "components": [
+        "component:default/uploads",
+        "component:default/document-ocr",
+        "component:default/calendar"
+      ],
+      "provenanceIds": [
+        "p-0014"
+      ]
+    }
+  ],
+  "gates": [],
+  "contracts": [
+    {
+      "apiRef": "api:default/accounts-oidc-api",
+      "ref": "agentdoc/apis.yaml",
+      "standard": "openid-connect-discovery-1.0",
+      "discoveryPath": "/oidc/.well-known/openid-configuration",
+      "consumers": [
+        "component:default/calendar",
+        "component:default/notifications"
+      ],
+      "provenanceIds": [
+        "p-0006"
+      ]
+    },
+    {
+      "apiRef": "api:default/accounts-m2m-api",
+      "ref": "contracts/accounts-m2m.openapi.yaml",
+      "operations": [
+        {
+          "method": "GET",
+          "route": "/internal/children",
+          "operationId": "listChildren"
+        },
+        {
+          "method": "GET",
+          "route": "/internal/circle",
+          "operationId": "getCircle"
+        }
+      ],
+      "title": "Accounts M2M",
+      "provenanceIds": [
+        "p-0135"
+      ]
+    },
+    {
+      "apiRef": "api:default/calendar-cron-api",
+      "ref": "contracts/calendar-cron.openapi.yaml",
+      "operations": [
+        {
+          "method": "POST",
+          "route": "/api/internal/calendar/pending-approval",
+          "operationId": "pendingApproval"
+        },
+        {
+          "method": "POST",
+          "route": "/api/internal/notifications/digest-flush",
+          "operationId": "digestFlush"
+        }
+      ],
+      "title": "Calendar Cron",
+      "provenanceIds": [
+        "p-0136"
+      ]
+    },
+    {
+      "apiRef": "api:default/teacher-ingest-api",
+      "ref": "contracts/teacher-ingest.openapi.yaml",
+      "operations": [
+        {
+          "method": "POST",
+          "route": "/api/ingest/ocr",
+          "operationId": "ingestOcr"
+        },
+        {
+          "method": "POST",
+          "route": "/api/ingest/purge",
+          "operationId": "purge"
+        }
+      ],
+      "title": "Teacher Ingest",
+      "provenanceIds": [
+        "p-0137"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-0001",
+      "subject": "component:default/accounts",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0046",
+        "p-0054",
+        "p-0057"
+      ]
+    },
+    {
+      "id": "a-0002",
+      "subject": "component:default/accounts",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0046",
+        "p-0054",
+        "p-0057"
+      ]
+    },
+    {
+      "id": "a-0003",
+      "subject": "component:default/calendar",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0060",
+        "p-0067",
+        "p-0075"
+      ]
+    },
+    {
+      "id": "a-0004",
+      "subject": "component:default/calendar",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0060",
+        "p-0067",
+        "p-0075"
+      ]
+    },
+    {
+      "id": "a-0005",
+      "subject": "component:default/calendar",
+      "key": "resource.ownership",
+      "value": "calendar-postgres",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0072"
+      ],
+      "semantics": "migration and connection authority in this root resolve to the authored logical database"
+    },
+    {
+      "id": "a-0006",
+      "subject": "component:default/document-ocr",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0078",
+        "p-0085",
+        "p-0088"
+      ]
+    },
+    {
+      "id": "a-0007",
+      "subject": "component:default/document-ocr",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0078",
+        "p-0085",
+        "p-0088"
+      ]
+    },
+    {
+      "id": "a-0008",
+      "subject": "component:default/learning-event-relay",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0095"
+      ]
+    },
+    {
+      "id": "a-0009",
+      "subject": "component:default/learning-event-relay",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0095"
+      ]
+    },
+    {
+      "id": "a-0010",
+      "subject": "component:default/notifications",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0103"
+      ]
+    },
+    {
+      "id": "a-0011",
+      "subject": "component:default/notifications",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0103"
+      ]
+    },
+    {
+      "id": "a-0012",
+      "subject": "component:default/notifications",
+      "key": "resource.ownership",
+      "value": "notifications-postgres",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0106"
+      ],
+      "semantics": "migration and connection authority in this root resolve to the authored logical database"
+    },
+    {
+      "id": "a-0013",
+      "subject": "component:default/teacher",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0109",
+        "p-0116",
+        "p-0120"
+      ]
+    },
+    {
+      "id": "a-0014",
+      "subject": "component:default/teacher",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0109",
+        "p-0116",
+        "p-0120"
+      ]
+    },
+    {
+      "id": "a-0015",
+      "subject": "component:default/uploads",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0123",
+        "p-0130",
+        "p-0133"
+      ]
+    },
+    {
+      "id": "a-0016",
+      "subject": "component:default/uploads",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0123",
+        "p-0130",
+        "p-0133"
+      ]
+    },
+    {
+      "id": "a-0017",
+      "subject": "component:default/authz-catalog",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0142"
+      ]
+    },
+    {
+      "id": "a-0018",
+      "subject": "component:default/authz-catalog",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0142"
+      ]
+    },
+    {
+      "id": "a-0019",
+      "subject": "component:default/lesson-canon",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0150"
+      ]
+    },
+    {
+      "id": "a-0020",
+      "subject": "component:default/lesson-canon",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0150"
+      ]
+    },
+    {
+      "id": "a-0021",
+      "subject": "component:default/koda-cron",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0168",
+        "p-0170"
+      ]
+    },
+    {
+      "id": "a-0022",
+      "subject": "component:default/koda-cron",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0168",
+        "p-0170"
+      ]
+    },
+    {
+      "id": "a-0023",
+      "subject": "component:default/koda-cron",
+      "key": "binding.declared",
+      "value": [
+        "CRON_STATE",
+        "TEACHER"
+      ],
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "contradicted",
+      "provenanceIds": [
+        "p-0171"
+      ],
+      "semantics": "the binding names the committed manifest declares for this component"
+    },
+    {
+      "id": "a-0024",
+      "subject": "component:default/koda-cron",
+      "key": "binding.kind",
+      "value": [
+        "kv",
+        "service-binding"
+      ],
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "contradicted",
+      "provenanceIds": [
+        "p-0171"
+      ],
+      "semantics": "the kinds of platform binding the committed manifest declares for this component"
+    },
+    {
+      "id": "a-0025",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.cron",
+      "value": "0 3 * * *",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "contradicted",
+      "provenanceIds": [
+        "p-0171"
+      ],
+      "semantics": "cron expressions the committed deployment manifest declares for this component"
+    },
+    {
+      "id": "a-0026",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.enabled",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0171"
+      ],
+      "semantics": "the manifest declares a trigger, i.e. the job is intended to be enabled"
+    },
+    {
+      "id": "a-0027",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.target",
+      "value": [
+        "/api/internal/calendar/pending-approval",
+        "/api/internal/notifications/digest-flush"
+      ],
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "contradicted",
+      "provenanceIds": [
+        "p-0171"
+      ],
+      "semantics": "endpoints the committed manifest points scheduled triggers at"
+    },
+    {
+      "id": "a-0028",
+      "subject": "component:default/accounts",
+      "key": "placement.system",
+      "value": "identity-access",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0052"
+      ]
+    },
+    {
+      "id": "a-0029",
+      "subject": "component:default/calendar",
+      "key": "placement.system",
+      "value": "school-calendar",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0065"
+      ]
+    },
+    {
+      "id": "a-0030",
+      "subject": "component:default/document-ocr",
+      "key": "placement.system",
+      "value": "document-capture",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0083"
+      ]
+    },
+    {
+      "id": "a-0031",
+      "subject": "component:default/learning-event-relay",
+      "key": "placement.system",
+      "value": "lesson-production",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0093"
+      ]
+    },
+    {
+      "id": "a-0032",
+      "subject": "component:default/notifications",
+      "key": "placement.system",
+      "value": "identity-access",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0101"
+      ]
+    },
+    {
+      "id": "a-0033",
+      "subject": "component:default/teacher",
+      "key": "placement.system",
+      "value": "lesson-production",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0114"
+      ]
+    },
+    {
+      "id": "a-0034",
+      "subject": "component:default/uploads",
+      "key": "placement.system",
+      "value": "document-capture",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0128"
+      ]
+    },
+    {
+      "id": "a-0035",
+      "subject": "component:default/lesson-canon",
+      "key": "placement.system",
+      "value": "lesson-production",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0148"
+      ]
+    },
+    {
+      "id": "a-0036",
+      "subject": "component:default/koda-cron",
+      "key": "placement.system",
+      "value": "scheduler",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0166"
+      ]
+    },
+    {
+      "id": "a-0037",
+      "subject": "resource:default/accounts-postgres",
+      "key": "placement.system",
+      "value": "identity-access",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0025"
+      ]
+    },
+    {
+      "id": "a-0038",
+      "subject": "resource:default/calendar-postgres",
+      "key": "placement.system",
+      "value": "school-calendar",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0026"
+      ]
+    },
+    {
+      "id": "a-0039",
+      "subject": "resource:default/notifications-postgres",
+      "key": "placement.system",
+      "value": "identity-access",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "id": "a-0040",
+      "subject": "resource:default/upload-object-dataset",
+      "key": "placement.system",
+      "value": "document-capture",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0028"
+      ]
+    },
+    {
+      "id": "a-0041",
+      "subject": "system:default/identity-access",
+      "key": "placement.domain",
+      "value": "identity-family",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0039"
+      ]
+    },
+    {
+      "id": "a-0042",
+      "subject": "system:default/document-capture",
+      "key": "placement.domain",
+      "value": "school-life",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0040"
+      ]
+    },
+    {
+      "id": "a-0043",
+      "subject": "system:default/school-calendar",
+      "key": "placement.domain",
+      "value": "school-life",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0041"
+      ]
+    },
+    {
+      "id": "a-0044",
+      "subject": "system:default/lesson-production",
+      "key": "placement.domain",
+      "value": "learning",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0042"
+      ]
+    },
+    {
+      "id": "a-0045",
+      "subject": "system:default/scheduler",
+      "key": "placement.domain",
+      "value": "learning",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0043"
+      ]
+    },
+    {
+      "id": "a-0046",
+      "subject": "component:default/koda-cron",
+      "key": "binding.declared",
+      "value": [
+        "CRON_STATE"
+      ],
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "The bindings actually present on the deployed worker, read from the platform control plane.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    },
+    {
+      "id": "a-0047",
+      "subject": "component:default/koda-cron",
+      "key": "binding.kind",
+      "value": [
+        "kv"
+      ],
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "The kinds of binding actually present on the deployed worker.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    },
+    {
+      "id": "a-0048",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.cron",
+      "value": "0 * * * *,3 0 * * *",
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "The scheduler evaluates an hourly trigger plus a daily trigger; the hourly trigger is gated to hour 3, so the effective daily behaviour is not the manifest's single daily expression.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    },
+    {
+      "id": "a-0049",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.enabled",
+      "value": true,
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "Both triggers are enabled in the scheduler.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    },
+    {
+      "id": "a-0050",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.target",
+      "value": [
+        "/api/internal/notifications/digest-flush"
+      ],
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "The trigger that fires in hour 3 calls the notifications digest-flush endpoint.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    },
+    {
+      "id": "a-0051",
+      "subject": "component:default/uploads",
+      "key": "contract.supports",
+      "value": [
+        "presign",
+        "confirm",
+        "complete"
+      ],
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "A live probe of the upload API accepted presign, confirm and complete, and rejected an annotations field on the object payload.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    },
+    {
+      "id": "a-0052",
+      "subject": "component:default/koda-cron",
+      "key": "binding.target",
+      "value": "CRON_STATE (retained by the recovery, absent from the governed target state)",
+      "evidenceClass": "OBSERVED_RUNTIME",
+      "confidence": "direct",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ],
+      "semantics": "The KV binding was deliberately retained during recovery so scheduled state was not lost. The governed target state does not contain it, so the deployment intentionally diverges from desired state.",
+      "observed": {
+        "at": "2026-09-27T18:40:00Z",
+        "environment": "production",
+        "sourceSystem": "platform-scheduler",
+        "collector": "platform-cli schedules list --json",
+        "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+        "retrievalMethod": "platform-cli schedules list --json",
+        "supersedes": null
+      }
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "c-0001",
+      "subject": "component:default/koda-cron",
+      "key": "binding.declared",
+      "kind": "contradiction",
+      "status": "resolved",
+      "assertionIds": [
+        "a-0023",
+        "a-0046"
+      ],
+      "election": {
+        "electedAssertionId": "a-0046",
+        "basis": "authority-rule",
+        "ruleId": "deployed-bindings-are-runtime-truth",
+        "rationale": "A binding list in a manifest is the intended set; the deployed binding list is the real one.",
+        "reviewWhen": "Review after every deployment that adds, removes or repoints a binding.",
+        "contradictedAssertionIds": [
+          "a-0023"
+        ]
+      },
+      "provenanceIds": [
+        "p-0015",
+        "p-0171"
+      ]
+    },
+    {
+      "id": "c-0002",
+      "subject": "component:default/koda-cron",
+      "key": "binding.kind",
+      "kind": "contradiction",
+      "status": "resolved",
+      "assertionIds": [
+        "a-0024",
+        "a-0047"
+      ],
+      "election": {
+        "electedAssertionId": "a-0047",
+        "basis": "authority-rule",
+        "ruleId": "deployed-bindings-are-runtime-truth",
+        "rationale": "A binding list in a manifest is the intended set; the deployed binding list is the real one.",
+        "reviewWhen": "Review after every deployment that adds, removes or repoints a binding.",
+        "contradictedAssertionIds": [
+          "a-0024"
+        ]
+      },
+      "provenanceIds": [
+        "p-0015",
+        "p-0171"
+      ]
+    },
+    {
+      "id": "c-0003",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.cron",
+      "kind": "contradiction",
+      "status": "resolved",
+      "assertionIds": [
+        "a-0025",
+        "a-0048"
+      ],
+      "election": {
+        "electedAssertionId": "a-0048",
+        "basis": "authority-rule",
+        "ruleId": "deployed-schedule-is-runtime-truth",
+        "rationale": "The committed wrangler manifest states intent; only the live scheduler states what actually fires.",
+        "reviewWhen": "Review when the platform scheduler configuration changes or a trigger silently stops firing.",
+        "contradictedAssertionIds": [
+          "a-0025"
+        ]
+      },
+      "provenanceIds": [
+        "p-0015",
+        "p-0171"
+      ]
+    },
+    {
+      "id": "c-0004",
+      "subject": "component:default/koda-cron",
+      "key": "schedule.target",
+      "kind": "contradiction",
+      "status": "resolved",
+      "assertionIds": [
+        "a-0027",
+        "a-0050"
+      ],
+      "election": {
+        "electedAssertionId": "a-0050",
+        "basis": "authority-rule",
+        "ruleId": "deployed-schedule-is-runtime-truth",
+        "rationale": "The committed wrangler manifest states intent; only the live scheduler states what actually fires.",
+        "reviewWhen": "Review when the platform scheduler configuration changes or a trigger silently stops firing.",
+        "contradictedAssertionIds": [
+          "a-0027"
+        ]
+      },
+      "provenanceIds": [
+        "p-0015",
+        "p-0171"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "id": "production",
+      "name": "production",
+      "description": "Scheduler and platform state read from the production platform during the 2026-09-27 recovery window.",
+      "environment": "production",
+      "sourceSystem": "platform-scheduler",
+      "collector": "platform-cli schedules list --json",
+      "capturedAt": "2026-09-27T18:40:00Z",
+      "maxAgeDays": 3650,
+      "evidenceBundle": "agentdoc/observations/production/2026-09-27-scheduler.json",
+      "facts": [
+        {
+          "id": "cron-declared-bindings",
+          "subject": "component:default/koda-cron",
+          "key": "binding.declared",
+          "value": [
+            "CRON_STATE"
+          ],
+          "semantics": "The bindings actually present on the deployed worker, read from the platform control plane.",
+          "assertionId": "a-0046",
+          "observedRefs": [
+            "component:default/koda-cron"
+          ]
+        },
+        {
+          "id": "cron-binding-kinds",
+          "subject": "component:default/koda-cron",
+          "key": "binding.kind",
+          "value": [
+            "kv"
+          ],
+          "semantics": "The kinds of binding actually present on the deployed worker.",
+          "assertionId": "a-0047",
+          "observedRefs": [
+            "component:default/koda-cron"
+          ]
+        },
+        {
+          "id": "cron-triggers",
+          "subject": "component:default/koda-cron",
+          "key": "schedule.cron",
+          "value": "0 * * * *,3 0 * * *",
+          "semantics": "The scheduler evaluates an hourly trigger plus a daily trigger; the hourly trigger is gated to hour 3, so the effective daily behaviour is not the manifest's single daily expression.",
+          "assertionId": "a-0048",
+          "observedRefs": [
+            "component:default/calendar",
+            "component:default/notifications"
+          ]
+        },
+        {
+          "id": "cron-enabled",
+          "subject": "component:default/koda-cron",
+          "key": "schedule.enabled",
+          "value": true,
+          "semantics": "Both triggers are enabled in the scheduler.",
+          "assertionId": "a-0049",
+          "observedRefs": []
+        },
+        {
+          "id": "cron-target-digest",
+          "subject": "component:default/koda-cron",
+          "key": "schedule.target",
+          "value": [
+            "/api/internal/notifications/digest-flush"
+          ],
+          "semantics": "The trigger that fires in hour 3 calls the notifications digest-flush endpoint.",
+          "assertionId": "a-0050",
+          "observedRefs": []
+        },
+        {
+          "id": "upload-annotations",
+          "subject": "component:default/uploads",
+          "key": "contract.supports",
+          "value": [
+            "presign",
+            "confirm",
+            "complete"
+          ],
+          "semantics": "A live probe of the upload API accepted presign, confirm and complete, and rejected an annotations field on the object payload.",
+          "assertionId": "a-0051",
+          "observedRefs": []
+        },
+        {
+          "id": "recovery-binding",
+          "subject": "component:default/koda-cron",
+          "key": "binding.target",
+          "value": "CRON_STATE (retained by the recovery, absent from the governed target state)",
+          "semantics": "The KV binding was deliberately retained during recovery so scheduled state was not lost. The governed target state does not contain it, so the deployment intentionally diverges from desired state.",
+          "assertionId": "a-0052",
+          "observedRefs": [
+            "component:default/koda-cron"
+          ]
+        }
+      ],
+      "provenanceIds": [
+        "p-0015"
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "id": "p-0001",
+      "class": "observed",
+      "path": ".github/workflows/ci.yml",
+      "extractor": {
+        "name": "ci-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:643b2d351bb464d3f01d8a096d0fafa26a622d42b7f9200bc7153a5ded0676c0",
+      "subjects": [
+        "/verification/0",
+        "/verification/1"
+      ]
+    },
+    {
+      "id": "p-0002",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/relations/4",
+        "/relations/56"
+      ]
+    },
+    {
+      "id": "p-0003",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/relations/5",
+        "/relations/57"
+      ]
+    },
+    {
+      "id": "p-0004",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/relations/58",
+        "/relations/6"
+      ]
+    },
+    {
+      "id": "p-0005",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/relations/59",
+        "/relations/7"
+      ]
+    },
+    {
+      "id": "p-0006",
+      "class": "observed",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/contracts/0"
+      ]
+    },
+    {
+      "id": "p-0007",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/entities/0",
+        "/entities/0/entity/apiVersion",
+        "/entities/0/entity/kind",
+        "/entities/0/entity/metadata",
+        "/entities/0/entity/metadata/description",
+        "/entities/0/entity/metadata/name",
+        "/entities/0/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0008",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/entities/1",
+        "/entities/1/entity/apiVersion",
+        "/entities/1/entity/kind",
+        "/entities/1/entity/metadata",
+        "/entities/1/entity/metadata/description",
+        "/entities/1/entity/metadata/name",
+        "/entities/1/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0009",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/entities/2",
+        "/entities/2/entity/apiVersion",
+        "/entities/2/entity/kind",
+        "/entities/2/entity/metadata",
+        "/entities/2/entity/metadata/description",
+        "/entities/2/entity/metadata/name",
+        "/entities/2/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0010",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:751e5a3789c8a981688e71a17ef1d342761d52806f3be13cfa4df82cc17e51a0",
+      "subjects": [
+        "/entities/3",
+        "/entities/3/entity/apiVersion",
+        "/entities/3/entity/kind",
+        "/entities/3/entity/metadata",
+        "/entities/3/entity/metadata/description",
+        "/entities/3/entity/metadata/name",
+        "/entities/3/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0011",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:25930b1533b6a2fe3d06c97be0bb3e1ce267cd386c86403f8d6cd1ad34f384e6",
+      "subjects": [
+        "/entities/14",
+        "/entities/14/entity/apiVersion",
+        "/entities/14/entity/kind",
+        "/entities/14/entity/metadata",
+        "/entities/14/entity/metadata/description",
+        "/entities/14/entity/metadata/name",
+        "/entities/14/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0012",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:25930b1533b6a2fe3d06c97be0bb3e1ce267cd386c86403f8d6cd1ad34f384e6",
+      "subjects": [
+        "/entities/15",
+        "/entities/15/entity/apiVersion",
+        "/entities/15/entity/kind",
+        "/entities/15/entity/metadata",
+        "/entities/15/entity/metadata/description",
+        "/entities/15/entity/metadata/name",
+        "/entities/15/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0013",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:25930b1533b6a2fe3d06c97be0bb3e1ce267cd386c86403f8d6cd1ad34f384e6",
+      "subjects": [
+        "/entities/16",
+        "/entities/16/entity/apiVersion",
+        "/entities/16/entity/kind",
+        "/entities/16/entity/metadata",
+        "/entities/16/entity/metadata/description",
+        "/entities/16/entity/metadata/name",
+        "/entities/16/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0014",
+      "class": "declared",
+      "path": "agentdoc/journeys.yaml",
+      "extractor": {
+        "name": "journey-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2484f8c6f65b337add2508a13d79eff5a374bf99de36d8dab12e79a337d7a4bb",
+      "subjects": [
+        "/journeys/0"
+      ]
+    },
+    {
+      "id": "p-0015",
+      "class": "runtime",
+      "path": "agentdoc/observations/production/2026-09-27-scheduler.json",
+      "extractor": {
+        "name": "observation-platform-cli-schedules-list-json",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:30c16101f4f342e667434085506f31ccd4a28d953e23738a46c2135cd175bead",
+      "subjects": [
+        "/assertions/45",
+        "/assertions/46",
+        "/assertions/47",
+        "/assertions/48",
+        "/assertions/49",
+        "/assertions/50",
+        "/assertions/51",
+        "/observations/0"
+      ],
+      "location": {
+        "jsonPointer": "/facts"
+      }
+    },
+    {
+      "id": "p-0016",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/entities/17",
+        "/entities/17/entity/apiVersion",
+        "/entities/17/entity/kind",
+        "/entities/17/entity/metadata",
+        "/entities/17/entity/metadata/description",
+        "/entities/17/entity/metadata/name",
+        "/entities/17/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0017",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/entities/18",
+        "/entities/18/entity/apiVersion",
+        "/entities/18/entity/kind",
+        "/entities/18/entity/metadata",
+        "/entities/18/entity/metadata/description",
+        "/entities/18/entity/metadata/name",
+        "/entities/18/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0018",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/entities/19",
+        "/entities/19/entity/apiVersion",
+        "/entities/19/entity/kind",
+        "/entities/19/entity/metadata",
+        "/entities/19/entity/metadata/description",
+        "/entities/19/entity/metadata/name",
+        "/entities/19/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0019",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/entities/20",
+        "/entities/20/entity/apiVersion",
+        "/entities/20/entity/kind",
+        "/entities/20/entity/metadata",
+        "/entities/20/entity/metadata/description",
+        "/entities/20/entity/metadata/name",
+        "/entities/20/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0020",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/entities/21",
+        "/entities/21/entity/apiVersion",
+        "/entities/21/entity/kind",
+        "/entities/21/entity/metadata",
+        "/entities/21/entity/metadata/description",
+        "/entities/21/entity/metadata/name",
+        "/entities/21/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0021",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/relations/27",
+        "/relations/50"
+      ]
+    },
+    {
+      "id": "p-0022",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/relations/30",
+        "/relations/47"
+      ]
+    },
+    {
+      "id": "p-0023",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/relations/31",
+        "/relations/49"
+      ]
+    },
+    {
+      "id": "p-0024",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/relations/37",
+        "/relations/48"
+      ]
+    },
+    {
+      "id": "p-0025",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/assertions/36"
+      ]
+    },
+    {
+      "id": "p-0026",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/assertions/37"
+      ]
+    },
+    {
+      "id": "p-0027",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/assertions/38"
+      ]
+    },
+    {
+      "id": "p-0028",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d14b98b095b2ce20f8e3ea8772d54d0510347310204153f36e1fd0b2e6e6c193",
+      "subjects": [
+        "/assertions/39"
+      ]
+    },
+    {
+      "id": "p-0029",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/entities/22",
+        "/entities/22/entity/apiVersion",
+        "/entities/22/entity/kind",
+        "/entities/22/entity/metadata",
+        "/entities/22/entity/metadata/description",
+        "/entities/22/entity/metadata/name",
+        "/entities/22/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0030",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/entities/23",
+        "/entities/23/entity/apiVersion",
+        "/entities/23/entity/kind",
+        "/entities/23/entity/metadata",
+        "/entities/23/entity/metadata/description",
+        "/entities/23/entity/metadata/name",
+        "/entities/23/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0031",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/entities/24",
+        "/entities/24/entity/apiVersion",
+        "/entities/24/entity/kind",
+        "/entities/24/entity/metadata",
+        "/entities/24/entity/metadata/description",
+        "/entities/24/entity/metadata/name",
+        "/entities/24/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0032",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/entities/25",
+        "/entities/25/entity/apiVersion",
+        "/entities/25/entity/kind",
+        "/entities/25/entity/metadata",
+        "/entities/25/entity/metadata/description",
+        "/entities/25/entity/metadata/name",
+        "/entities/25/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0033",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/entities/26",
+        "/entities/26/entity/apiVersion",
+        "/entities/26/entity/kind",
+        "/entities/26/entity/metadata",
+        "/entities/26/entity/metadata/description",
+        "/entities/26/entity/metadata/name",
+        "/entities/26/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0034",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/relations/20",
+        "/relations/52"
+      ]
+    },
+    {
+      "id": "p-0035",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/relations/21",
+        "/relations/53"
+      ]
+    },
+    {
+      "id": "p-0036",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/relations/22",
+        "/relations/54"
+      ]
+    },
+    {
+      "id": "p-0037",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/relations/23",
+        "/relations/51"
+      ]
+    },
+    {
+      "id": "p-0038",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/relations/24",
+        "/relations/55"
+      ]
+    },
+    {
+      "id": "p-0039",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/assertions/40"
+      ]
+    },
+    {
+      "id": "p-0040",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/assertions/41"
+      ]
+    },
+    {
+      "id": "p-0041",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/assertions/42"
+      ]
+    },
+    {
+      "id": "p-0042",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/assertions/43"
+      ]
+    },
+    {
+      "id": "p-0043",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5d247211c4087c64df029fe04e06a3a6c5a96df42003e9f95861f2b3b5ce047a",
+      "subjects": [
+        "/assertions/44"
+      ]
+    },
+    {
+      "id": "p-0044",
+      "class": "observed",
+      "path": "apps/accounts/CONSTRAINTS.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:b125a0f4ee75ac0643df3db54684dbdefdf6cc2ca9b941d80a7cac02e7b89148",
+      "subjects": [
+        "/entities/4/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0045",
+      "class": "observed",
+      "path": "apps/accounts/Dockerfile",
+      "extractor": {
+        "name": "deploy-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/entities/4/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0046",
+      "class": "observed",
+      "path": "apps/accounts/Dockerfile",
+      "extractor": {
+        "name": "discovery-dockerfile",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/4/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0047",
+      "class": "observed",
+      "path": "apps/accounts/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:66986c199e8d47d6155d0d43402b340ff7fe1ff60cd44b8e951a60d34e9b13a4",
+      "subjects": [
+        "/entities/4/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0048",
+      "class": "observed",
+      "path": "apps/accounts/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4ae4d871c6e8c47eb6867891151285da595685d66dbcff275a9f01eddb6d1264",
+      "subjects": [
+        "/entities/4/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0049",
+      "class": "declared",
+      "path": "apps/accounts/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4ae4d871c6e8c47eb6867891151285da595685d66dbcff275a9f01eddb6d1264",
+      "subjects": [
+        "/entities/4/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0050",
+      "class": "declared",
+      "path": "apps/accounts/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4ae4d871c6e8c47eb6867891151285da595685d66dbcff275a9f01eddb6d1264",
+      "subjects": [
+        "/entities/4",
+        "/entities/4/entity/apiVersion",
+        "/entities/4/entity/kind",
+        "/entities/4/entity/metadata",
+        "/entities/4/entity/metadata/description",
+        "/entities/4/entity/metadata/name",
+        "/entities/4/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0051",
+      "class": "declared",
+      "path": "apps/accounts/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4ae4d871c6e8c47eb6867891151285da595685d66dbcff275a9f01eddb6d1264",
+      "subjects": [
+        "/relations/28",
+        "/relations/38"
+      ]
+    },
+    {
+      "id": "p-0052",
+      "class": "declared",
+      "path": "apps/accounts/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4ae4d871c6e8c47eb6867891151285da595685d66dbcff275a9f01eddb6d1264",
+      "subjects": [
+        "/assertions/27"
+      ]
+    },
+    {
+      "id": "p-0053",
+      "class": "observed",
+      "path": "apps/accounts/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9e6f53b0310e58aaa0e12e60f33300f07bc4c610a7d5e250f228ce1535abe1ea",
+      "subjects": [
+        "/entities/4/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0054",
+      "class": "observed",
+      "path": "apps/accounts/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9e6f53b0310e58aaa0e12e60f33300f07bc4c610a7d5e250f228ce1535abe1ea",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/4/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0055",
+      "class": "observed",
+      "path": "apps/accounts/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9e6f53b0310e58aaa0e12e60f33300f07bc4c610a7d5e250f228ce1535abe1ea",
+      "subjects": [
+        "/entities/4/derived/artifact",
+        "/entities/4/derived/languages",
+        "/entities/4/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0056",
+      "class": "observed",
+      "path": "apps/accounts/src/app/api/health/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cec634211367c377f2f1c3b868e55869e2c426d8b416d3304cf042fa5fbcf23f",
+      "subjects": [
+        "/entities/4/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0057",
+      "class": "observed",
+      "path": "apps/accounts/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/4/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0058",
+      "class": "observed",
+      "path": "apps/accounts/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/entities/4/derived/languages"
+      ]
+    },
+    {
+      "id": "p-0059",
+      "class": "observed",
+      "path": "apps/calendar/Dockerfile",
+      "extractor": {
+        "name": "deploy-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/entities/6/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0060",
+      "class": "observed",
+      "path": "apps/calendar/Dockerfile",
+      "extractor": {
+        "name": "discovery-dockerfile",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/assertions/2",
+        "/assertions/3",
+        "/entities/6/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0061",
+      "class": "observed",
+      "path": "apps/calendar/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d982eb29648b504ae16cb7b9d79a1b83f53f3885d6fd1417429497dc9a5bdd48",
+      "subjects": [
+        "/entities/6/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0062",
+      "class": "observed",
+      "path": "apps/calendar/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:aaff6558c28fe59c484ac8e0dbde19ab40dec8c1cbe642f28dc5c2fba155f5a1",
+      "subjects": [
+        "/entities/6/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0063",
+      "class": "declared",
+      "path": "apps/calendar/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:aaff6558c28fe59c484ac8e0dbde19ab40dec8c1cbe642f28dc5c2fba155f5a1",
+      "subjects": [
+        "/entities/6",
+        "/entities/6/entity/apiVersion",
+        "/entities/6/entity/kind",
+        "/entities/6/entity/metadata",
+        "/entities/6/entity/metadata/description",
+        "/entities/6/entity/metadata/name",
+        "/entities/6/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0064",
+      "class": "declared",
+      "path": "apps/calendar/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:aaff6558c28fe59c484ac8e0dbde19ab40dec8c1cbe642f28dc5c2fba155f5a1",
+      "subjects": [
+        "/relations/36",
+        "/relations/39"
+      ]
+    },
+    {
+      "id": "p-0065",
+      "class": "declared",
+      "path": "apps/calendar/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:aaff6558c28fe59c484ac8e0dbde19ab40dec8c1cbe642f28dc5c2fba155f5a1",
+      "subjects": [
+        "/assertions/28"
+      ]
+    },
+    {
+      "id": "p-0066",
+      "class": "observed",
+      "path": "apps/calendar/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a2bdafdfae3426eb88a136e253553b2364cdb9772c532259e37028b9f006f9ea",
+      "subjects": [
+        "/entities/6/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0067",
+      "class": "observed",
+      "path": "apps/calendar/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a2bdafdfae3426eb88a136e253553b2364cdb9772c532259e37028b9f006f9ea",
+      "subjects": [
+        "/assertions/2",
+        "/assertions/3",
+        "/entities/6/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0068",
+      "class": "observed",
+      "path": "apps/calendar/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a2bdafdfae3426eb88a136e253553b2364cdb9772c532259e37028b9f006f9ea",
+      "subjects": [
+        "/entities/6/derived/artifact",
+        "/entities/6/derived/languages",
+        "/entities/6/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0069",
+      "class": "observed",
+      "path": "apps/calendar/src/app/api/health/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cec634211367c377f2f1c3b868e55869e2c426d8b416d3304cf042fa5fbcf23f",
+      "subjects": [
+        "/entities/6/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0070",
+      "class": "observed",
+      "path": "apps/calendar/src/app/api/internal/calendar/pending-approval/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8abadf9064df9100eda6e7b8f699e7e9e17370b509e04b98a05ba4b9e514ac8",
+      "subjects": [
+        "/entities/6/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0071",
+      "class": "observed",
+      "path": "apps/calendar/src/app/api/internal/calendar/pending-approval/route.ts",
+      "extractor": {
+        "name": "schedule-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8abadf9064df9100eda6e7b8f699e7e9e17370b509e04b98a05ba4b9e514ac8",
+      "subjects": [
+        "/relations/62",
+        "/relations/64"
+      ]
+    },
+    {
+      "id": "p-0072",
+      "class": "observed",
+      "path": "apps/calendar/src/db/migrations/0001_items.sql",
+      "extractor": {
+        "name": "migration-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2088bb183445924e8cda945fa3d5c1328ec4ebad53d465b0d294ecf31e3dc30f",
+      "subjects": [
+        "/assertions/4",
+        "/entities/6/derived/bindings",
+        "/relations/60",
+        "/relations/66"
+      ]
+    },
+    {
+      "id": "p-0073",
+      "class": "observed",
+      "path": "apps/calendar/src/lib/accounts-client.ts",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:20a14a96bb8285299c387c1ac02c0bf4b7560dc791e70342de911f7e83359499",
+      "subjects": [
+        "/relations/0",
+        "/relations/16"
+      ]
+    },
+    {
+      "id": "p-0074",
+      "class": "validated",
+      "path": "apps/calendar/src/lib/oidc/client.ts",
+      "extractor": {
+        "name": "oidc-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:03f79f638ddcd96008eb5b4b1632f35f9b672b4d21f3d778a0203150901d8433",
+      "subjects": [
+        "/relations/1",
+        "/relations/17"
+      ]
+    },
+    {
+      "id": "p-0075",
+      "class": "observed",
+      "path": "apps/calendar/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/assertions/2",
+        "/assertions/3",
+        "/entities/6/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0076",
+      "class": "observed",
+      "path": "apps/calendar/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/entities/6/derived/languages"
+      ]
+    },
+    {
+      "id": "p-0077",
+      "class": "observed",
+      "path": "apps/document-ocr/Dockerfile",
+      "extractor": {
+        "name": "deploy-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/entities/7/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0078",
+      "class": "observed",
+      "path": "apps/document-ocr/Dockerfile",
+      "extractor": {
+        "name": "discovery-dockerfile",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/assertions/5",
+        "/assertions/6",
+        "/entities/7/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0079",
+      "class": "observed",
+      "path": "apps/document-ocr/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:107a66f86cbd9b8d4444602ce3f19de07e1b401b47a5d211d279dd0de4ffa138",
+      "subjects": [
+        "/entities/7/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0080",
+      "class": "observed",
+      "path": "apps/document-ocr/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4c1daa1339f461c146b1927fdf0e59c0818dd608466b4e229e3d56f134fca8c8",
+      "subjects": [
+        "/entities/7/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0081",
+      "class": "declared",
+      "path": "apps/document-ocr/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4c1daa1339f461c146b1927fdf0e59c0818dd608466b4e229e3d56f134fca8c8",
+      "subjects": [
+        "/entities/7",
+        "/entities/7/entity/apiVersion",
+        "/entities/7/entity/kind",
+        "/entities/7/entity/metadata",
+        "/entities/7/entity/metadata/description",
+        "/entities/7/entity/metadata/name",
+        "/entities/7/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0082",
+      "class": "declared",
+      "path": "apps/document-ocr/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4c1daa1339f461c146b1927fdf0e59c0818dd608466b4e229e3d56f134fca8c8",
+      "subjects": [
+        "/relations/25",
+        "/relations/40"
+      ]
+    },
+    {
+      "id": "p-0083",
+      "class": "declared",
+      "path": "apps/document-ocr/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4c1daa1339f461c146b1927fdf0e59c0818dd608466b4e229e3d56f134fca8c8",
+      "subjects": [
+        "/assertions/29"
+      ]
+    },
+    {
+      "id": "p-0084",
+      "class": "observed",
+      "path": "apps/document-ocr/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8cf4fc04a31730ea2763f6bc446f741ddde24cce53de392b263619587f1873ec",
+      "subjects": [
+        "/entities/7/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0085",
+      "class": "observed",
+      "path": "apps/document-ocr/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8cf4fc04a31730ea2763f6bc446f741ddde24cce53de392b263619587f1873ec",
+      "subjects": [
+        "/assertions/5",
+        "/assertions/6",
+        "/entities/7/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0086",
+      "class": "observed",
+      "path": "apps/document-ocr/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8cf4fc04a31730ea2763f6bc446f741ddde24cce53de392b263619587f1873ec",
+      "subjects": [
+        "/entities/7/derived/artifact",
+        "/entities/7/derived/languages",
+        "/entities/7/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0087",
+      "class": "observed",
+      "path": "apps/document-ocr/src/app/api/health/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cec634211367c377f2f1c3b868e55869e2c426d8b416d3304cf042fa5fbcf23f",
+      "subjects": [
+        "/entities/7/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0088",
+      "class": "observed",
+      "path": "apps/document-ocr/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/assertions/5",
+        "/assertions/6",
+        "/entities/7/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0089",
+      "class": "observed",
+      "path": "apps/document-ocr/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/entities/7/derived/languages"
+      ]
+    },
+    {
+      "id": "p-0090",
+      "class": "observed",
+      "path": "apps/learning-event-relay/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:653b9a80ea2e89c1ab26ea0a5ccfb1e4bf5ff4b2625ff4629dcb2cd09106dfdf",
+      "subjects": [
+        "/entities/9/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0091",
+      "class": "declared",
+      "path": "apps/learning-event-relay/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:653b9a80ea2e89c1ab26ea0a5ccfb1e4bf5ff4b2625ff4629dcb2cd09106dfdf",
+      "subjects": [
+        "/entities/9",
+        "/entities/9/entity/apiVersion",
+        "/entities/9/entity/kind",
+        "/entities/9/entity/metadata",
+        "/entities/9/entity/metadata/description",
+        "/entities/9/entity/metadata/name",
+        "/entities/9/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0092",
+      "class": "declared",
+      "path": "apps/learning-event-relay/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:653b9a80ea2e89c1ab26ea0a5ccfb1e4bf5ff4b2625ff4629dcb2cd09106dfdf",
+      "subjects": [
+        "/relations/32",
+        "/relations/42"
+      ]
+    },
+    {
+      "id": "p-0093",
+      "class": "declared",
+      "path": "apps/learning-event-relay/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:653b9a80ea2e89c1ab26ea0a5ccfb1e4bf5ff4b2625ff4629dcb2cd09106dfdf",
+      "subjects": [
+        "/assertions/30"
+      ]
+    },
+    {
+      "id": "p-0094",
+      "class": "observed",
+      "path": "apps/learning-event-relay/go.mod",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:291a8a6844ac35891a6412dccbb833589ff4d66cdfdc22a4fc1f90f5e5e41a1b",
+      "subjects": [
+        "/entities/9/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0095",
+      "class": "observed",
+      "path": "apps/learning-event-relay/go.mod",
+      "extractor": {
+        "name": "discovery-go",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:291a8a6844ac35891a6412dccbb833589ff4d66cdfdc22a4fc1f90f5e5e41a1b",
+      "subjects": [
+        "/assertions/7",
+        "/assertions/8",
+        "/entities/9/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0096",
+      "class": "observed",
+      "path": "apps/learning-event-relay/go.mod",
+      "extractor": {
+        "name": "gomod-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:291a8a6844ac35891a6412dccbb833589ff4d66cdfdc22a4fc1f90f5e5e41a1b",
+      "subjects": [
+        "/entities/9/derived/languages",
+        "/entities/9/derived/runtimes",
+        "/relations/11",
+        "/relations/13"
+      ]
+    },
+    {
+      "id": "p-0097",
+      "class": "observed",
+      "path": "apps/learning-event-relay/internal/gen/teacher-ingest/teacher-ingest.gen.go",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8052b446c3612a2b77c695c102464102904961a1c14996047e24be5bebf4cfb8",
+      "subjects": [
+        "/relations/18",
+        "/relations/3"
+      ]
+    },
+    {
+      "id": "p-0098",
+      "class": "observed",
+      "path": "apps/notifications/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6ec2826718f393d98570a1b9ad4e2883e69c43c1928f930adf26b5aca4c2087b",
+      "subjects": [
+        "/entities/11/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0099",
+      "class": "declared",
+      "path": "apps/notifications/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6ec2826718f393d98570a1b9ad4e2883e69c43c1928f930adf26b5aca4c2087b",
+      "subjects": [
+        "/entities/11",
+        "/entities/11/entity/apiVersion",
+        "/entities/11/entity/kind",
+        "/entities/11/entity/metadata",
+        "/entities/11/entity/metadata/description",
+        "/entities/11/entity/metadata/name",
+        "/entities/11/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0100",
+      "class": "declared",
+      "path": "apps/notifications/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6ec2826718f393d98570a1b9ad4e2883e69c43c1928f930adf26b5aca4c2087b",
+      "subjects": [
+        "/relations/29",
+        "/relations/44"
+      ]
+    },
+    {
+      "id": "p-0101",
+      "class": "declared",
+      "path": "apps/notifications/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6ec2826718f393d98570a1b9ad4e2883e69c43c1928f930adf26b5aca4c2087b",
+      "subjects": [
+        "/assertions/31"
+      ]
+    },
+    {
+      "id": "p-0102",
+      "class": "observed",
+      "path": "apps/notifications/go.mod",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:af84ab3fcfcbb8eee476ce89174674c200cdcd81be0e7a1a11846c6b070c5add",
+      "subjects": [
+        "/entities/11/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0103",
+      "class": "observed",
+      "path": "apps/notifications/go.mod",
+      "extractor": {
+        "name": "discovery-go",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:af84ab3fcfcbb8eee476ce89174674c200cdcd81be0e7a1a11846c6b070c5add",
+      "subjects": [
+        "/assertions/10",
+        "/assertions/9",
+        "/entities/11/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0104",
+      "class": "observed",
+      "path": "apps/notifications/go.mod",
+      "extractor": {
+        "name": "gomod-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:af84ab3fcfcbb8eee476ce89174674c200cdcd81be0e7a1a11846c6b070c5add",
+      "subjects": [
+        "/entities/11/derived/languages",
+        "/entities/11/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0105",
+      "class": "validated",
+      "path": "apps/notifications/internal/circle/circle.go",
+      "extractor": {
+        "name": "oidc-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a3af78187e5339ea1aa1c36366f1d12713558f0feda5b0c65c64affdacb67d87",
+      "subjects": [
+        "/relations/19",
+        "/relations/2"
+      ]
+    },
+    {
+      "id": "p-0106",
+      "class": "observed",
+      "path": "apps/notifications/internal/db/migrations/0001_init.sql",
+      "extractor": {
+        "name": "migration-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cccd872b1d88b03e58028f4fc8f771ae755a73fe02571e97a986abeb8aad6b41",
+      "subjects": [
+        "/assertions/11",
+        "/entities/11/derived/bindings",
+        "/relations/61",
+        "/relations/67"
+      ]
+    },
+    {
+      "id": "p-0107",
+      "class": "observed",
+      "path": "apps/notifications/internal/http/digest_flush.go",
+      "extractor": {
+        "name": "schedule-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4236ec8a51e001fb87a7aba0dd8d727e0c1314d6ec9ed7b28a83c93e690ebdd9",
+      "subjects": [
+        "/relations/63",
+        "/relations/65"
+      ]
+    },
+    {
+      "id": "p-0108",
+      "class": "observed",
+      "path": "apps/teacher/Dockerfile",
+      "extractor": {
+        "name": "deploy-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/entities/12/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0109",
+      "class": "observed",
+      "path": "apps/teacher/Dockerfile",
+      "extractor": {
+        "name": "discovery-dockerfile",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/assertions/12",
+        "/assertions/13",
+        "/entities/12/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0110",
+      "class": "observed",
+      "path": "apps/teacher/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5c9072cc4a4c0911a7379560c8fa2f61c61b4829ca9020fa35bc062ee30e2d3a",
+      "subjects": [
+        "/entities/12/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0111",
+      "class": "observed",
+      "path": "apps/teacher/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8d788958cb8c31335edd91e4d9714042b95952c4c967adde4ba4f44a0994fc14",
+      "subjects": [
+        "/entities/12/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0112",
+      "class": "declared",
+      "path": "apps/teacher/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8d788958cb8c31335edd91e4d9714042b95952c4c967adde4ba4f44a0994fc14",
+      "subjects": [
+        "/entities/12",
+        "/entities/12/entity/apiVersion",
+        "/entities/12/entity/kind",
+        "/entities/12/entity/metadata",
+        "/entities/12/entity/metadata/description",
+        "/entities/12/entity/metadata/name",
+        "/entities/12/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0113",
+      "class": "declared",
+      "path": "apps/teacher/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8d788958cb8c31335edd91e4d9714042b95952c4c967adde4ba4f44a0994fc14",
+      "subjects": [
+        "/relations/34",
+        "/relations/45"
+      ]
+    },
+    {
+      "id": "p-0114",
+      "class": "declared",
+      "path": "apps/teacher/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8d788958cb8c31335edd91e4d9714042b95952c4c967adde4ba4f44a0994fc14",
+      "subjects": [
+        "/assertions/32"
+      ]
+    },
+    {
+      "id": "p-0115",
+      "class": "observed",
+      "path": "apps/teacher/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d3d53497cd3803e363633ad1584bc2572d710728be66d19644ea4b8fd7b1cf4c",
+      "subjects": [
+        "/entities/12/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0116",
+      "class": "observed",
+      "path": "apps/teacher/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d3d53497cd3803e363633ad1584bc2572d710728be66d19644ea4b8fd7b1cf4c",
+      "subjects": [
+        "/assertions/12",
+        "/assertions/13",
+        "/entities/12/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0117",
+      "class": "observed",
+      "path": "apps/teacher/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d3d53497cd3803e363633ad1584bc2572d710728be66d19644ea4b8fd7b1cf4c",
+      "subjects": [
+        "/entities/12/derived/artifact",
+        "/entities/12/derived/languages",
+        "/entities/12/derived/runtimes",
+        "/relations/10",
+        "/relations/15"
+      ]
+    },
+    {
+      "id": "p-0118",
+      "class": "observed",
+      "path": "apps/teacher/src/app/api/health/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cec634211367c377f2f1c3b868e55869e2c426d8b416d3304cf042fa5fbcf23f",
+      "subjects": [
+        "/entities/12/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0119",
+      "class": "observed",
+      "path": "apps/teacher/src/lib/teacher-events.ts",
+      "extractor": {
+        "name": "event-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:42355df2652c1f95a003e5b4c8e200687de0553816f4bf4bf80f3167ac3d93b0",
+      "subjects": [
+        "/interfaces/events/2"
+      ]
+    },
+    {
+      "id": "p-0120",
+      "class": "observed",
+      "path": "apps/teacher/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/assertions/12",
+        "/assertions/13",
+        "/entities/12/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0121",
+      "class": "observed",
+      "path": "apps/teacher/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/entities/12/derived/languages"
+      ]
+    },
+    {
+      "id": "p-0122",
+      "class": "observed",
+      "path": "apps/uploads/Dockerfile",
+      "extractor": {
+        "name": "deploy-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/entities/13/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0123",
+      "class": "observed",
+      "path": "apps/uploads/Dockerfile",
+      "extractor": {
+        "name": "discovery-dockerfile",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d2a9a16dc05458901089f3e6218c3481dc6f4b55ddab6a0af22f3f769001e1cf",
+      "subjects": [
+        "/assertions/14",
+        "/assertions/15",
+        "/entities/13/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0124",
+      "class": "observed",
+      "path": "apps/uploads/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ed45a9c94859228204321a696b62ac38ae90e07fe85dad7fac9878b91b14240b",
+      "subjects": [
+        "/entities/13/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0125",
+      "class": "observed",
+      "path": "apps/uploads/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2fcd0df7f3a41183dd7639a9feee84233ee683c526d7c995a2e1b8a084c15987",
+      "subjects": [
+        "/entities/13/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0126",
+      "class": "declared",
+      "path": "apps/uploads/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2fcd0df7f3a41183dd7639a9feee84233ee683c526d7c995a2e1b8a084c15987",
+      "subjects": [
+        "/entities/13",
+        "/entities/13/entity/apiVersion",
+        "/entities/13/entity/kind",
+        "/entities/13/entity/metadata",
+        "/entities/13/entity/metadata/description",
+        "/entities/13/entity/metadata/name",
+        "/entities/13/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0127",
+      "class": "declared",
+      "path": "apps/uploads/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2fcd0df7f3a41183dd7639a9feee84233ee683c526d7c995a2e1b8a084c15987",
+      "subjects": [
+        "/relations/26",
+        "/relations/46"
+      ]
+    },
+    {
+      "id": "p-0128",
+      "class": "declared",
+      "path": "apps/uploads/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2fcd0df7f3a41183dd7639a9feee84233ee683c526d7c995a2e1b8a084c15987",
+      "subjects": [
+        "/assertions/33"
+      ]
+    },
+    {
+      "id": "p-0129",
+      "class": "observed",
+      "path": "apps/uploads/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4fa2d729cd4b6abbf9ae9810ddb6aa25a911e566a6accea8e8c6fa7fb22cca85",
+      "subjects": [
+        "/entities/13/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0130",
+      "class": "observed",
+      "path": "apps/uploads/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4fa2d729cd4b6abbf9ae9810ddb6aa25a911e566a6accea8e8c6fa7fb22cca85",
+      "subjects": [
+        "/assertions/14",
+        "/assertions/15",
+        "/entities/13/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0131",
+      "class": "observed",
+      "path": "apps/uploads/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4fa2d729cd4b6abbf9ae9810ddb6aa25a911e566a6accea8e8c6fa7fb22cca85",
+      "subjects": [
+        "/entities/13/derived/artifact",
+        "/entities/13/derived/languages",
+        "/entities/13/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0132",
+      "class": "observed",
+      "path": "apps/uploads/src/app/api/health/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cec634211367c377f2f1c3b868e55869e2c426d8b416d3304cf042fa5fbcf23f",
+      "subjects": [
+        "/entities/13/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0133",
+      "class": "observed",
+      "path": "apps/uploads/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/assertions/14",
+        "/assertions/15",
+        "/entities/13/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0134",
+      "class": "observed",
+      "path": "apps/uploads/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:d8cf68467321409b2650ab9fe7b5ce3424902631d4206291740a90c4d9cd149d",
+      "subjects": [
+        "/entities/13/derived/languages"
+      ]
+    },
+    {
+      "id": "p-0135",
+      "class": "observed",
+      "path": "contracts/accounts-m2m.openapi.yaml",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9ea4205c7f3469bfb9d20c5d21ef2ad2ebd7cd4f0edc240de7d1eeb83ad9bd62",
+      "subjects": [
+        "/contracts/1"
+      ]
+    },
+    {
+      "id": "p-0136",
+      "class": "observed",
+      "path": "contracts/calendar-cron.openapi.yaml",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:aab3fb4f1124260ced12f0e885f1cbadb223b78a7316c95a9f7a1f3f3d7e0fb5",
+      "subjects": [
+        "/contracts/2"
+      ]
+    },
+    {
+      "id": "p-0137",
+      "class": "observed",
+      "path": "contracts/teacher-ingest.openapi.yaml",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4334b334652225b3de18e89c93599bd0a96fe1a18c59a2bb4460b3361057b763",
+      "subjects": [
+        "/contracts/3"
+      ]
+    },
+    {
+      "id": "p-0138",
+      "class": "observed",
+      "path": "packages/authz-catalog/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:47da77868cc50b053b9144245d19bead876a5f2fe1d20966acff2a26b1b95b69",
+      "subjects": [
+        "/entities/5/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0139",
+      "class": "declared",
+      "path": "packages/authz-catalog/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:47da77868cc50b053b9144245d19bead876a5f2fe1d20966acff2a26b1b95b69",
+      "subjects": [
+        "/entities/5",
+        "/entities/5/entity/apiVersion",
+        "/entities/5/entity/kind",
+        "/entities/5/entity/metadata",
+        "/entities/5/entity/metadata/description",
+        "/entities/5/entity/metadata/name",
+        "/entities/5/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0140",
+      "class": "declared",
+      "path": "packages/authz-catalog/notify.json",
+      "extractor": {
+        "name": "event-catalog-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:12eaa4d7828ba2dd5c54cc6c3ce737ef2e3194a67eae4632098d403d633b12d1",
+      "subjects": [
+        "/interfaces/events/0",
+        "/interfaces/events/1",
+        "/interfaces/events/3"
+      ]
+    },
+    {
+      "id": "p-0141",
+      "class": "observed",
+      "path": "packages/authz-catalog/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:62861530664fe631dd0f7df5e49e6117b0fe3cbdfb25a94df84d716f6b08d12e",
+      "subjects": [
+        "/entities/5/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0142",
+      "class": "observed",
+      "path": "packages/authz-catalog/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:62861530664fe631dd0f7df5e49e6117b0fe3cbdfb25a94df84d716f6b08d12e",
+      "subjects": [
+        "/assertions/16",
+        "/assertions/17",
+        "/entities/5/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0143",
+      "class": "observed",
+      "path": "packages/authz-catalog/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:62861530664fe631dd0f7df5e49e6117b0fe3cbdfb25a94df84d716f6b08d12e",
+      "subjects": [
+        "/entities/5/derived/artifact",
+        "/entities/5/derived/languages",
+        "/entities/5/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0144",
+      "class": "observed",
+      "path": "packages/lesson-canon/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9768d3ca6f9ca6570458661b9d5b6d7b97383050aab241bf4ed799a44a3bba1f",
+      "subjects": [
+        "/entities/10/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0145",
+      "class": "observed",
+      "path": "packages/lesson-canon/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:23f94cbbbcc249e5073fd3877a9bebededba683d426beefad4998e1bc63c606e",
+      "subjects": [
+        "/entities/10/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0146",
+      "class": "declared",
+      "path": "packages/lesson-canon/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:23f94cbbbcc249e5073fd3877a9bebededba683d426beefad4998e1bc63c606e",
+      "subjects": [
+        "/entities/10",
+        "/entities/10/entity/apiVersion",
+        "/entities/10/entity/kind",
+        "/entities/10/entity/metadata",
+        "/entities/10/entity/metadata/description",
+        "/entities/10/entity/metadata/name",
+        "/entities/10/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0147",
+      "class": "declared",
+      "path": "packages/lesson-canon/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:23f94cbbbcc249e5073fd3877a9bebededba683d426beefad4998e1bc63c606e",
+      "subjects": [
+        "/relations/33",
+        "/relations/43"
+      ]
+    },
+    {
+      "id": "p-0148",
+      "class": "declared",
+      "path": "packages/lesson-canon/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:23f94cbbbcc249e5073fd3877a9bebededba683d426beefad4998e1bc63c606e",
+      "subjects": [
+        "/assertions/34"
+      ]
+    },
+    {
+      "id": "p-0149",
+      "class": "observed",
+      "path": "packages/lesson-canon/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6f43cec3785d9ce3b9de08b2272d376e8f176d86fa310f20be2f3672879de68c",
+      "subjects": [
+        "/entities/10/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0150",
+      "class": "observed",
+      "path": "packages/lesson-canon/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6f43cec3785d9ce3b9de08b2272d376e8f176d86fa310f20be2f3672879de68c",
+      "subjects": [
+        "/assertions/18",
+        "/assertions/19",
+        "/entities/10/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0151",
+      "class": "observed",
+      "path": "packages/lesson-canon/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6f43cec3785d9ce3b9de08b2272d376e8f176d86fa310f20be2f3672879de68c",
+      "subjects": [
+        "/entities/10/derived/artifact",
+        "/entities/10/derived/languages",
+        "/entities/10/derived/runtimes",
+        "/relations/14",
+        "/relations/8"
+      ]
+    },
+    {
+      "id": "p-0152",
+      "class": "observed",
+      "path": "packages/lesson-canon/src/events.ts",
+      "extractor": {
+        "name": "event-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:dcbc6b214943ccf70a486824b2c4f94df26a3410ec23e8a9b13f9c1d30c4f02a",
+      "subjects": [
+        "/interfaces/events/2"
+      ]
+    },
+    {
+      "id": "p-0153",
+      "class": "observed",
+      "path": "packages/lesson-canon/src/index.ts",
+      "extractor": {
+        "name": "event-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1dd1dbfdebf6faa8e861de9c32cd652b29226bbbf088ddd85a3969a9374ae468",
+      "subjects": [
+        "/interfaces/events/2"
+      ]
+    },
+    {
+      "id": "p-0154",
+      "class": "observed",
+      "path": "turbo.json",
+      "extractor": {
+        "name": "taskgraph-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1f63a77608c4552a6e4874044d93a8caaadd29b047ce1ae6f567cc6abc1c01e9",
+      "subjects": [
+        "/verification/6",
+        "/verification/7",
+        "/verification/8"
+      ]
+    },
+    {
+      "id": "p-0155",
+      "class": "observed",
+      "path": "turbo.json",
+      "extractor": {
+        "name": "taskgraph-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1f63a77608c4552a6e4874044d93a8caaadd29b047ce1ae6f567cc6abc1c01e9",
+      "subjects": [
+        "/verification/10",
+        "/verification/11",
+        "/verification/9"
+      ]
+    },
+    {
+      "id": "p-0156",
+      "class": "observed",
+      "path": "turbo.json",
+      "extractor": {
+        "name": "taskgraph-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1f63a77608c4552a6e4874044d93a8caaadd29b047ce1ae6f567cc6abc1c01e9",
+      "subjects": [
+        "/verification/12",
+        "/verification/13",
+        "/verification/14"
+      ]
+    },
+    {
+      "id": "p-0157",
+      "class": "observed",
+      "path": "turbo.json",
+      "extractor": {
+        "name": "taskgraph-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1f63a77608c4552a6e4874044d93a8caaadd29b047ce1ae6f567cc6abc1c01e9",
+      "subjects": [
+        "/verification/15"
+      ]
+    },
+    {
+      "id": "p-0158",
+      "class": "observed",
+      "path": "turbo.json",
+      "extractor": {
+        "name": "taskgraph-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1f63a77608c4552a6e4874044d93a8caaadd29b047ce1ae6f567cc6abc1c01e9",
+      "subjects": [
+        "/verification/16",
+        "/verification/17",
+        "/verification/18"
+      ]
+    },
+    {
+      "id": "p-0159",
+      "class": "observed",
+      "path": "turbo.json",
+      "extractor": {
+        "name": "taskgraph-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1f63a77608c4552a6e4874044d93a8caaadd29b047ce1ae6f567cc6abc1c01e9",
+      "subjects": [
+        "/verification/19",
+        "/verification/20",
+        "/verification/21"
+      ]
+    },
+    {
+      "id": "p-0160",
+      "class": "observed",
+      "path": "workers/koda-cron/CONSTRAINTS.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:17b782627a67a843b0b540998b5f8bc16e58d9085813967788db600fe137e1f8",
+      "subjects": [
+        "/entities/8/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0161",
+      "class": "observed",
+      "path": "workers/koda-cron/README.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9ede73b8b9ead4a9de755a68aa9804e31a2b582b4f8ee6d9a99c029870993666",
+      "subjects": [
+        "/entities/8/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0162",
+      "class": "observed",
+      "path": "workers/koda-cron/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:163b69a85ab58f6a0df0be615ca592673b7cafe8985f929c9035946c18454ea4",
+      "subjects": [
+        "/entities/8/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0163",
+      "class": "declared",
+      "path": "workers/koda-cron/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:163b69a85ab58f6a0df0be615ca592673b7cafe8985f929c9035946c18454ea4",
+      "subjects": [
+        "/entities/8/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0164",
+      "class": "declared",
+      "path": "workers/koda-cron/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:163b69a85ab58f6a0df0be615ca592673b7cafe8985f929c9035946c18454ea4",
+      "subjects": [
+        "/entities/8",
+        "/entities/8/entity/apiVersion",
+        "/entities/8/entity/kind",
+        "/entities/8/entity/metadata",
+        "/entities/8/entity/metadata/description",
+        "/entities/8/entity/metadata/name",
+        "/entities/8/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0165",
+      "class": "declared",
+      "path": "workers/koda-cron/catalog-info.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:163b69a85ab58f6a0df0be615ca592673b7cafe8985f929c9035946c18454ea4",
+      "subjects": [
+        "/relations/35",
+        "/relations/41"
+      ]
+    },
+    {
+      "id": "p-0166",
+      "class": "declared",
+      "path": "workers/koda-cron/catalog-info.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:163b69a85ab58f6a0df0be615ca592673b7cafe8985f929c9035946c18454ea4",
+      "subjects": [
+        "/assertions/35"
+      ]
+    },
+    {
+      "id": "p-0167",
+      "class": "observed",
+      "path": "workers/koda-cron/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6dbde3c26fa147337c4f43d4c4029aabd34c52f98f7b0cdc0a41587bfdfd542f",
+      "subjects": [
+        "/entities/8/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0168",
+      "class": "observed",
+      "path": "workers/koda-cron/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6dbde3c26fa147337c4f43d4c4029aabd34c52f98f7b0cdc0a41587bfdfd542f",
+      "subjects": [
+        "/assertions/20",
+        "/assertions/21",
+        "/entities/8/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0169",
+      "class": "observed",
+      "path": "workers/koda-cron/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6dbde3c26fa147337c4f43d4c4029aabd34c52f98f7b0cdc0a41587bfdfd542f",
+      "subjects": [
+        "/entities/8/derived/artifact",
+        "/entities/8/derived/languages",
+        "/entities/8/derived/runtimes",
+        "/relations/12",
+        "/relations/9"
+      ]
+    },
+    {
+      "id": "p-0170",
+      "class": "observed",
+      "path": "workers/koda-cron/wrangler.toml",
+      "extractor": {
+        "name": "discovery-wrangler",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c1f2e713e9e87eb4e1d095720e080d1e8202ad8696f249919e5feda14e6c3948",
+      "subjects": [
+        "/assertions/20",
+        "/assertions/21",
+        "/entities/8/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0171",
+      "class": "observed",
+      "path": "workers/koda-cron/wrangler.toml",
+      "extractor": {
+        "name": "platform-manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c1f2e713e9e87eb4e1d095720e080d1e8202ad8696f249919e5feda14e6c3948",
+      "subjects": [
+        "/assertions/22",
+        "/assertions/23",
+        "/assertions/24",
+        "/assertions/25",
+        "/assertions/26",
+        "/entities/8/derived/bindings",
+        "/entities/8/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0172",
+      "class": "observed",
+      "path": "workers/koda-cron/wrangler.toml",
+      "extractor": {
+        "name": "schedule-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c1f2e713e9e87eb4e1d095720e080d1e8202ad8696f249919e5feda14e6c3948",
+      "subjects": [
+        "/relations/62",
+        "/relations/64"
+      ]
+    },
+    {
+      "id": "p-0173",
+      "class": "observed",
+      "path": "workers/koda-cron/wrangler.toml",
+      "extractor": {
+        "name": "schedule-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c1f2e713e9e87eb4e1d095720e080d1e8202ad8696f249919e5feda14e6c3948",
+      "subjects": [
+        "/relations/63",
+        "/relations/65"
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_CONFLICT_REVIEWED",
+      "subject": "component:default/koda-cron",
+      "refs": [
+        "component:default/koda-cron"
+      ],
+      "message": "contradiction — component:default/koda-cron binding.declared: DERIVED=[\"CRON_STATE\",\"TEACHER\"] vs OBSERVED_RUNTIME=[\"CRON_STATE\"]. elected OBSERVED_RUNTIME via authority-rule (rule deployed-bindings-are-runtime-truth). The contradicted value remains in the graph."
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_CONFLICT_REVIEWED",
+      "subject": "component:default/koda-cron",
+      "refs": [
+        "component:default/koda-cron"
+      ],
+      "message": "contradiction — component:default/koda-cron binding.kind: DERIVED=[\"kv\",\"service-binding\"] vs OBSERVED_RUNTIME=[\"kv\"]. elected OBSERVED_RUNTIME via authority-rule (rule deployed-bindings-are-runtime-truth). The contradicted value remains in the graph."
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_CONFLICT_REVIEWED",
+      "subject": "component:default/koda-cron",
+      "refs": [
+        "component:default/koda-cron"
+      ],
+      "message": "contradiction — component:default/koda-cron schedule.cron: DERIVED=\"0 3 * * *\" vs OBSERVED_RUNTIME=\"0 * * * *,3 0 * * *\". elected OBSERVED_RUNTIME via authority-rule (rule deployed-schedule-is-runtime-truth). The contradicted value remains in the graph."
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_CONFLICT_REVIEWED",
+      "subject": "component:default/koda-cron",
+      "refs": [
+        "component:default/koda-cron"
+      ],
+      "message": "contradiction — component:default/koda-cron schedule.target: DERIVED=[\"/api/internal/calendar/pending-approval\",\"/api/internal/notifications/digest-flush\"] vs OBSERVED_RUNTIME=[\"/api/internal/notifications/digest-flush\"]. elected OBSERVED_RUNTIME via authority-rule (rule deployed-schedule-is-runtime-truth). The contradicted value remains in the graph."
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_EVENT_UNRESOLVED",
+      "subject": "koda.flow.help.requested",
+      "refs": [
+        "component:default/notifications"
+      ],
+      "message": "event pattern 'koda.flow.help.requested' has 1 consumer(s) but no observed producer",
+      "paths": [
+        "packages/authz-catalog/notify.json"
+      ],
+      "acceptance": {
+        "code": "AGENTDOC_EVENT_UNRESOLVED",
+        "subject": "koda.flow.help.requested",
+        "classification": "FUTURE_RESERVED_EVENT",
+        "reason": "The notification contract is subscribed, but the adult-help capability has no producer; the current in-product hint is local UI state, not a request event.",
+        "reviewWhen": "Review when a real adult-help action is implemented, the notification contract changes, or the reserved capability is retired. This is not a delivery commitment.",
+        "observedRefs": [
+          "component:default/notifications"
+        ],
+        "evidence": [
+          {
+            "path": "packages/authz-catalog/notify.json",
+            "sha256": "12eaa4d7828ba2dd5c54cc6c3ce737ef2e3194a67eae4632098d403d633b12d1"
+          }
+        ]
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_EVENT_UNRESOLVED",
+      "subject": "koda.flow.lesson.available",
+      "refs": [
+        "component:default/notifications"
+      ],
+      "message": "event pattern 'koda.flow.lesson.available' has 1 consumer(s) but no observed producer",
+      "paths": [
+        "packages/authz-catalog/notify.json"
+      ],
+      "acceptance": {
+        "code": "AGENTDOC_EVENT_UNRESOLVED",
+        "subject": "koda.flow.lesson.available",
+        "classification": "FUTURE_RESERVED_EVENT",
+        "reason": "This reserved notification contract has no producer. Artifact publication is a distinct contract and must not be equated with it.",
+        "reviewWhen": "Review when product semantics authorise an availability notification, a producer is implemented, or the contract is retired.",
+        "observedRefs": [
+          "component:default/notifications"
+        ],
+        "evidence": [
+          {
+            "path": "packages/authz-catalog/notify.json",
+            "sha256": "12eaa4d7828ba2dd5c54cc6c3ce737ef2e3194a67eae4632098d403d633b12d1"
+          }
+        ]
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_EVENT_UNRESOLVED",
+      "subject": "koda.ocr.batch.ready.*",
+      "refs": [
+        "component:default/notifications"
+      ],
+      "message": "event pattern 'koda.ocr.batch.ready.*' has 1 consumer(s) but no observed producer",
+      "paths": [
+        "packages/authz-catalog/notify.json"
+      ]
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_SERVICE_BINDING_UNRESOLVED",
+      "subject": "component:default/koda-cron",
+      "refs": [
+        "component:default/koda-cron"
+      ],
+      "message": "service binding 'teacher-service' declared in workers/koda-cron/wrangler.toml does not match any discovered component",
+      "paths": [
+        "workers/koda-cron/wrangler.toml"
+      ],
+      "acceptance": {
+        "code": "AGENTDOC_SERVICE_BINDING_UNRESOLVED",
+        "subject": "component:default/koda-cron",
+        "classification": "CROSS_DEPLOYMENT_BINDING",
+        "reason": "The scheduler binds to a deployed worker published outside this repository, so no in-repository component can match the platform name.",
+        "reviewWhen": "Review when the target deployment is moved into this repository or its platform name changes.",
+        "observedRefs": [
+          "component:default/koda-cron"
+        ],
+        "evidence": [
+          {
+            "path": "workers/koda-cron/wrangler.toml",
+            "sha256": "c1f2e713e9e87eb4e1d095720e080d1e8202ad8696f249919e5feda14e6c3948"
+          }
+        ]
+      }
+    }
+  ]
+}

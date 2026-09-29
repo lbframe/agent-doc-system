@@ -157,7 +157,7 @@ export function loadConfig(repo, bundle) {
     }
   }
   for (const p of [
-    cfg.output.graph, cfg.output.observations, cfg.output.report,
+    cfg.output.graph, cfg.output.observations,
     ...(cfg.discovery.supplementalRoots || []),
     ...(cfg.discovery.contractRoots || []),
     ...(cfg.docs ? Object.values(cfg.docs) : []),

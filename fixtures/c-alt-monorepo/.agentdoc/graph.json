@@ -1,0 +1,2166 @@
+{
+  "schemaVersion": "agentdoc.dev/graph/v1",
+  "source": {
+    "commit": "452440eed014302856fd5dd8f43265978e04f47a",
+    "dirty": false,
+    "inputHash": "sha256:527594003cc5f4e46462d79c1c9d9482680cb9b18d1884f599a09effae53826d"
+  },
+  "compiler": {
+    "name": "agentdoc-compiler",
+    "version": "1.0.0",
+    "adapters": [
+      {
+        "name": "cache",
+        "version": "1.0.0"
+      },
+      {
+        "name": "database",
+        "version": "1.0.0"
+      },
+      {
+        "name": "dockerfile",
+        "version": "1.0.0"
+      },
+      {
+        "name": "events",
+        "version": "1.0.0"
+      },
+      {
+        "name": "generic",
+        "version": "1.0.0"
+      },
+      {
+        "name": "github-actions",
+        "version": "1.0.0"
+      },
+      {
+        "name": "go",
+        "version": "1.0.0"
+      },
+      {
+        "name": "node",
+        "version": "1.0.0"
+      },
+      {
+        "name": "openapi",
+        "version": "1.0.0"
+      },
+      {
+        "name": "pnpm",
+        "version": "1.0.0"
+      },
+      {
+        "name": "typescript",
+        "version": "1.0.0"
+      },
+      {
+        "name": "wrangler",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "entities": [
+    {
+      "ref": "api:default/telemetry-ingest-api",
+      "kind": "API",
+      "name": "telemetry-ingest-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "API",
+        "metadata": {
+          "name": "telemetry-ingest-api",
+          "description": "Canonical JSON HTTP surface for telemetry writes and buffered flushes."
+        },
+        "spec": {
+          "type": "openapi",
+          "provider": "component:default/telemetry-api",
+          "contract": {
+            "ref": "wire/telemetry.openapi.yaml"
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/apis.yaml"
+      ]
+    },
+    {
+      "ref": "component:default/console",
+      "kind": "Component",
+      "name": "console",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "console",
+          "description": "Operator console for inspecting telemetry and replaying ingest failures."
+        },
+        "spec": {
+          "type": "web-app",
+          "system": "ingest"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "frontend/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "frontend",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "frontend/package.json"
+          },
+          {
+            "adapter": "typescript",
+            "path": "frontend/tsconfig.json"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "runtimes": [
+          "node"
+        ],
+        "tsconfig": {
+          "composite": true,
+          "references": 0
+        },
+        "routes": [
+          {
+            "path": "frontend/src/app/api/health/route.ts",
+            "route": "/api/health",
+            "provenanceIds": null,
+            "_provs": {}
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/edge",
+      "kind": "Component",
+      "name": "edge",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "edge",
+          "description": "Runs at the network edge, rate limits ingest and flushes buffered telemetry."
+        },
+        "spec": {
+          "type": "worker",
+          "system": "edge-ingest",
+          "context": {
+            "constraints": [
+              "edge/CONSTRAINTS.md"
+            ]
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "edge/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "edge",
+        "docs": [],
+        "constraints": [
+          "edge/CONSTRAINTS.md"
+        ],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "edge/package.json"
+          },
+          {
+            "adapter": "wrangler",
+            "path": "edge/wrangler.toml"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "javascript"
+        ],
+        "runtimes": [
+          "cloudflare-workers",
+          "node"
+        ],
+        "bindings": [
+          {
+            "kind": "kv",
+            "locator": {
+              "binding": "RATE_STATE"
+            },
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0041"
+            ]
+          }
+        ],
+        "schedules": [
+          "*/5 * * * *"
+        ],
+        "scheduleTargets": [
+          {
+            "var": "FLUSH_CRON_URL",
+            "route": "/api/internal/flush"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "component:default/shared",
+      "kind": "Component",
+      "name": "shared",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "shared",
+          "description": "Holds the telemetry event vocabulary and client helpers shared across runtimes."
+        },
+        "spec": {
+          "type": "contract-library",
+          "system": "ingest"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "shared/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "shared",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "node",
+            "path": "shared/package.json"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "javascript"
+        ],
+        "runtimes": [
+          "node"
+        ]
+      }
+    },
+    {
+      "ref": "component:default/telemetry-api",
+      "kind": "Component",
+      "name": "telemetry-api",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "telemetry-api",
+          "description": "Accepts telemetry writes and serves the internal read API on port 8081."
+        },
+        "spec": {
+          "type": "service",
+          "system": "ingest",
+          "context": {
+            "docs": [
+              "legacy-docs/backend.md"
+            ]
+          }
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "backend/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "backend",
+        "docs": [
+          "legacy-docs/backend.md"
+        ],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "go",
+            "path": "backend/go.mod"
+          }
+        ],
+        "bindings": [
+          {
+            "kind": "cache",
+            "logicalResourceRef": "resource:default/telemetry-cache",
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0025"
+            ]
+          },
+          {
+            "kind": "database",
+            "logicalResourceRef": "resource:default/telemetry-api-postgres",
+            "resolution": "resolved",
+            "provenanceIds": [
+              "p-0029"
+            ]
+          }
+        ],
+        "migrationAuthority": "backend/internal/db/migrations/0001_events.sql",
+        "dockerfiles": [],
+        "healthContracts": [
+          {
+            "path": "backend/cmd/api/main.go",
+            "route": "/healthz",
+            "semantics": "liveness",
+            "provenanceIds": [
+              "p-0023"
+            ]
+          }
+        ],
+        "port": 8081,
+        "languages": [
+          "go"
+        ],
+        "runtimes": [
+          "go"
+        ],
+        "goModule": "corp.example/telemetry/backend"
+      }
+    },
+    {
+      "ref": "domain:default/observability",
+      "kind": "Domain",
+      "name": "observability",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "observability",
+          "description": "Owns collection, storage and presentation of product telemetry."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/telemetry-api-postgres",
+      "kind": "Resource",
+      "name": "telemetry-api-postgres",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "telemetry-api-postgres",
+          "description": "Logical database owned by the telemetry ingest service."
+        },
+        "spec": {
+          "type": "logical-database",
+          "system": "ingest"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "resource:default/telemetry-cache",
+      "kind": "Resource",
+      "name": "telemetry-cache",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Resource",
+        "metadata": {
+          "name": "telemetry-cache",
+          "description": "Redis cache holding recent telemetry counters for the console."
+        },
+        "spec": {
+          "type": "cache",
+          "system": "ingest"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/resources.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/edge-ingest",
+      "kind": "System",
+      "name": "edge-ingest",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "edge-ingest",
+          "description": "Rate limits and buffers telemetry at the network edge before ingest."
+        },
+        "spec": {
+          "domain": "observability"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/ingest",
+      "kind": "System",
+      "name": "ingest",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "ingest",
+          "description": "Accepts telemetry writes, buffers them at the edge and stores them."
+        },
+        "spec": {
+          "domain": "observability"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "apiProvidedBy",
+      "sourceRef": "api:default/telemetry-ingest-api",
+      "targetRef": "component:default/telemetry-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/shared",
+      "targetRef": "component:default/console",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@corp/shared"
+      },
+      "provenanceIds": [
+        "p-0049"
+      ]
+    },
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/shared",
+      "targetRef": "component:default/edge",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@corp/shared"
+      },
+      "provenanceIds": [
+        "p-0038"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/console",
+      "targetRef": "component:default/shared",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@corp/shared"
+      },
+      "provenanceIds": [
+        "p-0049"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/edge",
+      "targetRef": "component:default/shared",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "npm-manifest"
+        ],
+        "package": "@corp/shared"
+      },
+      "provenanceIds": [
+        "p-0038"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/observability",
+      "targetRef": "system:default/edge-ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0013"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/observability",
+      "targetRef": "system:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0014"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/edge-ingest",
+      "targetRef": "component:default/edge",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0034"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ingest",
+      "targetRef": "component:default/console",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0045"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ingest",
+      "targetRef": "component:default/shared",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0057"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ingest",
+      "targetRef": "component:default/telemetry-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0020"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ingest",
+      "targetRef": "resource:default/telemetry-api-postgres",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ingest",
+      "targetRef": "resource:default/telemetry-cache",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0008"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/console",
+      "targetRef": "system:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0045"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/edge",
+      "targetRef": "system:default/edge-ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0034"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/shared",
+      "targetRef": "system:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0057"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/telemetry-api",
+      "targetRef": "system:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0020"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/telemetry-api-postgres",
+      "targetRef": "system:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "resource:default/telemetry-cache",
+      "targetRef": "system:default/ingest",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0008"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/edge-ingest",
+      "targetRef": "domain:default/observability",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0013"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/ingest",
+      "targetRef": "domain:default/observability",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0014"
+      ]
+    },
+    {
+      "type": "providesApi",
+      "sourceRef": "component:default/telemetry-api",
+      "targetRef": "api:default/telemetry-ingest-api",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0001"
+      ]
+    },
+    {
+      "type": "resourceUsedBy",
+      "sourceRef": "resource:default/telemetry-api-postgres",
+      "targetRef": "component:default/telemetry-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0029"
+      ]
+    },
+    {
+      "type": "resourceUsedBy",
+      "sourceRef": "resource:default/telemetry-cache",
+      "targetRef": "component:default/telemetry-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "cache-client"
+        ]
+      },
+      "provenanceIds": [
+        "p-0025"
+      ]
+    },
+    {
+      "type": "scheduledBy",
+      "sourceRef": "component:default/telemetry-api",
+      "targetRef": "component:default/edge",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "declared-trigger-target"
+        ],
+        "route": "/api/internal/flush"
+      },
+      "provenanceIds": [
+        "p-0022",
+        "p-0042"
+      ]
+    },
+    {
+      "type": "schedules",
+      "sourceRef": "component:default/edge",
+      "targetRef": "component:default/telemetry-api",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "declared-trigger-target"
+        ],
+        "route": "/api/internal/flush"
+      },
+      "provenanceIds": [
+        "p-0022",
+        "p-0042"
+      ]
+    },
+    {
+      "type": "usesResource",
+      "sourceRef": "component:default/telemetry-api",
+      "targetRef": "resource:default/telemetry-api-postgres",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "migrations+connection"
+        ]
+      },
+      "provenanceIds": [
+        "p-0029"
+      ]
+    },
+    {
+      "type": "usesResource",
+      "sourceRef": "component:default/telemetry-api",
+      "targetRef": "resource:default/telemetry-cache",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "cache-client"
+        ]
+      },
+      "provenanceIds": [
+        "p-0025"
+      ]
+    }
+  ],
+  "interfaces": {
+    "events": [
+      {
+        "pattern": "corp.telemetry.ingest.v1",
+        "producers": [
+          "component:default/shared"
+        ],
+        "consumers": [
+          "component:default/console"
+        ],
+        "contract": {
+          "format": "code",
+          "ref": "shared/index.js"
+        },
+        "resolution": "resolved",
+        "provenanceIds": [
+          "p-0059",
+          "p-0060"
+        ]
+      }
+    ]
+  },
+  "externalDependencies": [],
+  "capabilities": [],
+  "verification": [
+    {
+      "id": "component:default/console:test",
+      "componentRefs": [
+        "component:default/console"
+      ],
+      "tier": "unit",
+      "command": "vitest run",
+      "configPaths": [
+        "frontend/package.json"
+      ],
+      "provenanceIds": [
+        "p-0050"
+      ]
+    },
+    {
+      "id": "component:default/console:typecheck",
+      "componentRefs": [
+        "component:default/console"
+      ],
+      "tier": "static",
+      "command": "tsc --noEmit",
+      "configPaths": [
+        "frontend/package.json"
+      ],
+      "provenanceIds": [
+        "p-0051"
+      ]
+    },
+    {
+      "id": "component:default/edge:test",
+      "componentRefs": [
+        "component:default/edge"
+      ],
+      "tier": "unit",
+      "command": "vitest run",
+      "configPaths": [
+        "edge/package.json"
+      ],
+      "provenanceIds": [
+        "p-0039"
+      ]
+    },
+    {
+      "id": "component:default/shared:test",
+      "componentRefs": [
+        "component:default/shared"
+      ],
+      "tier": "unit",
+      "command": "vitest run",
+      "configPaths": [
+        "shared/package.json"
+      ],
+      "provenanceIds": [
+        "p-0064"
+      ]
+    },
+    {
+      "id": "component:default/telemetry-api:go-test",
+      "componentRefs": [
+        "component:default/telemetry-api"
+      ],
+      "tier": "unit",
+      "command": "go test ./...",
+      "configPaths": [
+        "backend/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0028"
+      ]
+    },
+    {
+      "id": "component:default/telemetry-api:go-vet",
+      "componentRefs": [
+        "component:default/telemetry-api"
+      ],
+      "tier": "static",
+      "command": "go vet ./...",
+      "configPaths": [
+        "backend/go.mod"
+      ],
+      "provenanceIds": [
+        "p-0028"
+      ]
+    }
+  ],
+  "journeys": [
+    {
+      "id": "edge-to-storage",
+      "description": "Buffers telemetry at the edge and flushes it into the telemetry database.",
+      "components": [
+        "component:default/edge",
+        "component:default/telemetry-api"
+      ],
+      "provenanceIds": [
+        "p-0004"
+      ]
+    }
+  ],
+  "gates": [],
+  "contracts": [
+    {
+      "apiRef": "api:default/telemetry-ingest-api",
+      "ref": "wire/telemetry.openapi.yaml",
+      "operations": [
+        {
+          "method": "POST",
+          "route": "/api/internal/flush",
+          "operationId": "flush"
+        },
+        {
+          "method": "POST",
+          "route": "/api/telemetry",
+          "operationId": "ingestTelemetry"
+        }
+      ],
+      "title": "Telemetry Ingest",
+      "provenanceIds": [
+        "p-0065"
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-0001",
+      "subject": "component:default/telemetry-api",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "id": "a-0002",
+      "subject": "component:default/telemetry-api",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "id": "a-0003",
+      "subject": "component:default/telemetry-api",
+      "key": "resource.ownership",
+      "value": "telemetry-api-postgres",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0029"
+      ],
+      "semantics": "migration and connection authority in this root resolve to the authored logical database"
+    },
+    {
+      "id": "a-0004",
+      "subject": "component:default/telemetry-api",
+      "key": "component.port",
+      "value": 8081,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0024"
+      ],
+      "semantics": "the single TCP port the source binds a listener to"
+    },
+    {
+      "id": "a-0005",
+      "subject": "component:default/edge",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0037",
+        "p-0040"
+      ]
+    },
+    {
+      "id": "a-0006",
+      "subject": "component:default/edge",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0037",
+        "p-0040"
+      ]
+    },
+    {
+      "id": "a-0007",
+      "subject": "component:default/edge",
+      "key": "binding.declared",
+      "value": [
+        "RATE_STATE"
+      ],
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0041"
+      ],
+      "semantics": "the binding names the committed manifest declares for this component"
+    },
+    {
+      "id": "a-0008",
+      "subject": "component:default/edge",
+      "key": "binding.kind",
+      "value": [
+        "kv"
+      ],
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0041"
+      ],
+      "semantics": "the kinds of platform binding the committed manifest declares for this component"
+    },
+    {
+      "id": "a-0009",
+      "subject": "component:default/edge",
+      "key": "schedule.cron",
+      "value": "*/5 * * * *",
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0041"
+      ],
+      "semantics": "cron expressions the committed deployment manifest declares for this component"
+    },
+    {
+      "id": "a-0010",
+      "subject": "component:default/edge",
+      "key": "schedule.enabled",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0041"
+      ],
+      "semantics": "the manifest declares a trigger, i.e. the job is intended to be enabled"
+    },
+    {
+      "id": "a-0011",
+      "subject": "component:default/edge",
+      "key": "schedule.target",
+      "value": [
+        "/api/internal/flush"
+      ],
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0041"
+      ],
+      "semantics": "endpoints the committed manifest points scheduled triggers at"
+    },
+    {
+      "id": "a-0012",
+      "subject": "component:default/console",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0048",
+        "p-0053"
+      ]
+    },
+    {
+      "id": "a-0013",
+      "subject": "component:default/console",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0048",
+        "p-0053"
+      ]
+    },
+    {
+      "id": "a-0014",
+      "subject": "component:default/shared",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0062"
+      ]
+    },
+    {
+      "id": "a-0015",
+      "subject": "component:default/shared",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0062"
+      ]
+    },
+    {
+      "id": "a-0016",
+      "subject": "component:default/telemetry-api",
+      "key": "placement.system",
+      "value": "ingest",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0021"
+      ]
+    },
+    {
+      "id": "a-0017",
+      "subject": "component:default/edge",
+      "key": "placement.system",
+      "value": "edge-ingest",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0035"
+      ]
+    },
+    {
+      "id": "a-0018",
+      "subject": "component:default/console",
+      "key": "placement.system",
+      "value": "ingest",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0046"
+      ]
+    },
+    {
+      "id": "a-0019",
+      "subject": "component:default/shared",
+      "key": "placement.system",
+      "value": "ingest",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0058"
+      ]
+    },
+    {
+      "id": "a-0020",
+      "subject": "resource:default/telemetry-api-postgres",
+      "key": "placement.system",
+      "value": "ingest",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0009"
+      ]
+    },
+    {
+      "id": "a-0021",
+      "subject": "resource:default/telemetry-cache",
+      "key": "placement.system",
+      "value": "ingest",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0010"
+      ]
+    },
+    {
+      "id": "a-0022",
+      "subject": "system:default/ingest",
+      "key": "placement.domain",
+      "value": "observability",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ]
+    },
+    {
+      "id": "a-0023",
+      "subject": "system:default/edge-ingest",
+      "key": "placement.domain",
+      "value": "observability",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0016"
+      ]
+    }
+  ],
+  "conflicts": [],
+  "observations": [],
+  "provenance": [
+    {
+      "id": "p-0001",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "api-contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:19fbbe73303e0b806ed358141daa8b318692bd82158d5d7b5c264fa832a048b6",
+      "subjects": [
+        "/relations/0",
+        "/relations/21"
+      ]
+    },
+    {
+      "id": "p-0002",
+      "class": "declared",
+      "path": "agentdoc/apis.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:19fbbe73303e0b806ed358141daa8b318692bd82158d5d7b5c264fa832a048b6",
+      "subjects": [
+        "/entities/0",
+        "/entities/0/entity/apiVersion",
+        "/entities/0/entity/kind",
+        "/entities/0/entity/metadata",
+        "/entities/0/entity/metadata/description",
+        "/entities/0/entity/metadata/name",
+        "/entities/0/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0003",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:7d41a1c3d29b21cf6ce90e797dbfd1294a403a6c87d890fd311d7ff72d8b8c51",
+      "subjects": [
+        "/entities/5",
+        "/entities/5/entity/apiVersion",
+        "/entities/5/entity/kind",
+        "/entities/5/entity/metadata",
+        "/entities/5/entity/metadata/description",
+        "/entities/5/entity/metadata/name",
+        "/entities/5/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0004",
+      "class": "declared",
+      "path": "agentdoc/journeys.yaml",
+      "extractor": {
+        "name": "journey-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2411e97ce249a27fc403a6567e7214a16a79f0601781e2c178a25d8f91221325",
+      "subjects": [
+        "/journeys/0"
+      ]
+    },
+    {
+      "id": "p-0005",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6636e2efc587a11d0016bcd6a4b8d86c0f478dd7495fbf311a21010ec49aee40",
+      "subjects": [
+        "/entities/6",
+        "/entities/6/entity/apiVersion",
+        "/entities/6/entity/kind",
+        "/entities/6/entity/metadata",
+        "/entities/6/entity/metadata/description",
+        "/entities/6/entity/metadata/name",
+        "/entities/6/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0006",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6636e2efc587a11d0016bcd6a4b8d86c0f478dd7495fbf311a21010ec49aee40",
+      "subjects": [
+        "/entities/7",
+        "/entities/7/entity/apiVersion",
+        "/entities/7/entity/kind",
+        "/entities/7/entity/metadata",
+        "/entities/7/entity/metadata/description",
+        "/entities/7/entity/metadata/name",
+        "/entities/7/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0007",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6636e2efc587a11d0016bcd6a4b8d86c0f478dd7495fbf311a21010ec49aee40",
+      "subjects": [
+        "/relations/11",
+        "/relations/17"
+      ]
+    },
+    {
+      "id": "p-0008",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6636e2efc587a11d0016bcd6a4b8d86c0f478dd7495fbf311a21010ec49aee40",
+      "subjects": [
+        "/relations/12",
+        "/relations/18"
+      ]
+    },
+    {
+      "id": "p-0009",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6636e2efc587a11d0016bcd6a4b8d86c0f478dd7495fbf311a21010ec49aee40",
+      "subjects": [
+        "/assertions/19"
+      ]
+    },
+    {
+      "id": "p-0010",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6636e2efc587a11d0016bcd6a4b8d86c0f478dd7495fbf311a21010ec49aee40",
+      "subjects": [
+        "/assertions/20"
+      ]
+    },
+    {
+      "id": "p-0011",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ffc7fb3b3128e4962a86d56f6148b47e6a18d237a3f6e17489b3538319563c5e",
+      "subjects": [
+        "/entities/8",
+        "/entities/8/entity/apiVersion",
+        "/entities/8/entity/kind",
+        "/entities/8/entity/metadata",
+        "/entities/8/entity/metadata/description",
+        "/entities/8/entity/metadata/name",
+        "/entities/8/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0012",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ffc7fb3b3128e4962a86d56f6148b47e6a18d237a3f6e17489b3538319563c5e",
+      "subjects": [
+        "/entities/9",
+        "/entities/9/entity/apiVersion",
+        "/entities/9/entity/kind",
+        "/entities/9/entity/metadata",
+        "/entities/9/entity/metadata/description",
+        "/entities/9/entity/metadata/name",
+        "/entities/9/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0013",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ffc7fb3b3128e4962a86d56f6148b47e6a18d237a3f6e17489b3538319563c5e",
+      "subjects": [
+        "/relations/19",
+        "/relations/5"
+      ]
+    },
+    {
+      "id": "p-0014",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ffc7fb3b3128e4962a86d56f6148b47e6a18d237a3f6e17489b3538319563c5e",
+      "subjects": [
+        "/relations/20",
+        "/relations/6"
+      ]
+    },
+    {
+      "id": "p-0015",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ffc7fb3b3128e4962a86d56f6148b47e6a18d237a3f6e17489b3538319563c5e",
+      "subjects": [
+        "/assertions/21"
+      ]
+    },
+    {
+      "id": "p-0016",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ffc7fb3b3128e4962a86d56f6148b47e6a18d237a3f6e17489b3538319563c5e",
+      "subjects": [
+        "/assertions/22"
+      ]
+    },
+    {
+      "id": "p-0017",
+      "class": "observed",
+      "path": "backend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da43ecc950046543125d74e7fd2a531dccee62ae056843e2ead6d49bb4bbcb91",
+      "subjects": [
+        "/entities/4/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0018",
+      "class": "declared",
+      "path": "backend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da43ecc950046543125d74e7fd2a531dccee62ae056843e2ead6d49bb4bbcb91",
+      "subjects": [
+        "/entities/4/derived/docs"
+      ]
+    },
+    {
+      "id": "p-0019",
+      "class": "declared",
+      "path": "backend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da43ecc950046543125d74e7fd2a531dccee62ae056843e2ead6d49bb4bbcb91",
+      "subjects": [
+        "/entities/4",
+        "/entities/4/entity/apiVersion",
+        "/entities/4/entity/kind",
+        "/entities/4/entity/metadata",
+        "/entities/4/entity/metadata/description",
+        "/entities/4/entity/metadata/name",
+        "/entities/4/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0020",
+      "class": "declared",
+      "path": "backend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da43ecc950046543125d74e7fd2a531dccee62ae056843e2ead6d49bb4bbcb91",
+      "subjects": [
+        "/relations/10",
+        "/relations/16"
+      ]
+    },
+    {
+      "id": "p-0021",
+      "class": "declared",
+      "path": "backend/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:da43ecc950046543125d74e7fd2a531dccee62ae056843e2ead6d49bb4bbcb91",
+      "subjects": [
+        "/assertions/15"
+      ]
+    },
+    {
+      "id": "p-0022",
+      "class": "observed",
+      "path": "backend/cmd/api/flush.go",
+      "extractor": {
+        "name": "schedule-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5b7417b3b4e21a6824ef9dfb602c6265d040f09021a9b9c758cdb67b9965db27",
+      "subjects": [
+        "/relations/24",
+        "/relations/25"
+      ]
+    },
+    {
+      "id": "p-0023",
+      "class": "observed",
+      "path": "backend/cmd/api/main.go",
+      "extractor": {
+        "name": "health-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:f2a42cedd01c4d43dffe2e97d8a3c8908f861bb06a5527f1928e8a3dee2995dc",
+      "subjects": [
+        "/entities/4/derived/healthContracts"
+      ]
+    },
+    {
+      "id": "p-0024",
+      "class": "observed",
+      "path": "backend/cmd/api/main.go",
+      "extractor": {
+        "name": "port-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:f2a42cedd01c4d43dffe2e97d8a3c8908f861bb06a5527f1928e8a3dee2995dc",
+      "subjects": [
+        "/assertions/3",
+        "/entities/4/derived/port"
+      ]
+    },
+    {
+      "id": "p-0025",
+      "class": "observed",
+      "path": "backend/go.mod",
+      "extractor": {
+        "name": "binding-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a1fefb678f4e0bf9f6bcc03a2012a38d9f436fed8078b8a47710bf0888f7feb1",
+      "subjects": [
+        "/entities/4/derived/bindings",
+        "/relations/23",
+        "/relations/27"
+      ]
+    },
+    {
+      "id": "p-0026",
+      "class": "observed",
+      "path": "backend/go.mod",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a1fefb678f4e0bf9f6bcc03a2012a38d9f436fed8078b8a47710bf0888f7feb1",
+      "subjects": [
+        "/entities/4/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0027",
+      "class": "observed",
+      "path": "backend/go.mod",
+      "extractor": {
+        "name": "discovery-go",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a1fefb678f4e0bf9f6bcc03a2012a38d9f436fed8078b8a47710bf0888f7feb1",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/4/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0028",
+      "class": "observed",
+      "path": "backend/go.mod",
+      "extractor": {
+        "name": "gomod-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:a1fefb678f4e0bf9f6bcc03a2012a38d9f436fed8078b8a47710bf0888f7feb1",
+      "subjects": [
+        "/entities/4/derived/languages",
+        "/entities/4/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0029",
+      "class": "observed",
+      "path": "backend/internal/db/migrations/0001_events.sql",
+      "extractor": {
+        "name": "migration-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:f2ac2029e832a17bb9921519cf5b3f48d38fac393455ab5660ec2ac2c5ac8e06",
+      "subjects": [
+        "/assertions/2",
+        "/entities/4/derived/bindings",
+        "/relations/22",
+        "/relations/26"
+      ]
+    },
+    {
+      "id": "p-0030",
+      "class": "observed",
+      "path": "edge/CONSTRAINTS.md",
+      "extractor": {
+        "name": "docs-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:82fcb8552b2802ff3224e156c8df3b31222238f7119b7d6f22e5326e91b2c9a6",
+      "subjects": [
+        "/entities/2/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0031",
+      "class": "observed",
+      "path": "edge/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:dec4744324bed18a33a75a101e77ae014473dd74f3cc01a42b523f066e1784ce",
+      "subjects": [
+        "/entities/2/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0032",
+      "class": "declared",
+      "path": "edge/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:dec4744324bed18a33a75a101e77ae014473dd74f3cc01a42b523f066e1784ce",
+      "subjects": [
+        "/entities/2/derived/constraints"
+      ]
+    },
+    {
+      "id": "p-0033",
+      "class": "declared",
+      "path": "edge/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:dec4744324bed18a33a75a101e77ae014473dd74f3cc01a42b523f066e1784ce",
+      "subjects": [
+        "/entities/2",
+        "/entities/2/entity/apiVersion",
+        "/entities/2/entity/kind",
+        "/entities/2/entity/metadata",
+        "/entities/2/entity/metadata/description",
+        "/entities/2/entity/metadata/name",
+        "/entities/2/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0034",
+      "class": "declared",
+      "path": "edge/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:dec4744324bed18a33a75a101e77ae014473dd74f3cc01a42b523f066e1784ce",
+      "subjects": [
+        "/relations/14",
+        "/relations/7"
+      ]
+    },
+    {
+      "id": "p-0035",
+      "class": "declared",
+      "path": "edge/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:dec4744324bed18a33a75a101e77ae014473dd74f3cc01a42b523f066e1784ce",
+      "subjects": [
+        "/assertions/16"
+      ]
+    },
+    {
+      "id": "p-0036",
+      "class": "observed",
+      "path": "edge/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9dacff2d3b956420b8ac6e8687b81c46740541f393a1e6ceaa5bb193138eb121",
+      "subjects": [
+        "/entities/2/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0037",
+      "class": "observed",
+      "path": "edge/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9dacff2d3b956420b8ac6e8687b81c46740541f393a1e6ceaa5bb193138eb121",
+      "subjects": [
+        "/assertions/4",
+        "/assertions/5",
+        "/entities/2/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0038",
+      "class": "observed",
+      "path": "edge/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9dacff2d3b956420b8ac6e8687b81c46740541f393a1e6ceaa5bb193138eb121",
+      "subjects": [
+        "/entities/2/derived/artifact",
+        "/entities/2/derived/languages",
+        "/entities/2/derived/runtimes",
+        "/relations/2",
+        "/relations/4"
+      ]
+    },
+    {
+      "id": "p-0039",
+      "class": "observed",
+      "path": "edge/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9dacff2d3b956420b8ac6e8687b81c46740541f393a1e6ceaa5bb193138eb121",
+      "subjects": [
+        "/verification/2"
+      ]
+    },
+    {
+      "id": "p-0040",
+      "class": "observed",
+      "path": "edge/wrangler.toml",
+      "extractor": {
+        "name": "discovery-wrangler",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:22e83803ea893d65f757abe6b97c1c3b8774b9deb6a4ec490aa08e34661bc857",
+      "subjects": [
+        "/assertions/4",
+        "/assertions/5",
+        "/entities/2/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0041",
+      "class": "observed",
+      "path": "edge/wrangler.toml",
+      "extractor": {
+        "name": "platform-manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:22e83803ea893d65f757abe6b97c1c3b8774b9deb6a4ec490aa08e34661bc857",
+      "subjects": [
+        "/assertions/10",
+        "/assertions/6",
+        "/assertions/7",
+        "/assertions/8",
+        "/assertions/9",
+        "/entities/2/derived/bindings",
+        "/entities/2/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0042",
+      "class": "observed",
+      "path": "edge/wrangler.toml",
+      "extractor": {
+        "name": "schedule-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:22e83803ea893d65f757abe6b97c1c3b8774b9deb6a4ec490aa08e34661bc857",
+      "subjects": [
+        "/relations/24",
+        "/relations/25"
+      ]
+    },
+    {
+      "id": "p-0043",
+      "class": "observed",
+      "path": "frontend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:b8e311ba2159a5fb3e65aa2a9eb93021ea7db57b97b7cc25be39765ed55dd9c4",
+      "subjects": [
+        "/entities/1/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0044",
+      "class": "declared",
+      "path": "frontend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:b8e311ba2159a5fb3e65aa2a9eb93021ea7db57b97b7cc25be39765ed55dd9c4",
+      "subjects": [
+        "/entities/1",
+        "/entities/1/entity/apiVersion",
+        "/entities/1/entity/kind",
+        "/entities/1/entity/metadata",
+        "/entities/1/entity/metadata/description",
+        "/entities/1/entity/metadata/name",
+        "/entities/1/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0045",
+      "class": "declared",
+      "path": "frontend/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:b8e311ba2159a5fb3e65aa2a9eb93021ea7db57b97b7cc25be39765ed55dd9c4",
+      "subjects": [
+        "/relations/13",
+        "/relations/8"
+      ]
+    },
+    {
+      "id": "p-0046",
+      "class": "declared",
+      "path": "frontend/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:b8e311ba2159a5fb3e65aa2a9eb93021ea7db57b97b7cc25be39765ed55dd9c4",
+      "subjects": [
+        "/assertions/17"
+      ]
+    },
+    {
+      "id": "p-0047",
+      "class": "observed",
+      "path": "frontend/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4bdb107fb5c077dc797febc2a24bd9e07cb673accbc6ff8159da8335ec577f76",
+      "subjects": [
+        "/entities/1/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0048",
+      "class": "observed",
+      "path": "frontend/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4bdb107fb5c077dc797febc2a24bd9e07cb673accbc6ff8159da8335ec577f76",
+      "subjects": [
+        "/assertions/11",
+        "/assertions/12",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0049",
+      "class": "observed",
+      "path": "frontend/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4bdb107fb5c077dc797febc2a24bd9e07cb673accbc6ff8159da8335ec577f76",
+      "subjects": [
+        "/entities/1/derived/artifact",
+        "/entities/1/derived/languages",
+        "/entities/1/derived/runtimes",
+        "/relations/1",
+        "/relations/3"
+      ]
+    },
+    {
+      "id": "p-0050",
+      "class": "observed",
+      "path": "frontend/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4bdb107fb5c077dc797febc2a24bd9e07cb673accbc6ff8159da8335ec577f76",
+      "subjects": [
+        "/verification/0"
+      ]
+    },
+    {
+      "id": "p-0051",
+      "class": "observed",
+      "path": "frontend/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4bdb107fb5c077dc797febc2a24bd9e07cb673accbc6ff8159da8335ec577f76",
+      "subjects": [
+        "/verification/1"
+      ]
+    },
+    {
+      "id": "p-0052",
+      "class": "observed",
+      "path": "frontend/src/app/api/health/route.ts",
+      "extractor": {
+        "name": "route-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:cec634211367c377f2f1c3b868e55869e2c426d8b416d3304cf042fa5fbcf23f",
+      "subjects": [
+        "/entities/1/derived/routes"
+      ]
+    },
+    {
+      "id": "p-0053",
+      "class": "observed",
+      "path": "frontend/tsconfig.json",
+      "extractor": {
+        "name": "discovery-typescript",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:accbc8e46066fcac696379e09ddabe609388e686eeb2869716b78866d30c015e",
+      "subjects": [
+        "/assertions/11",
+        "/assertions/12",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0054",
+      "class": "observed",
+      "path": "frontend/tsconfig.json",
+      "extractor": {
+        "name": "tsconfig-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:accbc8e46066fcac696379e09ddabe609388e686eeb2869716b78866d30c015e",
+      "subjects": [
+        "/entities/1/derived/languages"
+      ]
+    },
+    {
+      "id": "p-0055",
+      "class": "observed",
+      "path": "shared/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:333dc16164d1536154e0ec84557092dff42560c0466cc92c871033f3d5bf3b59",
+      "subjects": [
+        "/entities/3/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0056",
+      "class": "declared",
+      "path": "shared/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:333dc16164d1536154e0ec84557092dff42560c0466cc92c871033f3d5bf3b59",
+      "subjects": [
+        "/entities/3",
+        "/entities/3/entity/apiVersion",
+        "/entities/3/entity/kind",
+        "/entities/3/entity/metadata",
+        "/entities/3/entity/metadata/description",
+        "/entities/3/entity/metadata/name",
+        "/entities/3/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0057",
+      "class": "declared",
+      "path": "shared/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:333dc16164d1536154e0ec84557092dff42560c0466cc92c871033f3d5bf3b59",
+      "subjects": [
+        "/relations/15",
+        "/relations/9"
+      ]
+    },
+    {
+      "id": "p-0058",
+      "class": "declared",
+      "path": "shared/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:333dc16164d1536154e0ec84557092dff42560c0466cc92c871033f3d5bf3b59",
+      "subjects": [
+        "/assertions/18"
+      ]
+    },
+    {
+      "id": "p-0059",
+      "class": "declared",
+      "path": "shared/index.js",
+      "extractor": {
+        "name": "event-catalog-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:669f0f8c8865d8170fecb9bedbabf9ba0416b023759994b7e668b99dee679cb3",
+      "subjects": [
+        "/interfaces/events/0"
+      ]
+    },
+    {
+      "id": "p-0060",
+      "class": "observed",
+      "path": "shared/index.js",
+      "extractor": {
+        "name": "event-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:669f0f8c8865d8170fecb9bedbabf9ba0416b023759994b7e668b99dee679cb3",
+      "subjects": [
+        "/interfaces/events/0"
+      ]
+    },
+    {
+      "id": "p-0061",
+      "class": "observed",
+      "path": "shared/package.json",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e990aff4b7587f62371b2d310bda9197886624ce22fdf370bf2a9fc31825277",
+      "subjects": [
+        "/entities/3/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0062",
+      "class": "observed",
+      "path": "shared/package.json",
+      "extractor": {
+        "name": "discovery-node",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e990aff4b7587f62371b2d310bda9197886624ce22fdf370bf2a9fc31825277",
+      "subjects": [
+        "/assertions/13",
+        "/assertions/14",
+        "/entities/3/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0063",
+      "class": "observed",
+      "path": "shared/package.json",
+      "extractor": {
+        "name": "manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e990aff4b7587f62371b2d310bda9197886624ce22fdf370bf2a9fc31825277",
+      "subjects": [
+        "/entities/3/derived/artifact",
+        "/entities/3/derived/languages",
+        "/entities/3/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0064",
+      "class": "observed",
+      "path": "shared/package.json",
+      "extractor": {
+        "name": "verification-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e990aff4b7587f62371b2d310bda9197886624ce22fdf370bf2a9fc31825277",
+      "subjects": [
+        "/verification/3"
+      ]
+    },
+    {
+      "id": "p-0065",
+      "class": "observed",
+      "path": "wire/telemetry.openapi.yaml",
+      "extractor": {
+        "name": "contract-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5a727914130790bbf981b68dcb1bddc65c034a078a231a8adad9fcae58a2faa2",
+      "subjects": [
+        "/contracts/0"
+      ]
+    }
+  ],
+  "diagnostics": []
+}

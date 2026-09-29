@@ -657,12 +657,6 @@
         },
         "observations": {
           "$ref": "common.json#/$defs/repoPath"
-        },
-        "report": {
-          "$ref": "common.json#/$defs/repoPath"
-        },
-        "gitignoreGraph": {
-          "type": "boolean"
         }
       }
     },

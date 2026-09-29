@@ -176,7 +176,15 @@ export class Repo {
   }
 
   git(args) {
-    return execFileSync("git", args, { cwd: this.root, encoding: "utf8" }).trim();
+    // stderr must be piped, not inherited: every caller treats a non-zero exit
+    // as a signal to degrade (unborn HEAD, detached worktree, missing remote),
+    // and execFileSync would otherwise print git's own "fatal:" line to the
+    // user's terminal while the command reports success.
+    return execFileSync("git", args, {
+      cwd: this.root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
   }
   hasGit() {
     if (this.noGit) return false;

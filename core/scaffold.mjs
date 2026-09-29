@@ -256,7 +256,6 @@ function buildConfig(layout) {
     "output:",
     "  graph: .agentdoc/graph.json",
     "  observations: agentdoc/observations",
-    "  report: .agentdoc/report.json",
     "",
     "docs:",
     "  product: docs/PRODUCT.md",

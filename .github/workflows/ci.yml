@@ -19,9 +19,11 @@ jobs:
         node: ['22', '24', '26']
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ matrix.node }} }
+        with:
+          node-version: ${{ matrix.node }}
       - name: CLI smoke
         run: |
           node bin/agentdoc.mjs --version

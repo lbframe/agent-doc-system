@@ -28,7 +28,7 @@ example a managed machine), stop and report that prerequisite.
 
 ## 3. Install or upgrade the CLI
 
-Canonical install, from the public repository:
+Canonical install, from the AgentDoc GitHub repository:
 
 ```bash
 npm install -g github:lbframe/agent-doc-system

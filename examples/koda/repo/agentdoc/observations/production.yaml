@@ -5,7 +5,10 @@ metadata:
   description: "Scheduler and platform state read from the production platform during the 2026-09-27 recovery window."
   environment: production
   capturedAt: "2026-09-27T18:40:00Z"
-  maxAgeDays: 30
+  # This corpus is frozen demonstration data: it is never re-observed, so the
+  # freshness promise is set to the schema maximum rather than a number that
+  # would make the corpus's own gates fail on a calendar date.
+  maxAgeDays: 3650
   sourceSystem: platform-scheduler
   collector: "platform-cli schedules list --json"
   evidenceBundle: agentdoc/observations/production/2026-09-27-scheduler.json
