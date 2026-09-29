@@ -64,7 +64,6 @@ export function impact(graph, changedPaths) {
     // `resource:` ref in a list an agent reads as "components you must check",
     // while the components actually bound to it went unmentioned.
     if (entity && entity.kind === "Component") add(entity.ref, "direct file change inside " + entity.ref);
-    else if (entity) unmatched.push(p);
     else unmatched.push(p);
     const kind = classify(graph, p, idx);
     if (kind === "contract") contracts.add(p);

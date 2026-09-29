@@ -137,6 +137,10 @@ export function compile(root, opts = {}) {
     throw e;
   }
   const discovery = discoverUnits(repo, cfg, adapters);
+  // Eligibility is the compiler's own answer to "which directories are units" —
+  // exposed on the result so scaffold can write descriptors for exactly these
+  // roots rather than re-deriving them from filesystem markers.
+  res.discovery = discovery;
   const match = matchComponents(discovery.eligible, sources.entities.filter((e) => e.kind === "Component"));
   res.errors.push(...match.errors);
 
@@ -696,7 +700,6 @@ export function compile(root, opts = {}) {
   res.diagnostics = diagnostics;
   res.graphPath = graphPath;
   res.sources = sources;
-  res.discovery = discovery;
   res.indexes = indexes;
   res.facts = facts;
   res.conflicts = graph.conflicts;

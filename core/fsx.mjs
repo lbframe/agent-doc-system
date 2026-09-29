@@ -256,12 +256,14 @@ export class Repo {
     }
     return this.toRepoPaths(paths);
   }
+  // null on failure (bad ref, missing object store) so callers can tell
+  // "the diff failed" apart from "the diff is empty".
   diffPaths(fromRef) {
-    if (this.noGit || !this.hasGit()) return [];
+    if (this.noGit || !this.hasGit()) return null;
     try {
       return this.toRepoPaths(this.git(["diff", "--name-only", fromRef]).split("\n").filter(Boolean));
     } catch {
-      return [];
+      return null;
     }
   }
 }

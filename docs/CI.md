@@ -89,9 +89,9 @@ YAML or schema error names its file and line and needs no table.
 ## Ordering inside `check`
 
 1. compilation errors;
-2. time-dependent gates (observation staleness);
-3. graph freshness and byte comparison;
-4. `--require-clean`.
+2. time-dependent gates (observation staleness, election degradation);
+3. graph freshness (`--require-clean`, input hash, compiler/schema versions);
+4. byte-for-byte comparison.
 
 Step 2 precedes step 3 on purpose. "Your observation is five years old" and
 "rebuild the graph" send the reader to completely different places, and when

@@ -59,6 +59,10 @@ export class AuthorityEngine {
 export function resolveAssertions(assertions, authority) {
   const groups = new Map();
   for (const a of assertions) {
+    // An assertion a later observation supersedes stays in the graph as
+    // history but does not compete here: it cannot win an election and cannot
+    // anchor a conflict.
+    if (a.status === "superseded") continue;
     const gk = a.subject + "\u0000" + a.key;
     if (!groups.has(gk)) groups.set(gk, []);
     groups.get(gk).push(a);

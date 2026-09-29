@@ -40,7 +40,7 @@ function sentence(s) {
   return /[.!?]$/.test(t) ? t : t + ".";
 }
 
-export function installTemplates(repo, cfg, { write, root, force = false } = {}) {
+export function installTemplates(repo, cfg, { write, root, force = false, eligible = null } = {}) {
   const written = [];
   const skipped = [];
   const targetRoot = root || (repo ? repo.root : process.cwd());
@@ -74,7 +74,11 @@ export function installTemplates(repo, cfg, { write, root, force = false } = {})
 
   // ── per-unit component descriptors ──────────────────────────────────────
   if (cfg) {
-    const units = discoverUnitNames(r, cfg);
+    // When the caller ran the compiler's discovery first, write for the units
+    // the compiler itself counts as eligible — adapter-discovered roots
+    // (go.work members, pnpm workspace packages, supplementalRoots) may have
+    // no marker file the layout scan would find on its own.
+    const units = discoverUnitNames(r, cfg, eligible);
     for (const u of units) {
       put(u.root + "/" + cfg.discovery.componentDescriptorName, componentDescriptor(u));
     }
@@ -119,7 +123,7 @@ function scanLayout(repo) {
   return [...candidates.values()].sort((a, b) => (a.root < b.root ? -1 : 1));
 }
 
-function discoverUnitNames(repo, cfg) {
+function discoverUnitNames(repo, cfg, eligible = null) {
   const out = [];
   const nameFor = (root) => {
     const pkg = root + "/package.json";
@@ -137,26 +141,33 @@ function discoverUnitNames(repo, cfg) {
     return kebab(path.basename(root));
   };
   const seen = new Set();
-  for (const u of scanLayout(repo)) {
+  const units = eligible
+    ? eligible.map((u) => ({
+        root: u.root,
+        kinds: (u.markers || []).map((m) => m.adapter).sort(),
+        deployable: Boolean(u.deployable),
+      }))
+    : scanLayout(repo).map((u) => ({ root: u.root, kinds: [...u.kinds].sort(), deployable: false }));
+  for (const u of units) {
     if (u.root === "." || !u.root) continue;
     const name = nameFor(u.root);
     if (seen.has(name)) continue;
     seen.add(name);
-    out.push({ root: u.root, name, kinds: [...u.kinds].sort() });
+    out.push({ root: u.root, name, kinds: u.kinds, deployable: u.deployable });
   }
   void cfg;
   return out;
 }
 
 function componentDescriptor(u) {
-  const deployable = u.kinds.some((k) => k === "docker" || k === "platform");
+  const deployable = u.deployable || u.kinds.some((k) => k === "docker" || k === "platform");
   const type = deployable ? "service" : "library";
   return [
     "apiVersion: agentdoc.dev/v1",
     "kind: Component",
     "metadata:",
     "  name: " + u.name,
-    "  description: " + yamlStr(sentence("TODO: " + u.name + " (" + u.kinds.join("/") + " at " + u.root + ") — state its single current responsibility")),
+    "  description: " + yamlStr(sentence("TODO: " + u.name + " (" + (u.kinds.length ? u.kinds.join("/") : "configured") + " at " + u.root + ") — state its single current responsibility")),
     "spec:",
     "  type: " + type,
     "  # Choose exactly one of the three lines below. Uncomment one.",

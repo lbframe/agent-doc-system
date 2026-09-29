@@ -53,11 +53,20 @@ test("CREATE: scaffold unblocks units discovered by adapter roots, not only desc
   write(dir, "services/api/go.mod", "module example.com/api\n\ngo 1.22\n");
   write(dir, "services/api/cmd/api/main.go", "package main\n\nfunc main() {}\n");
   write(dir, "libs/shared/go.mod", "module example.com/shared\n\ngo 1.22\n");
+  // A unit reachable only through config: no marker file, no workspace entry —
+  // the layout scan cannot find it on its own.
+  write(dir, "ops/runner/run.sh", "#!/bin/sh\ntrue\n");
   cli(dir, ["init"]);
+  const cfgPath = "agentdoc/agentdoc.config.yaml";
+  write(dir, cfgPath, read(dir, cfgPath).replace(
+    "componentDescriptorName: agentdoc.yaml",
+    "componentDescriptorName: agentdoc.yaml\n  supplementalRoots:\n    - ops/runner"
+  ));
 
   const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
   assert.ok(res.written.includes("services/api/agentdoc.yaml"), res.written.join(","));
   assert.ok(res.written.includes("libs/shared/agentdoc.yaml"), res.written.join(","));
+  assert.ok(res.written.includes("ops/runner/agentdoc.yaml"), res.written.join(","));
   // Coverage is satisfied; what remains is the review the generated
   // descriptors ask for — never silent success.
   const v = cliFails(dir, ["validate"]);
