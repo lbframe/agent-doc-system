@@ -72,6 +72,11 @@ export function compile(root, opts = {}) {
     if (e instanceof AgentDocError) { res.errors.push(e); return earlyOut(res, {}); }
     throw e;
   }
+  // Exposed even when the compile later fails: `scaffold` needs the
+  // configuration and repo handle precisely in the not-yet-compiling state —
+  // a coverage failure is what scaffolding exists to fix.
+  res.repo = repo;
+  res.cfg = cfg;
   const refs = makeRefs(cfg.namespace);
   const graphPath = cfg.output.graph;
 
@@ -543,7 +548,7 @@ export function compile(root, opts = {}) {
   }
 
   const { conflicts: rawConflicts } = resolveAssertions(facts.facts, authority);
-  pushConflictDiagnostics(rawConflicts, diagnostics, facts, authority, observationOut);
+  pushConflictDiagnostics(rawConflicts, diagnostics, facts);
 
   // ── relations ────────────────────────────────────────────────────────────
   const rel = buildRelations(ctx);
@@ -689,8 +694,6 @@ export function compile(root, opts = {}) {
   res.graph = graph;
   res.serialized = serialized;
   res.diagnostics = diagnostics;
-  res.repo = repo;
-  res.cfg = cfg;
   res.graphPath = graphPath;
   res.sources = sources;
   res.discovery = discovery;
@@ -729,35 +732,13 @@ export function compile(root, opts = {}) {
 // The review record attached to every REVIEWED_OVERRIDE fact. The reviewer and
 // the date are deliberately not typed in: they are the commit that changed the
 // configuration carrying this record, which is stronger evidence than a string.
-function pushConflictDiagnostics(rawConflicts, diagnostics, facts, authority, observations) {
-  // A rule's degradeOnStale decides what a stale election means. Time is read
-  // here, at diagnosis time, never during compilation.
-  const now = Date.now();
-  for (const c of rawConflicts) {
-    if (c.status === "unresolved") continue;
-    const rule = authority.ruleFor(c.subject, c.key);
-    if (!rule || !rule.degradeOnStale) continue;
-    const elected = c.election.elected;
-    if (!elected || !elected.observed || !elected.observed.at) continue;
-    const maxAge = observationMaxAgeDays(observations, elected);
-    if (maxAge === null) continue;
-    const ageDays = Math.floor((now - Date.parse(elected.observed.at)) / 86400000);
-    if (ageDays <= maxAge) continue;
-    if (rule.degradeOnStale === "unresolved") {
-      c.status = "unresolved";
-      c.kind = "staleness";
-      elected.status = "unresolved";
-      c.election.rationale =
-        "the elected observation is " + ageDays + " days old, past its declared maxAgeDays of " + maxAge +
-        "; authority rule " + rule.id + " requires the election to degrade to unresolved";
-    } else {
-      c.kind = "staleness";
-      c.election.rationale =
-        "the elected observation is " + ageDays + " days old, past its declared maxAgeDays of " + maxAge +
-        "; authority rule " + rule.id + " keeps the election and records the staleness";
-    }
-  }
-
+// degradeOnStale is deliberately NOT applied here: a rule's answer to "what
+// does a stale election mean" depends on the wall clock, and a compile must be
+// a pure function of the checkout. Degradation is evaluated at gate time, in
+// the same place observation freshness itself is enforced (see the CLI's
+// freshness gate). Serializing a day-count or a degraded status into the graph
+// would make identical inputs compile to different bytes on different days.
+function pushConflictDiagnostics(rawConflicts, diagnostics, facts) {
   const byId = new Map(facts.facts.map((f) => [f.id, f]));
   for (const c of rawConflicts) {
     const values = c.assertionIds
@@ -838,11 +819,6 @@ function buildImportIndex(repo, discovery) {
     goPathsByUnit.set(unit, goPaths);
   }
   return { byUnit, goPathsByUnit };
-}
-
-function observationMaxAgeDays(observations, assertion) {
-  const o = observations.find((x) => x.capturedAt === assertion.observed.at);
-  return o ? o.maxAgeDays : null;
 }
 
 function mergeDerived(target, extra) {

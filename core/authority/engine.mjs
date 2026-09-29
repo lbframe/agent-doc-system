@@ -211,20 +211,6 @@ function classifyConflict(list, election, candidateOnly) {
   return "ambiguity";
 }
 
-// A rule may say what a stale election means. Implemented, not decorative: a
-// staleness conflict is raised for the observation, and a rule can require the
-// election to degrade to unresolved instead.
-export function staleObservationsFor(assertions, now) {
-  const out = [];
-  for (const a of assertions) {
-    if (a.evidenceClass !== "OBSERVED_RUNTIME" || !a.observed || !a.observed.at) continue;
-    const age = (now - Date.parse(a.observed.at)) / 86400000;
-    if (!Number.isFinite(age)) continue;
-    out.push({ assertion: a, ageDays: Math.floor(age) });
-  }
-  return out;
-}
-
 // Observations that a later set explicitly supersedes do not compete. The
 // assertion carries `observed.supersedes` (the name of the set it replaces), and
 // a set that is superseded by any other loses its assertions for election

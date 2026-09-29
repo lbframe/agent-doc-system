@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { baseFixture, cli, cliFails, commitAll, read, write, DEFAULT_CONFIG, graphOf } from "./helpers.mjs";
+import { baseFixture, cli, cliFails, commitAll, git, read, write, DEFAULT_CONFIG, graphOf } from "./helpers.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -37,6 +37,42 @@ test("CREATE: scaffold reports what it would write without writing it", (t) => {
   assert.ok(dry.written.every((w) => !w.endsWith("agentdoc.yaml") || w.includes("dry run")));
   assert.ok(dry.proposal, "a scaffold must come with a proposal");
   assert.match(dry.proposal.rule, /only CONFIRMED and DERIVED/);
+});
+
+test("CREATE: scaffold unblocks units discovered by adapter roots, not only descriptor globs", (t) => {
+  // go.work members become eligible units through the go adapter's roots() —
+  // after `init` the compile fails on COVERAGE_ZERO, which is exactly what
+  // scaffold exists to fix. A scaffold that refused to run on a non-compiling
+  // repository would deadlock the whole CREATE flow.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "agentdoc-gows-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  git(dir, ["init", "-q", "-b", "main"]);
+  git(dir, ["config", "user.name", "Test"]);
+  git(dir, ["config", "user.email", "test@example.invalid"]);
+  write(dir, "go.work", "go 1.22\n\nuse (\n\t./services/api\n\t./libs/shared\n)\n");
+  write(dir, "services/api/go.mod", "module example.com/api\n\ngo 1.22\n");
+  write(dir, "services/api/cmd/api/main.go", "package main\n\nfunc main() {}\n");
+  write(dir, "libs/shared/go.mod", "module example.com/shared\n\ngo 1.22\n");
+  cli(dir, ["init"]);
+
+  const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  assert.ok(res.written.includes("services/api/agentdoc.yaml"), res.written.join(","));
+  assert.ok(res.written.includes("libs/shared/agentdoc.yaml"), res.written.join(","));
+  // Coverage is satisfied; what remains is the review the generated
+  // descriptors ask for — never silent success.
+  const v = cliFails(dir, ["validate"]);
+  const stderr = v ? v.stderr : "";
+  assert.ok(!/COVERAGE_ZERO/.test(stderr), "adapter-discovered units still uncovered: " + stderr);
+});
+
+test("scaffold on a repository with no configuration fails, not silently no-ops", (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "agentdoc-nocfg-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  write(dir, "package.json", JSON.stringify({ name: "x" }));
+  const res = cliFails(dir, ["scaffold"]);
+  assert.ok(res, "scaffold must exit nonzero when there is nothing to scaffold against");
+  assert.equal(res.status, 1);
+  assert.ok(JSON.parse(res.stdout).blocked.length > 0);
 });
 
 // ── MIGRATE ────────────────────────────────────────────────────────────

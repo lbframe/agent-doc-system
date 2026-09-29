@@ -90,8 +90,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | `typescript` | `tsconfig.json` | language, project references, file-router routes |
 | `go` | `go.mod`, `go.work` | module roots, module graph, `go test`/`go vet` |
 | `openapi` | `*.openapi.y[a]ml` | operation inventory, deterministic consumers |
-| `asyncapi` | `*.asyncapi.y[a]ml` | validated as an AsyncAPI document by the same adapter |
-| `asyncapi` / `protobuf` / `graphql` | contract files | method/type inventory, consumers |
+| `protobuf` / `graphql` | contract files | method/type inventory, consumers |
 | `oidc` | discovery-path literals | OIDC client consumers |
 | `github-actions` | `.github/workflows` | component-scoped checks and repository gates |
 | `dockerfile` | `Dockerfile`, `Containerfile` | deployable evidence |
@@ -104,6 +103,10 @@ cannot name the file a fact came from, you cannot add the fact.
 
 `generic` is always on. Everything else is opt-in through `adapters: [...]`, and
 an unknown name is `AGENTDOC_CONFIG`, not a silent no-op.
+
+`asyncapi` is a contract **type** (declared on an API descriptor, validated by
+the contract layer), not an adapter — there is no `asyncapi` entry in
+`adapters: [...]`.
 
 ## Enabling
 

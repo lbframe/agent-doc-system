@@ -801,3 +801,40 @@ test("adversarial: a reviewed override stays REVIEWED_OVERRIDE when corroborated
   );
   assert.equal(rel.evidenceClass, assertion.evidenceClass, "the graph contradicts itself about one fact");
 });
+
+// ── degradeOnStale is a gate-time judgement, never compile-time ──────────
+test("adversarial: degradeOnStale degrades a stale election at gate time, not inside the graph", (t) => {
+  const staleObs = OBSERVATION.replace("2099-01-01", "2020-01-01");
+  const degradeRule = SCHEDULE_RULE.replace(
+    '      reviewWhen: "Review when the scheduler configuration changes."',
+    '      reviewWhen: "Review when the scheduler configuration changes."\n      degradeOnStale: unresolved'
+  );
+  const dir = baseFixture(t, {
+    config: DEFAULT_CONFIG.replace("  rules: []", degradeRule).replace("  - openapi", "  - openapi\n  - wrangler"),
+    extra: {
+      "agentdoc/observations/production.yaml": staleObs,
+      "agentdoc/observations/production/evidence.json": EVIDENCE,
+      // The manifest claims a different schedule than the runtime reported, so
+      // there is a real contradiction and a real election to degrade.
+      "service/wrangler.toml": 'name = "svc"\nmain = "src/index.ts"\n\n[triggers]\ncrons = ["5 4 * * *"]\n',
+    },
+  });
+  commitAll(dir, "observation + degrade rule");
+
+  // Compile must not consult the wall clock: identical inputs give identical
+  // bytes on any day. The election stands in the graph; degradation is a
+  // gate-time verdict.
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.format()).join("\n"));
+  const c = res.graph.conflicts.find((x) => x.key === "schedule.cron");
+  assert.ok(c, "expected a schedule.cron conflict");
+  assert.equal(c.status, "resolved", "compile must keep the election — staleness is a gate-time judgement");
+  assert.ok(!/days old/.test(c.election.rationale || ""), "wall-clock phrasing leaked into the graph");
+
+  cli(dir, ["compile"]);
+  const check = cliFails(dir, ["check"]);
+  assert.ok(check && /OBSERVATION_STALE/.test(check.stderr), "stale observation must fail the gate");
+  const allowed = cliFails(dir, ["check", "--allow-stale-observations"]);
+  assert.ok(allowed, "degradeOnStale:unresolved must fail the gate on a stale election");
+  assert.match(allowed.stderr, /degrade to unresolved/);
+});

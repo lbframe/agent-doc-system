@@ -14,8 +14,7 @@ import { ContextIndex } from "./query.mjs";
 // Sources of truth, all from the graph:
 //   - the canonical contract of every API entity                  -> contract
 //   - every file the compiler read                                 -> input
-//   - every extractor identity, which names the technology        -> deployment /
-//                                                                    dependency /
+//   - every extractor identity, which names the technology        -> dependency /
 //                                                                    verification
 //   - every documentation and constraint path on an entity         -> documentation
 function classify(graph, p, idx) {
@@ -53,7 +52,6 @@ export function impact(graph, changedPaths) {
   const contracts = new Set();
   const docs = new Set();
   const resources = new Set();
-  const deployment = new Set();
   const verificationPaths = new Set();
   const dependencyPaths = new Set();
   const catalogPaths = new Set();
@@ -157,7 +155,6 @@ export function impact(graph, changedPaths) {
     affectedContracts: [...contracts].sort(),
     affectedDocs: [...docs].sort(),
     affectedResources: [...resources].sort(),
-    affectedDeployment: [...deployment].sort(),
     affectedInputs: [...dependencyPaths].sort(),
     affectedVerification: [...verificationPaths].sort(),
     affectedCatalog: [...catalogPaths].sort(),

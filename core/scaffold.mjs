@@ -210,6 +210,8 @@ function buildConfig(layout) {
     "# agentdoc configuration — the only project-specific file in the system.",
     "# Everything the engine does is derived from this plus the repository.",
     "apiVersion: agentdoc.dev/config/v1",
+    "# namespace prefixes every entity ref (component:<namespace>/<name>).",
+    "# 'default' is a placeholder — pick the name this repository calls itself.",
     "namespace: default",
     "",
     "discovery:",

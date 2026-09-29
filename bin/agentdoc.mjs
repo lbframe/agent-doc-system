@@ -51,6 +51,10 @@ for (let i = 1; i < argv.length; i++) {
   const a = argv[i];
   if (a.startsWith("--")) {
     const name = a.replace(/^--/, "").split("=")[0];
+    if (a.includes("=") && !VALUE_FLAGS.has(name)) {
+      console.error("agentdoc: --" + name + " does not take a value");
+      process.exit(2);
+    }
     flags.add(name);
     if (!a.includes("=") && VALUE_FLAGS.has(name) && argv[i + 1] && !argv[i + 1].startsWith("--")) i++;
     continue;
@@ -98,8 +102,41 @@ function gateObservationFreshness(res) {
   const { graph } = readGraph(res.repo, res.graphPath);
   const fresh = observationFreshness(graph.observations, new Date());
   const stale = stalenessDiagnostics(fresh);
-  if (stale.length && !flags.has("allow-stale-observations")) {
+  if (!stale.length) return fresh;
+  if (!flags.has("allow-stale-observations")) {
     for (const d of stale) console.error("ERROR " + d.code + ": " + d.message);
+    process.exit(1);
+  }
+  // Staleness was explicitly allowed through. This is where a rule's
+  // degradeOnStale is applied — at gate time, never at compile time, so a
+  // compile stays a pure function of the checkout. `conflict` keeps the
+  // election and warns; `unresolved` refuses to stand on a stale observation.
+  const staleAt = new Set(fresh.filter((f) => f.stale).map((f) => f.capturedAt));
+  const assertionById = new Map((graph.assertions || []).map((a) => [a.id, a]));
+  const rules = new Map((((res.cfg || {}).authority || {}).rules || []).map((r) => [r.id, r]));
+  const degraded = [];
+  for (const c of graph.conflicts || []) {
+    if (c.status !== "resolved" || !c.election || !c.election.electedAssertionId) continue;
+    const rule = rules.get(c.election.ruleId);
+    if (!rule || !rule.degradeOnStale) continue;
+    const elected = assertionById.get(c.election.electedAssertionId);
+    const at = elected && elected.observed && elected.observed.at;
+    if (!at || !staleAt.has(at)) continue;
+    if (rule.degradeOnStale === "unresolved") {
+      degraded.push(
+        c.subject + " " + c.key + " — the elected observation (" + at + ") is past its maxAgeDays " +
+        "and authority rule " + rule.id + " requires the election to degrade to unresolved"
+      );
+    } else {
+      console.error(
+        "WARN  AGENTDOC_ELECTION_STALE: " + c.subject + " " + c.key +
+        " — the elected observation (" + at + ") is past its maxAgeDays; authority rule " +
+        rule.id + " keeps the election"
+      );
+    }
+  }
+  if (degraded.length) {
+    for (const m of degraded) console.error("ERROR " + CODES.CONFLICT_UNRESOLVED + ": " + m);
     process.exit(1);
   }
   return fresh;
@@ -178,8 +215,7 @@ try {
     if (withoutCommit(text) !== withoutCommit(res.serialized)) {
       fail([new AgentDocError(
         CODES.STALE_GRAPH,
-        "compiled graph differs from a fresh deterministic compile — commit the descriptor or authority change and rebuild" +
-          (text === res.serialized ? "" : " (only source.commit differs, which is tolerated: this checkout has no VCS history)")
+        "compiled graph differs from a fresh deterministic compile — commit the descriptor or authority change and rebuild"
       )]);
     }
     const gj = JSON.stringify(graph, null, 2) + "\n";
@@ -228,6 +264,10 @@ try {
     const fromRef = flag("diff") || flag("from");
     let paths = positional;
     if (fromRef && fromRef !== true) {
+      if (!res.repo.hasGit()) {
+        console.error("agentdoc impact --diff requires a git repository; this checkout has no VCS");
+        process.exit(2);
+      }
       paths = res.repo.diffPaths(fromRef);
       if (!paths.length) {
         console.error("no changed files between " + fromRef + " and HEAD");
@@ -257,18 +297,29 @@ try {
   } else if (cmd === "scaffold") {
     const res = compile(ROOT);
     const write = flags.has("write") || flag("write");
-    if (!res.graph) {
+    // Scaffolding is how a repository reaches a compiling state: requiring the
+    // compile to succeed first deadlocks CREATE on every repository whose units
+    // are discovered by adapters (go.work, pnpm-workspace, supplementalRoots)
+    // rather than already carrying descriptors. When a usable configuration
+    // exists, write what can be proven and report what still blocks the compile.
+    if (!res.cfg) {
       out({
         scaffolded: [],
         blocked: res.errors.map((e) => ({ code: e.code, message: e.message })),
         note: "the repository cannot compile yet; install the configuration first with `agentdoc init`",
       }, true);
-      process.exit(0);
+      process.exit(1);
     }
-    const report = audit(res.repo, res.cfg, res);
-    const proposal = scaffoldProposal(res.repo, res.cfg, report);
+    const report = res.graph ? audit(res.repo, res.cfg, res) : null;
+    const proposal = report ? scaffoldProposal(res.repo, res.cfg, report) : null;
     const result = installTemplates(res.repo, res.cfg, { write: Boolean(write) });
-    out({ ...result, proposal }, true);
+    out({
+      ...result,
+      ...(proposal ? { proposal } : {}),
+      ...(res.errors.length
+        ? { blocked: res.errors.map((e) => ({ code: e.code, message: e.message })) }
+        : {}),
+    }, true);
   } else if (cmd === "init") {
     const result = installTemplates(null, null, { write: true, root: ROOT, force: flags.has("force") });
     out(result, true);
@@ -281,9 +332,12 @@ try {
     let runRoutingEval;
     try {
       ({ runRoutingEval } = await import("../evals/harness.mjs"));
-    } catch {
-      console.error("agentdoc eval: the evaluation harness is missing from this installation — reinstall the agentdoc CLI, or run it from a source checkout");
-      process.exit(1);
+    } catch (e) {
+      if (e && e.code === "ERR_MODULE_NOT_FOUND") {
+        console.error("agentdoc eval: the evaluation harness is missing from this installation — reinstall the agentdoc CLI, or run it from a source checkout");
+        process.exit(1);
+      }
+      throw e;
     }
     const report = runRoutingEval(ROOT, { json: flags.has("json") });
     if (flags.has("json")) { out(report, true); process.exit(report.verdict === "FAIL" ? 1 : 0); }

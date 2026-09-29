@@ -160,10 +160,9 @@ does not require a fresh committed graph. Using it before rebuilding is the
 point.
 
 It reports: affected components with the reason each was reached, affected
-contracts, documentation, resources, deployment manifests, verification and
-catalog sources; whether the graph will be invalidated; the recommended
-verification commands; any open conflicts on the affected subjects; and related
-journeys.
+contracts, documentation, resources, verification and catalog sources; whether
+the graph will be invalidated; the recommended verification commands; any open
+conflicts on the affected subjects; and related journeys.
 
 Reachability rules: a contract change reaches its provider and every consumer; a
 component change reaches its transitive dependents two hops out, and everything
