@@ -194,9 +194,9 @@ test("packaging: npm pack produces a self-contained installable CLI", (t) => {
 test("packaging: every shipped source file is greppable text (no NUL bytes)", () => {
   // A literal NUL inside a JS string literal is legal but makes the file
   // binary to ripgrep, git diff and GitHub's renderer — an invisible source
-  // file in a public package. The convention is the   escape.
+  // file in a public package. The convention is the \u0000 escape.
   const offenders = [];
-  for (const dir of ["bin", "core", "adapters", "evals"]) {
+  for (const dir of ["bin", "core", "adapters", "evals", "tests"]) {
     for (const f of walk(path.join(SYSTEM_ROOT, dir), dir + "/")) {
       if (!f.endsWith(".mjs")) continue;
       if (fs.readFileSync(path.join(SYSTEM_ROOT, f)).includes(0x00)) offenders.push(f);
