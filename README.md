@@ -76,6 +76,14 @@ descriptors you own), `docs/` skeleton files, `.agentdoc/graph.json` (the
 compiled artifact), and a CI workflow. The CLI source is never vendored into
 your repository.
 
+The two directories differ in ownership, not just punctuation:
+
+- `agentdoc/` is **authored** — configuration, descriptors and observation
+  sets. Everything in it is a claim you wrote and a reviewer can diff.
+- `.agentdoc/` is **generated** — the compiled graph and other build
+  artifacts. Never edit it by hand; `compile` rewrites it and `check` rejects
+  a stale or edited one.
+
 ## Use it with an AI agent
 
 The agent skill is [`skills/agent-doc-system/`](skills/agent-doc-system/SKILL.md).
