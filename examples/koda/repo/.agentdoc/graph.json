@@ -1,7 +1,7 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "452440eed014302856fd5dd8f43265978e04f47a",
+    "commit": "af6547cffb3e5a9aed60fc969b3efe2078619a40",
     "dirty": false,
     "inputHash": "sha256:e128731090240305fbb2ea3fd518a131a10470ab9c00c881744b3612c367a922"
   },
