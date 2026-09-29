@@ -524,16 +524,20 @@ export function compile(root, opts = {}) {
   // Supersession is applied before election: an observation that a later set
   // explicitly replaces does not compete for the election, though it stays in
   // the graph as history.
+  // Keyed on capturedAt+environment: batch captures across environments can
+  // share a timestamp, and a timestamp-only key would mark the wrong set's
+  // facts superseded.
   const supersededAt = new Set();
   for (const o of observationOut) {
     if (o.supersedes) {
       const prior = observationOut.find((x) => x.id === o.supersedes);
-      if (prior) supersededAt.add(prior.capturedAt);
+      if (prior) supersededAt.add(prior.capturedAt + " " + prior.environment);
     }
   }
   for (const f of facts.facts) {
     if (f.evidenceClass !== "OBSERVED_RUNTIME") continue;
-    if (!supersededAt.has(f.observed && f.observed.at)) continue;
+    const fo = f.observed;
+    if (!fo || !supersededAt.has(fo.at + " " + fo.environment)) continue;
     f.status = "superseded";
     // Supersession is a claim a human made, so it is a reviewable claim. Silence
     // would let any observation quietly void any other: the code is in

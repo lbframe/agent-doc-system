@@ -67,11 +67,17 @@ test("CREATE: scaffold unblocks units discovered by adapter roots, not only desc
   assert.ok(res.written.includes("services/api/agentdoc.yaml"), res.written.join(","));
   assert.ok(res.written.includes("libs/shared/agentdoc.yaml"), res.written.join(","));
   assert.ok(res.written.includes("ops/runner/agentdoc.yaml"), res.written.join(","));
-  // Coverage is satisfied; what remains is the review the generated
-  // descriptors ask for — never silent success.
+  // The generated descriptors must actually be *loaded* — a supplementalRoots
+  // unit has no componentDescriptors glob covering it, so this is the part the
+  // compiler could otherwise silently miss. Fill every placement so the check
+  // reaches coverage rather than stopping at the schema layer.
+  for (const d of ["services/api/agentdoc.yaml", "libs/shared/agentdoc.yaml", "ops/runner/agentdoc.yaml"]) {
+    write(dir, d, read(dir, d).replace("  # placementRationale:", "  placementRationale:"));
+  }
   const v = cliFails(dir, ["validate"]);
   const stderr = v ? v.stderr : "";
-  assert.ok(!/COVERAGE_ZERO/.test(stderr), "adapter-discovered units still uncovered: " + stderr);
+  assert.ok(!/COVERAGE_ZERO/.test(stderr), "adapter/configured units still uncovered: " + stderr);
+  assert.ok(!v, "scaffolded descriptors with placements should validate: " + stderr);
 });
 
 test("scaffold on a repository with no configuration fails, not silently no-ops", (t) => {

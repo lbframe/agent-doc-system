@@ -94,7 +94,12 @@ export function ingestObservations(ctx) {
 // outside the compiled graph. `now` is injected so tests and CI are hermetic.
 export function observationFreshness(observations, now = new Date()) {
   const out = [];
-  for (const o of observations) {
+  // A superseded set is history, not a promise of freshness — its maxAgeDays
+  // no longer gates, or every superseding observation would immediately make
+  // the one it replaced a permanent staleness failure.
+  const supersededIds = new Set((observations || []).map((o) => o.supersedes).filter(Boolean));
+  for (const o of observations || []) {
+    if (supersededIds.has(o.id)) continue;
     const captured = Date.parse(o.capturedAt);
     const ageDays = Math.floor((now.getTime() - captured) / 86400000);
     out.push({

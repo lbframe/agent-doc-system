@@ -141,19 +141,26 @@ function discoverUnitNames(repo, cfg, eligible = null) {
     return kebab(path.basename(root));
   };
   const seen = new Set();
-  const units = eligible
-    ? eligible.map((u) => ({
-        root: u.root,
-        kinds: (u.markers || []).map((m) => m.adapter).sort(),
-        deployable: Boolean(u.deployable),
-      }))
-    : scanLayout(repo).map((u) => ({ root: u.root, kinds: [...u.kinds].sort(), deployable: false }));
+  const seenRoots = new Set();
+  // Union, not replacement: compiler-eligible units (adapter roots,
+  // supplementalRoots) cover what markers cannot see, while the layout scan
+  // still covers marker-bearing dirs that no adapter claims.
+  const units = [
+    ...(eligible || []).map((u) => ({
+      root: u.root,
+      kinds: (u.markers || []).map((m) => m.adapter).sort(),
+      deployable: Boolean(u.deployable),
+      importable: Boolean(u.importable),
+    })),
+    ...scanLayout(repo).map((u) => ({ root: u.root, kinds: [...u.kinds].sort(), deployable: false, importable: false })),
+  ];
   for (const u of units) {
-    if (u.root === "." || !u.root) continue;
+    if (u.root === "." || !u.root || seenRoots.has(u.root)) continue;
+    seenRoots.add(u.root);
     const name = nameFor(u.root);
     if (seen.has(name)) continue;
     seen.add(name);
-    out.push({ root: u.root, name, kinds: u.kinds, deployable: u.deployable });
+    out.push({ ...u, name });
   }
   void cfg;
   return out;
@@ -161,7 +168,11 @@ function discoverUnitNames(repo, cfg, eligible = null) {
 
 function componentDescriptor(u) {
   const deployable = u.deployable || u.kinds.some((k) => k === "docker" || k === "platform");
-  const type = deployable ? "service" : "library";
+  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
+  // "library" and "service" both have to be corroborated by artifact evidence
+  // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
+  // shows neither, so claiming a concrete type would manufacture an error.
+  const type = deployable ? "service" : importable ? "library" : "other";
   return [
     "apiVersion: agentdoc.dev/v1",
     "kind: Component",

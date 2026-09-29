@@ -838,3 +838,42 @@ test("adversarial: degradeOnStale degrades a stale election at gate time, not in
   assert.ok(allowed, "degradeOnStale:unresolved must fail the gate on a stale election");
   assert.match(allowed.stderr, /degrade to unresolved/);
 });
+
+// ── supersession ────────────────────────────────────────────────────────
+test("adversarial: a superseded observation neither elects nor gates", (t) => {
+  // Two observation sets disagree on the schedule. The newer one supersedes
+  // the older — so the older set's value cannot compete (it is history), and
+  // its age cannot fail the freshness gate forever.
+  const staleObs = OBSERVATION.replace("2099-01-01", "2020-01-01");
+  const nextObs = OBSERVATION
+    .replace("name: production", "name: production-2\n  supersedes: production")
+    .replace('value: "0 3 * * *"', 'value: "5 4 * * *"')
+    .replace("agentdoc/observations/production/evidence.json", "agentdoc/observations/production-2/evidence.json");
+  const dir = baseFixture(t, {
+    config: DEFAULT_CONFIG.replace("  rules: []", SCHEDULE_RULE).replace("  - openapi", "  - openapi\n  - wrangler"),
+    extra: {
+      "agentdoc/observations/production.yaml": staleObs,
+      "agentdoc/observations/production/evidence.json": EVIDENCE,
+      "agentdoc/observations/production-2.yaml": nextObs,
+      "agentdoc/observations/production-2/evidence.json": EVIDENCE,
+      // The manifest agrees with the OLD capture; only supersession decides
+      // which runtime value wins.
+      "service/wrangler.toml": 'name = "svc"\nmain = "src/index.ts"\n\n[triggers]\ncrons = ["0 3 * * *"]\n',
+    },
+  });
+  commitAll(dir, "two observation sets, second supersedes the first");
+
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.format()).join("\n"));
+  const c = res.graph.conflicts.find((x) => x.key === "schedule.cron");
+  assert.ok(c, "expected a schedule.cron conflict");
+  assert.equal(c.status, "resolved", "the superseding capture must win the election");
+  const elected = res.graph.assertions.find((a) => a.id === c.election.electedAssertionId);
+  assert.equal(elected.value, "5 4 * * *", "the superseded value must not elect");
+  const old = res.graph.assertions.find((a) => a.observed && a.observed.at === "2020-01-01T00:00:00Z");
+  assert.equal(old.status, "superseded", "the old capture stays in the graph as history");
+
+  // Gate: the superseded set is past maxAgeDays, but history does not gate.
+  cli(dir, ["compile"]);
+  assert.equal(cliFails(dir, ["check"]), null, "a superseded observation must not fail freshness");
+});

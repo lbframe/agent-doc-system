@@ -215,17 +215,6 @@ function classifyConflict(list, election, candidateOnly) {
   return "ambiguity";
 }
 
-// Observations that a later set explicitly supersedes do not compete. The
-// assertion carries `observed.supersedes` (the name of the set it replaces), and
-// a set that is superseded by any other loses its assertions for election
-// purposes while staying in the graph as history.
-export function applySupersession(assertions, observationSupersededBy) {
-  for (const a of assertions) {
-    if (a.evidenceClass !== "OBSERVED_RUNTIME") continue;
-    if (observationSupersededBy.has(a.observed && a.observed.at)) a.status = "superseded";
-  }
-}
-
 export function distinctValues(list) {
   const seen = new Map();
   for (const a of list) {

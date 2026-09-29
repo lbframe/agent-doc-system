@@ -170,6 +170,13 @@ export function loadConfig(repo, bundle) {
 function descriptorGlobs(repo, cfg) {
   const componentFiles = new Set();
   for (const g of cfg.discovery.componentDescriptors) for (const f of expandGlob(repo, g)) componentFiles.add(f);
+  // A supplementalRoots unit is declared by configuration, not discovered by a
+  // glob — its descriptor lives at a fixed path and must be loaded even when
+  // no componentDescriptors glob happens to cover that directory.
+  for (const r of cfg.discovery.supplementalRoots || []) {
+    const f = String(r).replace(/\/+$/, "") + "/" + cfg.discovery.componentDescriptorName;
+    if (repo.exists(f)) componentFiles.add(f);
+  }
   const centralFiles = new Set();
   for (const g of cfg.discovery.centralDescriptors) for (const f of expandGlob(repo, g)) centralFiles.add(f);
   return { componentFiles: [...componentFiles].sort(), centralFiles: [...centralFiles].sort() };
