@@ -63,13 +63,11 @@ AgentDoc is not another documentation file and it is not just semantic search.
 
 It combines **authored intent**, **facts derived from code**, and **runtime observations** without pretending they are the same thing. When sources disagree, AgentDoc surfaces the conflict instead of choosing a convenient answer.
 
-## How it works
+## From repository knowledge to agent-ready context
+
+AgentDoc turns scattered repository knowledge into task-specific context your coding agent can query, verify, and act on.
 
 ![How AgentDoc works](docs/assets/readme/how-agentdoc-works.webp)
-
-AgentDoc compiles repository knowledge into a deterministic context graph that coding agents can query on demand.
-
-The result: less context to load, better awareness of dependencies and constraints, and a verification step after every change.
 
 ## Install manually
 
