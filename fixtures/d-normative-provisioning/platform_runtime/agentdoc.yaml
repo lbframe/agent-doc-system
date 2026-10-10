@@ -1,0 +1,13 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: platform-runtime
+  description: "Executes agent work and hands results to deterministic verifiers."
+spec:
+  type: other
+  system: runtime-host
+  context:
+    docs:
+      - platform_runtime/README.md
+      - specs/VERIFICATION_LAYER_SPEC.md
+      - verification_layer/PYTHON_PROFILE.md

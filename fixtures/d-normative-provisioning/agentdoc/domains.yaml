@@ -1,0 +1,6 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: platform
+  description: "Runs and verifies agent work on dedicated hosts."
+spec: {}
