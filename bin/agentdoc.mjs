@@ -3,7 +3,8 @@
 //
 // The command list lives in bin/usage.txt and is printed from there, so this
 // header, `--help` and the shipped file cannot drift into three different
-// claims about what the tool does.
+// claims about what the tool does. The flags each command accepts live in
+// bin/commands.mjs, which drives both parsing and `agentdoc <command> --help`.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,7 @@ import { audit, scaffoldProposal } from "../core/audit.mjs";
 import { observationFreshness, stalenessDiagnostics } from "../core/observations.mjs";
 import { assertNoSecretsInText } from "../core/secrets.mjs";
 import { installTemplates } from "../core/scaffold.mjs";
+import { COMMANDS, flagsOf, parseArgs, commandHelp, UsageError } from "./commands.mjs";
 import { loadSchemaBundle, loadConfig } from "../core/descriptors.mjs";
 import { execFileSync } from "node:child_process";
 
@@ -41,36 +43,27 @@ function findRoot(start) {
 const ROOT = findRoot(process.cwd());
 const argv = process.argv.slice(2);
 const cmd = argv[0];
-// Flags that consume the next token as a value. Anything else is boolean; a
-// `--flag value` pair must not leak the value into `positional`
-// (`agentdoc query --budget relations=10 svc/api` must query svc/api).
-const VALUE_FLAGS = new Set(["budget", "diff", "from"]);
-const flags = new Set();
-const positional = [];
-for (let i = 1; i < argv.length; i++) {
-  const a = argv[i];
-  if (a.startsWith("--")) {
-    const name = a.replace(/^--/, "").split("=")[0];
-    if (a.includes("=") && !VALUE_FLAGS.has(name)) {
-      console.error("agentdoc: --" + name + " does not take a value");
-      process.exit(2);
-    }
-    flags.add(name);
-    if (!a.includes("=") && VALUE_FLAGS.has(name) && argv[i + 1] && !argv[i + 1].startsWith("--")) i++;
-    continue;
+// Flags are declared per command in bin/commands.mjs. An undeclared flag is a
+// usage error (exit 2), so a typo in a gate flag can never pass for the gate.
+let parsed = { flags: new Map(), positional: [] };
+if (Object.prototype.hasOwnProperty.call(COMMANDS, cmd)) {
+  try {
+    parsed = parseArgs(cmd, argv.slice(1));
+  } catch (e) {
+    if (!(e instanceof UsageError)) throw e;
+    console.error(e.message);
+    process.exit(2);
   }
-  positional.push(a);
 }
-const flag = (name, dflt = null) => {
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--" + name) {
-      const next = argv[i + 1];
-      return next && !next.startsWith("--") ? next : true;
-    }
-    if (argv[i].startsWith("--" + name + "=")) return argv[i].slice(name.length + 3);
+const positional = parsed.positional;
+// The only way to read a flag. Reading one the command does not declare is a
+// defect in this file, not user input: it would be a flag `--help` never shows.
+function opt(name) {
+  if (!Object.prototype.hasOwnProperty.call(flagsOf(cmd), name)) {
+    throw new Error("flag --" + name + " is read by '" + cmd + "' but not declared for it in bin/commands.mjs");
   }
-  return dflt;
-};
+  return parsed.flags.has(name) ? parsed.flags.get(name) : null;
+}
 
 function fail(errors, stats) {
   for (const e of errors) console.error("ERROR " + (e.format ? e.format() : e.code + ": " + e.message));
@@ -103,7 +96,7 @@ function gateObservationFreshness(res) {
   const fresh = observationFreshness(graph.observations || [], new Date());
   const stale = stalenessDiagnostics(fresh);
   if (!stale.length) return fresh;
-  if (!flags.has("allow-stale-observations")) {
+  if (!opt("allow-stale-observations")) {
     for (const d of stale) console.error("ERROR " + d.code + ": " + d.message);
     process.exit(1);
   }
@@ -160,7 +153,7 @@ function requireFresh(res, fresh) {
   } catch (e) {
     fail([e]);
   }
-  if (graph.source.dirty && (flags.has("require-clean") || flag("require-clean"))) {
+  if (graph.source.dirty && opt("require-clean")) {
     fail([new AgentDocError(
       CODES.DIRTY_SOURCE,
       "catalog inputs differ from HEAD (" + res.stats.commit + ") — CI/publish evidence requires a clean source; commit the change and rebuild"
@@ -183,8 +176,17 @@ try {
     console.log("agentdoc " + VERSION);
     process.exit(0);
   }
-  if (cmd === "--help" || cmd === "-h" || cmd === "help" || flags.has("help") || argv.includes("-h")) {
+  if (cmd === "--help" || cmd === "-h" || cmd === "help") {
+    // `agentdoc help <command>` is the same as `agentdoc <command> --help`.
+    if (Object.prototype.hasOwnProperty.call(COMMANDS, argv[1])) {
+      process.stdout.write(commandHelp(argv[1]));
+      process.exit(0);
+    }
     usage(0);
+  }
+  if (Object.prototype.hasOwnProperty.call(COMMANDS, cmd) && opt("help")) {
+    process.stdout.write(commandHelp(cmd));
+    process.exit(0);
   }
   if (cmd === "validate") {
     const res = compile(ROOT);
@@ -195,7 +197,7 @@ try {
     const res = compile(ROOT);
     printDiagnostics(res);
     if (res.errors.length) fail(res.errors, res.stats);
-    if ((flags.has("require-clean") || flag("require-clean")) && res.stats.dirty) {
+    if (opt("require-clean") && res.stats.dirty) {
       fail([new AgentDocError(CODES.DIRTY_SOURCE, "catalog inputs differ from HEAD — commit the change and rebuild")], res.stats);
     }
     fs.mkdirSync(path.dirname(path.join(ROOT, res.graphPath)), { recursive: true });
@@ -232,7 +234,7 @@ try {
     // or the gate fails, so a normative section nobody reviewed or a
     // requirement nothing proves cannot ride along in a green check. Opt-in, so
     // plain `check` keeps meaning "the committed graph is fresh".
-    if (flags.has("strict")) {
+    if (opt("strict")) {
       const open = (res.diagnostics || []).filter((d) => d.severity === "warning" && !d.acceptance);
       if (open.length) {
         fail(
@@ -241,7 +243,7 @@ try {
         );
       }
     }
-    console.log("agentdoc check: PASS " + JSON.stringify({ ...res.stats, observationFreshness: fresh.length, ...(flags.has("strict") ? { strict: true } : {}) }));
+    console.log("agentdoc check: PASS " + JSON.stringify({ ...res.stats, observationFreshness: fresh.length, ...(opt("strict") ? { strict: true } : {}) }));
   } else if (cmd === "query") {
     const needle = positional[0];
     if (!needle) { console.error("usage: agentdoc query <repo-path|entity-ref> [--json] [--md] [--budget relations=10,verification=4]"); process.exit(2); }
@@ -257,7 +259,7 @@ try {
     // untestable and unreachable from the CLI. An agent working in a tight
     // context needs to be able to say so.
     let budget = {};
-    const raw = flag("budget");
+    const raw = opt("budget");
     if (raw === true || raw === "") {
       console.error("usage: --budget section=limit,... (limits are positive integers)");
       process.exit(2);
@@ -273,8 +275,8 @@ try {
       }
     }
     const ctx = queryContext(graph, needle, { budget });
-    if (flags.has("md") || flag("md")) out(renderContext(ctx));
-    else if (flags.has("json")) out(ctx, true);
+    if (opt("md")) out(renderContext(ctx));
+    else if (opt("json")) out(ctx, true);
     else out(renderContext(ctx));
   } else if (cmd === "impact") {
     // Impact answers a question about the working tree, so it compiles in
@@ -284,7 +286,7 @@ try {
     const res = compile(ROOT);
     if (res.errors.length) fail(res.errors, res.stats);
     const graph = res.graph;
-    const fromRef = flag("diff") || flag("from");
+    const fromRef = opt("diff") || opt("from");
     let paths = positional;
     if (fromRef && fromRef !== true) {
       if (!res.repo.hasGit()) {
@@ -323,7 +325,7 @@ try {
     out(report, true);
   } else if (cmd === "scaffold") {
     const res = compile(ROOT);
-    const write = flags.has("write") || flag("write");
+    const write = opt("write");
     // Scaffolding is how a repository reaches a compiling state: requiring the
     // compile to succeed first deadlocks CREATE on every repository whose units
     // are discovered by adapters (go.work, pnpm-workspace, supplementalRoots)
@@ -351,7 +353,7 @@ try {
         : {}),
     }, true);
   } else if (cmd === "init") {
-    const result = installTemplates(null, null, { write: true, root: ROOT, force: flags.has("force") });
+    const result = installTemplates(null, null, { write: true, root: ROOT, force: opt("force") });
     out(result, true);
   } else if (cmd === "eval") {
     const which = positional[0] || "routing";
@@ -369,8 +371,8 @@ try {
       }
       throw e;
     }
-    const report = runRoutingEval(ROOT, { json: flags.has("json") });
-    if (flags.has("json")) { out(report, true); process.exit(report.verdict === "FAIL" ? 1 : 0); }
+    const report = runRoutingEval(ROOT, { json: opt("json") });
+    if (opt("json")) { out(report, true); process.exit(report.verdict === "FAIL" ? 1 : 0); }
     else {
       console.log(JSON.stringify(report.metrics, null, 2));
       console.log("thresholds: " + JSON.stringify(report.thresholds));
@@ -404,7 +406,7 @@ try {
         });
       }
     }
-    if (flags.has("json")) { out({ evidence: results }, true); }
+    if (opt("json")) { out({ evidence: results }, true); }
     else {
       for (const r of results) {
         console.log(r.status.padEnd(8) + " " + r.path);
@@ -449,7 +451,7 @@ try {
     const machineOk = machine.nodeSupported && machine.schemaBundle.ok;
 
     const report = { scope: "machine", ok: machineOk, machine };
-    if (flags.has("project")) {
+    if (opt("project")) {
       const configFound = fs.existsSync(path.join(ROOT, "agentdoc", "agentdoc.config.yaml"));
       const project = {
         root: ROOT,

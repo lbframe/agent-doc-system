@@ -1,7 +1,8 @@
 agentdoc — portable documentation & software-catalog system
 
   agentdoc --version                 print the installed version
-  agentdoc --help                    show this help (also: agentdoc <command> --help)
+  agentdoc --help                    show this help
+  agentdoc <command> --help          every flag one command accepts (also: agentdoc help <command>)
 
   agentdoc init [--force]            write a configuration and documentation skeleton
   agentdoc audit                     inventory the repository, classify every fact
@@ -23,4 +24,5 @@ agentdoc — portable documentation & software-catalog system
 Commands that operate on a catalog run from anywhere inside the repository;
 the configuration is found by walking up to agentdoc/agentdoc.config.yaml.
 
-Exit codes: 0 ok, 1 failure, 2 usage.
+Exit codes: 0 ok, 1 failure, 2 usage. An unknown flag is a usage error (2),
+never ignored.

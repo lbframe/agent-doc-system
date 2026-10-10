@@ -5,13 +5,18 @@ operates on a catalog can be run from any subdirectory of the repository: the
 configuration is found by walking up to `agentdoc/agentdoc.config.yaml`. No
 command ever needs the agentdoc source tree or a path to it.
 
-Exit codes: `0` ok, `1` failure, `2` usage.
+Exit codes: `0` ok, `1` failure, `2` usage. Flags are declared per command:
+an unknown or misspelled flag is a usage error (`2`), with a suggestion when
+one is close — it is never silently ignored, so `check --strcit` cannot pass
+for `check --strict`. `agentdoc <command> --help` lists exactly what a command
+accepts.
 
 ## Meta
 
 ```bash
 agentdoc --version          # installed version
-agentdoc --help             # command list (also: agentdoc <command> --help)
+agentdoc --help             # command list
+agentdoc <command> --help   # every flag of one command (also: agentdoc help <command>)
 agentdoc doctor             # machine check: is this CLI install healthy
 agentdoc doctor --project   # the same, plus the current project's catalog health
 ```
