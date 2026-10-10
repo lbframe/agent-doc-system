@@ -81,8 +81,10 @@ export function resolveAssertions(assertions, authority) {
     // no implementation evidence beside it, it stays unresolved: the gap the
     // migration must surface.
     const normative = list.some(isNormative);
-    if (normative && list.every(isNormative)) {
-      for (const a of list) a.status = "unresolved";
+    if (normative && list.every((a) => isNormative(a) || a.confidence === "candidate")) {
+      // A heuristic candidate is not evidence either way: it stays a candidate,
+      // and the requirement stays unverified.
+      for (const a of list) a.status = isNormative(a) ? "unresolved" : "candidate";
       continue;
     }
 

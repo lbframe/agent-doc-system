@@ -29,7 +29,11 @@ export function audit(repo, cfg, res) {
   const note = (fact, cls, why) => {
     if (!classes.has(fact)) classes.set(fact, { cls, why: [] });
     const cur = classes.get(fact);
+    // Strongest class wins regardless of the order sources are visited in:
+    // corroboration outranks a single derivation, and a conflict or an open
+    // question outranks both.
     if (cls === "CONFLICT" || cls === "UNRESOLVED") cur.cls = cls;
+    else if (cls === "CONFIRMED" && cur.cls === "DERIVED") cur.cls = cls;
     if (why) cur.why.push(why);
   };
 
@@ -63,15 +67,18 @@ export function audit(repo, cfg, res) {
       // what could have: a missing extractor reduces coverage, it does not
       // make an obligation disappear.
       const cite = a.semantics.slice(NORMATIVE_SEMANTICS_PREFIX.length);
-      const peers = graph.assertions.filter((b) => b.subject === a.subject && b.key === a.key && b !== a && !isNormative(b));
+      const all = graph.assertions.filter((b) => b.subject === a.subject && b.key === a.key && b !== a && !isNormative(b));
+      const peers = all.filter((b) => b.confidence !== "candidate");
+      const candidates = all.filter((b) => b.confidence === "candidate");
       if (!peers.length) {
         const r = normative.requirements.find((x) => x.subject === a.subject && x.key === a.key) || { satisfiedBy: [] };
         const missing = r.satisfiedBy.filter((n) => !enabledAdapters.has(n));
         note(f, "UNRESOLVED", "normative: " + cite + " requires " + JSON.stringify(a.value));
         note(f, "UNRESOLVED",
           "no implementation evidence" +
-          (missing.length ? "; adapter not enabled: " + missing.join(", ")
-            : r.satisfiedBy.length ? "; " + r.satisfiedBy.join(", ") + " derived nothing" : "; no adapter named in satisfiedBy"));
+          (candidates.length ? "; heuristic candidate only: " + (candidates[0].semantics || JSON.stringify(candidates[0].value))
+            : missing.length ? "; adapter not enabled: " + missing.join(", ")
+              : r.satisfiedBy.length ? "; " + r.satisfiedBy.join(", ") + " derived nothing" : "; no adapter named in satisfiedBy"));
       } else if (a.status === "elected") {
         note(f, "CONFIRMED", "normative: " + cite + " corroborated by " + peers.map((b) => b.evidenceClass).join(", "));
       } else {
@@ -333,7 +340,7 @@ export function audit(repo, cfg, res) {
   // and whether a requirement or an attestation accounts for it. Linking a
   // specification to a component routes it; only this says it was reviewed.
   const unverifiedRequirements = normative.requirements.filter((r) =>
-    !graph.assertions.some((b) => b.subject === r.subject && b.key === r.key && !isNormative(b)));
+    !graph.assertions.some((b) => b.subject === r.subject && b.key === r.key && !isNormative(b) && b.confidence !== "candidate"));
 
   const rows = [...classes.entries()].map(([fact, v]) => ({ fact, classification: v.cls, evidence: v.why.slice(0, 4) }));
   rows.sort((a, b) => (a.fact < b.fact ? -1 : 1));

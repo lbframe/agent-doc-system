@@ -114,6 +114,8 @@ must be accounted for in one of two ways:
           section: 13-host-configuration
           sha256: <digest from `agentdoc audit` → normative.sections>
         satisfiedBy: [ansible]
+        expects:
+          installs: /var/lib/agent-platform-runtime/verification-python-v1
   ```
 
 - **an attestation** in `normativeCoverage` that the section carries no
@@ -122,7 +124,9 @@ must be accounted for in one of two ways:
 
 A section that is neither raises `AGENTDOC_NORMATIVE_UNCOVERED`. A requirement
 is an `AUTHORED` fact that can only be *corroborated*: until implementation
-evidence on the same key agrees with it — a `DERIVED` fact from an adapter, or a
+evidence on the same key agrees with it — a `DERIVED` fact from an adapter
+named in `satisfiedBy` that finds what `expects` names (see `ADAPTERS.md`,
+`ansible`), or a
 `requirement-satisfaction` reviewed override citing the implementation — it is
 `UNRESOLVED` and raises `AGENTDOC_REQUIREMENT_UNVERIFIED`, naming the adapter in
 `satisfiedBy` that is missing. Implementation evidence that disagrees is a

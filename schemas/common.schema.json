@@ -93,6 +93,16 @@
           "description": "Adapters able to derive the implementation side of this requirement. Named so a missing extractor is reported as such instead of as silence.",
           "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true,
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+        },
+        "expects": {
+          "description": "What an adapter in satisfiedBy must find for the requirement to be provided: a host path installed, or a service managed. Without it an adapter has nothing deterministic to compare.",
+          "type": "object",
+          "additionalProperties": false,
+          "oneOf": [{ "required": ["installs"] }, { "required": ["service"] }],
+          "properties": {
+            "installs": { "type": "string", "maxLength": 400, "pattern": "^/[^\\s{}]*[^\\s{}/]$" },
+            "service": { "type": "string", "maxLength": 200, "pattern": "^[A-Za-z0-9@._-]+$" }
+          }
         }
       }
     },
