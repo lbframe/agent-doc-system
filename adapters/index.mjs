@@ -20,13 +20,14 @@ import { EventsAdapter } from "./events.mjs";
 import { DeployConfigAdapter } from "./deploy-config.mjs";
 import { ObjectStoreAdapter } from "./object-store.mjs";
 import { CacheAdapter } from "./cache.mjs";
+import { AnsibleAdapter } from "./ansible.mjs";
 
 const REGISTRY = new Map();
 for (const C of [
   GenericAdapter, NodeAdapter, PnpmAdapter, TurborepoAdapter, TypeScriptAdapter,
   GoAdapter, OpenApiAdapter, ProtobufAdapter, GraphQLAdapter, OidcAdapter,
   GitHubActionsAdapter, DockerfileAdapter, WranglerAdapter, DatabaseAdapter,
-  EventsAdapter, DeployConfigAdapter, ObjectStoreAdapter, CacheAdapter,
+  EventsAdapter, DeployConfigAdapter, ObjectStoreAdapter, CacheAdapter, AnsibleAdapter,
 ]) {
   REGISTRY.set(C.prototype.constructor.adapterName, new C());
 }

@@ -425,8 +425,10 @@ class Reader {
 }
 
 // Parse a multi-document YAML stream. Returns [{doc, line}] with 1-based line
-// numbers of each document root.
-export function parseYamlDocuments(src, path) {
+// numbers of each document root. Catalog sources must be mappings; a reader of
+// third-party files whose root is a list (an Ansible playbook or task file)
+// opts in with `allowSequenceRoot`.
+export function parseYamlDocuments(src, path, { allowSequenceRoot = false } = {}) {
   if (typeof src !== "string") throw new AgentDocError(CODES.UTF8, "expected text for " + path, { path });
   if (src.charCodeAt(0) === 0xfeff) src = src.slice(1);
   scanBanned(src, path);
@@ -458,7 +460,7 @@ export function parseYamlDocuments(src, path) {
       throw new AgentDocError(CODES.YAML_PARSE, "unparsed trailing content", { path, line: r.peek().lineNo });
     }
     if (value === null) continue;
-    if (typeof value !== "object" || Array.isArray(value)) {
+    if (typeof value !== "object" || (Array.isArray(value) && !allowSequenceRoot)) {
       throw new AgentDocError(CODES.YAML_NON_MAP_ROOT, "document root must be a mapping", { path, line: rootLine });
     }
     out.push({ doc: value, line: rootLine });

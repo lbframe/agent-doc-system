@@ -19,7 +19,7 @@ import { validateContractFile } from "./contracts.mjs";
 import { sourceFiles, importSpecifiers } from "./sourcescan.mjs";
 import { applyWarningAcceptances } from "./acceptances.mjs";
 import {
-  loadNormativeDocuments, verifyCitation, normativeCoverage, isNormative, NORMATIVE_SEMANTICS_PREFIX,
+  loadNormativeDocuments, verifyCitation, normativeCoverage, isNormative, isRequirementKey, NORMATIVE_SEMANTICS_PREFIX,
 } from "./normative.mjs";
 import { loadAdapters } from "../adapters/index.mjs";
 import {
@@ -175,6 +175,9 @@ export function compile(root, opts = {}) {
     repo, cfg, refs, bundle, prov, diagnostics, facts,
     sources: { ...sources, journeys: journeys.journeys }, discovery, journeys: journeys.journeys, journeysPath: journeys.path,
     observations, overrides: overrides.overrides,
+    // Declared normative requirements, so an adapter named in `satisfiedBy`
+    // can derive the implementation side on the same key.
+    requirements: normative.requirements,
     edges, events, externals, capabilities, verification,
     errors: [],
     unitByComponent: new Map(),
@@ -786,7 +789,13 @@ function pushConflictDiagnostics(rawConflicts, diagnostics, facts) {
       .filter(Boolean)
       .map((f) => f.evidenceClass + "=" + JSON.stringify(f.value))
       .sort();
-    const detail = c.subject + " " + c.key + ": " + values.join(" vs ");
+    let detail = c.subject + " " + c.key + ": " + values.join(" vs ");
+    // For a requirement, say where each side comes from: the cited section and
+    // what the extractor actually found. Two bare values send a reader hunting.
+    if (isRequirementKey(c.key)) {
+      const why = c.assertionIds.map((id) => byId.get(id)).filter((f) => f && f.semantics).map((f) => f.semantics).sort();
+      if (why.length) detail += " (" + why.join("; ") + ")";
+    }
     if (c.kind === "ambiguity" && c.status === "unresolved") {
       diagnostics.push({
         severity: "warning",
@@ -808,7 +817,7 @@ function pushConflictDiagnostics(rawConflicts, diagnostics, facts) {
         message:
           "unresolved " + c.kind + " — " + detail + ". " +
           (c.election.rationale || "no authority rule governs this fact") +
-          ". Add an authority rule and, if deterministic discovery cannot settle it, a reviewed override.",
+          (isRequirementKey(c.key) ? "." : ". Add an authority rule and, if deterministic discovery cannot settle it, a reviewed override."),
       });
     } else {
       diagnostics.push({
@@ -896,13 +905,18 @@ function pushNormativeDiagnostics(normative, facts, adapters, diagnostics) {
   const enabled = new Set(adapters.map((a) => a.name));
   for (const r of normative.requirements) {
     const group = facts.facts.filter((f) => f.subject === r.subject && f.key === r.key && f.status !== "superseded");
-    if (group.some((f) => !isNormative(f))) continue;
+    if (group.some((f) => !isNormative(f) && f.confidence !== "candidate")) continue;
+    const candidate = group.find((f) => !isNormative(f));
     const missing = r.satisfiedBy.filter((a) => !enabled.has(a));
-    const why = !r.satisfiedBy.length
-      ? "no adapter is named as able to derive it"
-      : missing.length
-        ? "the adapter able to derive it is not enabled or not available: " + missing.join(", ")
-        : "the enabled adapter (" + r.satisfiedBy.join(", ") + ") derived no evidence for it";
+    const why = candidate
+      ? "only a heuristic candidate exists, which is never elected — " + (candidate.semantics || JSON.stringify(candidate.value))
+      : !r.satisfiedBy.length
+        ? "no adapter is named as able to derive it"
+        : missing.length
+          ? "the adapter able to derive it is not enabled or not available: " + missing.join(", ")
+          : !r.expects
+            ? "the requirement has no `expects`, so " + r.satisfiedBy.join(", ") + " has nothing to look for"
+            : "the enabled adapter (" + r.satisfiedBy.join(", ") + ") derived no evidence for it";
     diagnostics.push({
       severity: "warning",
       code: CODES.REQUIREMENT_UNVERIFIED,

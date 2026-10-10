@@ -43,6 +43,7 @@ Available on `ctx`:
 | `transitiveDependencies(ref)` | manifest-declared dependencies, order-independent |
 | `productionDependencies(ref)` | production dependency names, for client-of-resource rules |
 | `deferSecondPass(fn)` | run after every unit is known |
+| `requirements` | declared normative requirements (`subject`, `key`, `value`, `source`, `satisfiedBy`, `expects`) an adapter may derive the implementation side of |
 | `unitByPkgName`, `unitByGoModule` | cross-unit resolution built before extraction |
 | `errors.push({ code, message })` | a hard error, collected rather than thrown |
 
@@ -100,9 +101,43 @@ cannot name the file a fact came from, you cannot add the fact.
 | `object-store` | bucket literals | logical-dataset edges, or an ambiguity |
 | `cache` | cache client evidence | cache bindings |
 | `events` | subject literals, declared constants, event-contract files | producers, consumers, reserved subjects |
+| `ansible` | playbooks (YAML lists of plays) | deployable evidence, installed paths and managed services, the DERIVED side of provisioning requirements |
 
 `generic` is always on. Everything else is opt-in through `adapters: [...]`, and
 an unknown name is `AGENTDOC_CONFIG`, not a silent no-op.
+
+### `ansible`
+
+Reads playbooks under a unit root and follows what they reach — plays,
+`roles:`, `include_role`/`import_role`, `include_tasks`/`import_tasks`,
+`import_playbook`, `block`/`rescue`/`always` — inside the repository only.
+Nothing is executed and no Jinja is evaluated.
+
+| it derives | from |
+|---|---|
+| an installed path | `copy`/`template`/`get_url`/`git`/`synchronize` `dest`, `unarchive` `dest`/`creates`, `pip` `virtualenv`, `file` with `state: directory\|touch\|link\|hard`, `lineinfile`/`blockinfile` with `create: true`, a command's literal `creates` |
+| a managed service | `systemd`, `systemd_service`, `service` `name` |
+
+The inventory lands on the component as `derived.provisioning`. For a normative
+requirement on that component with `satisfiedBy: [ansible]` and an `expects`
+(`installs: <path>` or `service: <name>`), it adds a `DERIVED` fact on the
+requirement key:
+
+| value | confidence | when |
+|---|---|---|
+| `provided` | deterministic | a reachable task without `when` installs the path (or a path below it), or manages the service |
+| `provided` | candidate | the only matching task is conditional (`when`, `rescue`, a conditional role or include) |
+| `absent` | deterministic | no reachable task matches **and** every reachable task is transparent |
+| `absent` | candidate | no task matches, but something opaque was reached |
+
+**What it cannot see, and therefore never rules out:** a command
+(`shell`/`command`/`script`/`raw`) without a literal `creates`; a module it does
+not model (`apt`, `dnf`, `package`, collections, …); a templated path or a
+`loop`; a role, include or imported playbook that is not in the repository or is
+templated; a file that does not parse. Any of these makes an absence a
+candidate, which is never elected — the requirement stays
+`AGENTDOC_REQUIREMENT_UNVERIFIED` and the diagnostic names what was opaque.
+Inventory files, `group_vars`/`host_vars` and variables are not read.
 
 `asyncapi` is a contract **type** (declared on an API descriptor, validated by
 the contract layer), not an adapter — there is no `asyncapi` entry in
