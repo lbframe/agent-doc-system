@@ -42,13 +42,16 @@ failures as part of its output.
 ```bash
 agentdoc validate                       # sources + schemas + semantic checks
 agentdoc compile [--require-clean]      # deterministic graph build, atomic write
-agentdoc check [--require-clean] [--allow-stale-observations]
+agentdoc check [--strict] [--require-clean] [--allow-stale-observations]
 ```
 
 `compile` writes `.agentdoc/graph.json` (or the path in `output.graph`).
 `check` is the gate: it fails on a stale or hand-edited graph, a compiler or
 schema version mismatch, an observation past its declared `maxAgeDays`, and —
-with `--require-clean` — catalog inputs that differ from `HEAD`.
+with `--require-clean` — catalog inputs that differ from `HEAD`. With
+`--strict` it also fails on every warning not accepted in `warningAcceptances`
+— the gate that ends a MIGRATE (unreviewed normative sections, unproven
+requirements, orphan documents).
 
 ## Query and impact
 

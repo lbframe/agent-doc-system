@@ -27,6 +27,8 @@ jobs:
       - run: agentdoc compile
       - run: agentdoc check
       - run: agentdoc check --require-clean
+      # Once MIGRATE is done: no unaccepted warning may remain.
+      - run: agentdoc check --strict
       - run: agentdoc eval routing
 ```
 

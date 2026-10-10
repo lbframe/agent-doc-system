@@ -10,6 +10,7 @@
 // fail-closed default: silence is not a resolution.
 import { AgentDocError, CODES } from "../codes.mjs";
 import { EVIDENCE_CLASSES, CONFIDENCE } from "./classes.mjs";
+import { isNormative } from "../normative.mjs";
 
 export class AuthorityEngine {
   constructor(rules) {
@@ -75,6 +76,16 @@ export function resolveAssertions(assertions, authority) {
     const [subject, key] = gk.split("\u0000");
     const distinct = distinctValues(list);
 
+    // A normative requirement is a claim about what the implementation must
+    // do, so it can only be corroborated, never elected on its own word. With
+    // no implementation evidence beside it, it stays unresolved: the gap the
+    // migration must surface.
+    const normative = list.some(isNormative);
+    if (normative && list.every(isNormative)) {
+      for (const a of list) a.status = "unresolved";
+      continue;
+    }
+
     if (distinct.length === 1) {
       // Agreement across evidence classes is corroboration, not a conflict —
       // but a lone heuristic candidate is not agreement with anything. It stays
@@ -121,9 +132,19 @@ export function resolveAssertions(assertions, authority) {
     };
     let status = "unresolved";
 
+    // 0. A normative requirement and the implementation disagree. No rule may
+    //    settle that: electing the implementation waives the specification,
+    //    electing the requirement hides the missing implementation. Only a
+    //    change to one of them resolves it.
+    if (normative) {
+      election.rationale =
+        "a normative requirement disagrees with the implementation evidence; no authority rule may settle it — " +
+        "change the implementation, or change the specification and re-review its section";
+    }
+
     // 1. reviewed override wins outright, but the divergence is still recorded.
     const reviewed = candidates.filter((a) => a.evidenceClass === "REVIEWED_OVERRIDE");
-    if (rule && rule.elect.length === 1 && rule.elect[0] === "REVIEWED_OVERRIDE" && reviewed.length === 1) {
+    if (!normative && rule && rule.elect.length === 1 && rule.elect[0] === "REVIEWED_OVERRIDE" && reviewed.length === 1) {
       election.elected = reviewed[0];
       election.basis = "reviewed-override";
       election.rationale = rule.rationale;
@@ -131,7 +152,7 @@ export function resolveAssertions(assertions, authority) {
     }
 
     // 2. authority rule with a single elected class present among candidates.
-    if (!election.elected && rule) {
+    if (!normative && !election.elected && rule) {
       const allowed = rule.elect.filter((c) => candidates.some((a) => a.evidenceClass === c));
       if (allowed.length === 1) {
         const winners = candidates.filter((a) => a.evidenceClass === allowed[0]);
@@ -149,7 +170,7 @@ export function resolveAssertions(assertions, authority) {
     }
 
     // 3. superset: one candidate's value contains every other candidate's value.
-    if (!election.elected && candidates.length > 1) {
+    if (!normative && !election.elected && candidates.length > 1) {
       const sup = candidates.find((c) => candidates.every((o) => o === c || containsValue(c.value, o.value)));
       if (sup) {
         election.elected = sup;
@@ -160,7 +181,7 @@ export function resolveAssertions(assertions, authority) {
     }
 
     // 4. recency: only when the rule names recency and the winner is a runtime fact.
-    if (!election.elected && rule && rule.elect.includes("OBSERVED_RUNTIME")) {
+    if (!normative && !election.elected && rule && rule.elect.includes("OBSERVED_RUNTIME")) {
       const runtime = candidates.filter((a) => a.evidenceClass === "OBSERVED_RUNTIME");
       const dated = runtime.filter((a) => a.observed && a.observed.at);
       if (dated.length > 1) {

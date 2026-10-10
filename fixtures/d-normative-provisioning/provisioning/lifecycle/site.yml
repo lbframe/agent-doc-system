@@ -1,0 +1,8 @@
+- hosts: runtime
+  become: true
+  tasks:
+    - name: Install the operator-supplied lifecycle configuration
+      ansible.builtin.copy:
+        src: "{{ lifecycle_configuration_path }}"
+        dest: /etc/agent-platform/lifecycle.yaml
+        mode: "0600"

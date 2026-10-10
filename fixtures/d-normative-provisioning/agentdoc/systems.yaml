@@ -1,0 +1,7 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: runtime-host
+  description: "The production host that executes and verifies agent work."
+spec:
+  domain: platform

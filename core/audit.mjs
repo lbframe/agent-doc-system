@@ -18,6 +18,7 @@
 import { classifyContractFile } from "./contracts.mjs";
 import { ContextIndex } from "./query.mjs";
 import { expandGlob, isRepoPath } from "./fsx.mjs";
+import { isNormative, NORMATIVE_SEMANTICS_PREFIX } from "./normative.mjs";
 
 const DOC_EXT = /\.(md|mdx|adoc|rst|txt)$/;
 
@@ -53,8 +54,32 @@ export function audit(repo, cfg, res) {
   }
 
   // 2. facts and conflicts
+  const normative = res.normative || { sections: [], uncovered: [], requirements: [] };
+  const enabledAdapters = new Set((graph.compiler.adapters || []).map((a) => a.name));
   for (const a of graph.assertions) {
     const f = a.subject + " " + a.key;
+    if (isNormative(a)) {
+      // A requirement names where it came from, and — when nothing proves it —
+      // what could have: a missing extractor reduces coverage, it does not
+      // make an obligation disappear.
+      const cite = a.semantics.slice(NORMATIVE_SEMANTICS_PREFIX.length);
+      const peers = graph.assertions.filter((b) => b.subject === a.subject && b.key === a.key && b !== a && !isNormative(b));
+      if (!peers.length) {
+        const r = normative.requirements.find((x) => x.subject === a.subject && x.key === a.key) || { satisfiedBy: [] };
+        const missing = r.satisfiedBy.filter((n) => !enabledAdapters.has(n));
+        note(f, "UNRESOLVED", "normative: " + cite + " requires " + JSON.stringify(a.value));
+        note(f, "UNRESOLVED",
+          "no implementation evidence" +
+          (missing.length ? "; adapter not enabled: " + missing.join(", ")
+            : r.satisfiedBy.length ? "; " + r.satisfiedBy.join(", ") + " derived nothing" : "; no adapter named in satisfiedBy"));
+      } else if (a.status === "elected") {
+        note(f, "CONFIRMED", "normative: " + cite + " corroborated by " + peers.map((b) => b.evidenceClass).join(", "));
+      } else {
+        note(f, "CONFLICT", "normative: " + cite + " requires " + JSON.stringify(a.value) + "; implementation evidence says " +
+          peers.map((b) => b.evidenceClass + "=" + JSON.stringify(b.value)).join(", "));
+      }
+      continue;
+    }
     if (a.evidenceClass === "OBSERVED_RUNTIME") note(f, "OBSERVED", a.observed ? a.observed.sourceSystem + " at " + a.observed.at : "runtime");
     else if (a.status === "unresolved") note(f, "UNRESOLVED", "no deterministic resolution");
     else if (a.status === "candidate") note(f, "UNRESOLVED", "heuristic candidate only");
@@ -96,7 +121,7 @@ export function audit(repo, cfg, res) {
   // loop below; letting one through as a "document" makes `exists: true` for a
   // directory, which is a check that can never fail.
   const configured = Object.entries(cfg.docs || {})
-    .filter(([role]) => !role.endsWith("Dir"))
+    .filter(([role]) => !role.endsWith("Dir") && role !== "normative")
     .map(([role, p]) => ({ role, path: p, configured: true }));
   // Directory-shaped roles are enumerated rather than listed as a single entry:
   // a directory is not a document, and reporting it as one is a dead check.
@@ -303,6 +328,13 @@ export function audit(repo, cfg, res) {
     }
   }
 
+  // ── 9. normative coverage ───────────────────────────────────────────────
+  // Every section of a normative document, with the digest a reviewer cites,
+  // and whether a requirement or an attestation accounts for it. Linking a
+  // specification to a component routes it; only this says it was reviewed.
+  const unverifiedRequirements = normative.requirements.filter((r) =>
+    !graph.assertions.some((b) => b.subject === r.subject && b.key === r.key && !isNormative(b)));
+
   const rows = [...classes.entries()].map(([fact, v]) => ({ fact, classification: v.cls, evidence: v.why.slice(0, 4) }));
   rows.sort((a, b) => (a.fact < b.fact ? -1 : 1));
   const counts = rows.reduce((acc, r) => { acc[r.classification] = (acc[r.classification] || 0) + 1; return acc; }, {});
@@ -333,7 +365,17 @@ export function audit(repo, cfg, res) {
       .filter((c) => c.status !== "unresolved")
       .map((c) => ({ kind: c.kind, subject: c.subject, key: c.key, status: c.status, basis: c.election.basis, ruleId: c.election.ruleId })),
     documentationContradictions: docContradictions,
+    normative: {
+      sections: normative.sections,
+      uncovered: normative.uncovered,
+      requirements: normative.requirements.map((r) => ({
+        subject: r.subject, id: r.id, key: r.key, value: r.value,
+        source: r.source.path + "#" + r.source.section, satisfiedBy: r.satisfiedBy,
+      })),
+    },
     reviewedAmbiguity: [
+      ...normative.uncovered.map((s) => ({ kind: "NORMATIVE_UNCOVERED", subject: s.path + "#" + s.section })),
+      ...unverifiedRequirements.map((r) => ({ kind: "REQUIREMENT_UNVERIFIED", subject: r.subject + " " + r.key })),
       ...unresolvedEvents.map((pattern) => ({ kind: "EVENT_WITHOUT_PRODUCER", subject: pattern })),
       ...ambiguousOwnership.map((ref) => ({ kind: "COMPONENT_OWNERSHIP", subject: ref })),
       ...unclaimedContracts.map((p) => ({ kind: "UNCLAIMED_CONTRACT", subject: p })),

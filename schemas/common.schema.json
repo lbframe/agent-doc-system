@@ -66,6 +66,36 @@
         }
       }
     },
+    "normativeCitation": {
+      "description": "One section of a configured normative document, pinned by the digest it had when it was reviewed. `agentdoc audit` lists every section with its current digest.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "section", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/repoPath" },
+        "section": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^\\S+$" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "requirementKey": { "type": "string", "maxLength": 80, "pattern": "^requirement\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+    "requirementValue": { "type": "string", "maxLength": 80, "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+    "requirement": {
+      "description": "An implementation obligation a normative document places on this component. It is an AUTHORED fact that must be corroborated by implementation evidence on the same key; it never stands on its own word.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key", "value", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/name" },
+        "key": { "$ref": "#/$defs/requirementKey" },
+        "value": { "$ref": "#/$defs/requirementValue" },
+        "source": { "$ref": "#/$defs/normativeCitation" },
+        "satisfiedBy": {
+          "description": "Adapters able to derive the implementation side of this requirement. Named so a missing extractor is reported as such instead of as silence.",
+          "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+        }
+      }
+    },
     "warningAcceptance": {
       "type": "object",
       "additionalProperties": false,

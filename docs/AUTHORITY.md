@@ -175,7 +175,16 @@ For a group of assertions on one `(subject, key)`:
    - `recency` — only when the rule names `OBSERVED_RUNTIME` and more than one
      dated observation exists. The newest wins, and the rule is cited.
    - otherwise `basis: none`, status `unresolved`, and an **error**.
-3. Every non-elected assertion is kept with `status: contradicted` (or
+3. **Normative requirements are never elected on their own word.** An
+   assertion from a component's `spec.requirements` (`requirement.*` keys) is a
+   claim about what the implementation *must* do:
+   - alone on its key it stays `unresolved` (`AGENTDOC_REQUIREMENT_UNVERIFIED`);
+   - with agreeing implementation evidence it is corroborated and `elected`;
+   - with disagreeing evidence **no basis is attempted** — not even a
+     `reviewed-override` rule. Electing the implementation would waive the
+     specification; electing the requirement would hide the missing
+     implementation. The conflict is an error until one of them changes.
+4. Every non-elected assertion is kept with `status: contradicted` (or
    `candidate`). **The contradicted value stays in the graph.** A system that
    discards the repository's own claim cannot explain the divergence to a human.
 

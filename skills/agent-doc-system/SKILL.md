@@ -96,7 +96,11 @@ not work around it: run `agentdoc compile`, review the diff, commit the graph.
 - **Never hand-edit `.agentdoc/graph.json`.** The gate rejects it, and it would
   be wrong anyway.
 - **Do not trust existing documentation.** In MIGRATE it is evidence of what
-  someone once believed; the audit says where that belief contradicts the code.
+  someone once believed. The audit flags only a narrow set of contradictions
+  automatically (negated components, port claims); it does not read prose for
+  meaning. Obligations in specifications are checked only once declared:
+  configure `docs.normative`, turn every section into a component requirement
+  or a reviewed attestation, and finish with `agentdoc check --strict`.
 
 ## Deeper references
 

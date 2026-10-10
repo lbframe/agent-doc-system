@@ -1,0 +1,8 @@
+- hosts: runtime
+  become: true
+  tasks:
+    - name: Create the platform control-plane virtual environment
+      ansible.builtin.pip:
+        requirements: /opt/agent-platform/requirements.txt
+        virtualenv: /usr/local/lib/agent-platform-runtime/platform-venv
+        extra_args: --no-index --find-links /opt/agent-platform/wheelhouse

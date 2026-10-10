@@ -1,0 +1,13 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: provisioning
+  description: "Configures the production host with Ansible."
+spec:
+  type: other
+  system: runtime-host
+  context:
+    docs:
+      - provisioning/runtime_sandbox/README.md
+      - provisioning/lifecycle/README.md
+      - specs/EXECUTION_LAYER_SPEC.md

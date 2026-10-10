@@ -1,6 +1,6 @@
 # Portability fixtures
 
-Three synthetic repositories, each tagged so the routing evaluation only runs
+Four synthetic repositories, each tagged so the routing evaluation only runs
 its own scenarios against it.
 
 | fixture | shape | what it is for |
@@ -8,6 +8,7 @@ its own scenarios against it.
 | `a-node-ts-postgres` | one Node/TypeScript service, REST, Postgres, GitHub Actions | the simplest thing that should work |
 | `b-go-multi-service` | multi-service Go, protobuf, shared library, resources | contracts that are not HTTP |
 | `c-alt-monorepo` | `backend`/`frontend`/`shared`/`edge`, mixed runtimes, stale docs | the engine must not assume `apps`+`packages`+`workers` |
+| `d-normative-provisioning` | specifications, an Ansible provisioning tree, no adapter for either | a routed specification must not pass for a reviewed one (issue #5) |
 
 Each is a self-contained cataloged repository: its own
 `agentdoc/agentdoc.config.yaml` and committed graph inputs, tracked in this

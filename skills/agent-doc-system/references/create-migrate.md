@@ -81,8 +81,14 @@ agentdoc audit > migration-report.json
 
 Then, in order:
 
-1. **Source-of-truth mapping.** For each major claim, record which inventory
-   supports it. Anything supported by none goes to `reviewedAmbiguity`.
+1. **Source-of-truth mapping.** Set `docs.normative` to the specifications and
+   profiles, then empty `normative.uncovered`: each section becomes a
+   `spec.requirements` entry on the component that must fulfil it, or a
+   `normativeCoverage` attestation that it obliges nothing. Prove each
+   requirement (adapter evidence or a `requirement-satisfaction` override);
+   an unproven one stays `REQUIREMENT_UNVERIFIED`. For other major claims,
+   record which inventory supports them; anything supported by none goes to
+   `reviewedAmbiguity`.
 2. **Contradictions.** Work `contradictions` and `documentationContradictions`.
    Each needs a human decision: fix the docs, fix the code, or add an authority
    rule saying which class wins for that key.
@@ -91,7 +97,13 @@ Then, in order:
 5. **Stale contracts.** Point the API descriptor at the current contract file.
 6. **Ownership.** Placement from code where unambiguous, from a human elsewhere.
 7. **Catalog.** `scaffold --write`, review every generated file.
-8. **Gate.** `validate` → `compile` → `check`, then install CI.
+8. **Gate.** `validate` → `compile` → `check --strict`, then install CI. Strict
+   fails on any unaccepted warning: an unreviewed section or an unproven
+   requirement cannot ship in a "complete" migration.
+
+**The audit does not read prose for meaning.** It checks only negated
+components and port claims automatically; every other documented obligation is
+caught only if it is declared as a requirement.
 
 **Do not trust existing documentation.** The single most common migration
 failure is copying existing prose into descriptions. If you cannot write a

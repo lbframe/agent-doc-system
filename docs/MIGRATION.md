@@ -41,6 +41,7 @@ independently:
   "counts":     { "CONFIRMED": 4, "DERIVED": 38 },
   "contradictions": [ ... ],
   "documentationContradictions": [ ... ],
+  "normative":  { "sections": [ { "path", "section", "heading", "sha256", "coveredBy" } ], "uncovered": [ ... ], "requirements": [ ... ] },
   "reviewedAmbiguity": [ ... ],
   "documentation": { "orphanDocs", "undocumentedComponents", "unverifiedComponents" },
   "contracts":  { "inventory", "unclaimed" },
@@ -77,6 +78,60 @@ be checked at all.
 The rule for extending this: only check vocabulary the graph owns. A check that
 guesses is a check that cries wolf.
 
+**These are the only automatic documentation checks.** The audit does not read
+prose for meaning, so it does not find where an arbitrary sentence contradicts
+the code. A specification saying "the verifier runtime is installed on the
+production host" is invisible to it until someone turns that sentence into a
+requirement — which is what the next section makes mandatory.
+
+### Normative requirements
+
+A specification that is linked to a component is *routed*; that says nothing
+about whether anyone checked the implementation against it. List the documents
+that state obligations in `docs.normative`:
+
+```yaml
+docs:
+  normative:
+    - specs/**
+    - verification_layer/*_PROFILE.md
+```
+
+Every level-2 (`##`) section of those documents is then pinned by digest and
+must be accounted for in one of two ways:
+
+- **a requirement** on the component that must fulfil it, citing the section:
+
+  ```yaml
+  # provisioning/agentdoc.yaml
+  spec:
+    requirements:
+      - id: verification-runtime-on-host
+        key: requirement.provides.verification-runtime
+        value: provided
+        source:
+          path: specs/EXECUTION_LAYER_SPEC.md
+          section: 13-host-configuration
+          sha256: <digest from `agentdoc audit` → normative.sections>
+        satisfiedBy: [ansible]
+  ```
+
+- **an attestation** in `normativeCoverage` that the section carries no
+  implementation obligation (`disposition: no-implementation-obligation` or
+  `informative`), with a reason and a review condition.
+
+A section that is neither raises `AGENTDOC_NORMATIVE_UNCOVERED`. A requirement
+is an `AUTHORED` fact that can only be *corroborated*: until implementation
+evidence on the same key agrees with it — a `DERIVED` fact from an adapter, or a
+`requirement-satisfaction` reviewed override citing the implementation — it is
+`UNRESOLVED` and raises `AGENTDOC_REQUIREMENT_UNVERIFIED`, naming the adapter in
+`satisfiedBy` that is missing. Implementation evidence that disagrees is a
+conflict no authority rule may settle (see `AUTHORITY.md`). Editing a cited
+section invalidates its requirement or attestation
+(`AGENTDOC_NORMATIVE_SOURCE_STALE`): the review has to be redone.
+
+A missing adapter lowers coverage; it never makes an obligation disappear.
+
 ### Reviewed ambiguity
 
 The list a human must work through:
@@ -88,6 +143,8 @@ The list a human must work through:
 | `UNCLAIMED_CONTRACT` | which API owns this contract, or is it dead? |
 | `REVIEWED_OVERRIDE` | is this interpretation still true? |
 | `NEGATED_COMPONENT`, `PORT_MISMATCH`, `UNLINKED_PORT_CLAIM` | which source is right? |
+| `NORMATIVE_UNCOVERED` | what does this section oblige, and which component must do it? |
+| `REQUIREMENT_UNVERIFIED` | where is the implementation — or is this a gap to fix before release? |
 
 ## CREATE
 
@@ -132,9 +189,12 @@ agentdoc audit > migration-report.json
 
 Then, in order:
 
-1. **Source-of-truth mapping.** For each major claim, record which of the four
-   inventories supports it. Anything supported by none goes to
-   `reviewedAmbiguity`.
+1. **Source-of-truth mapping.** Configure `docs.normative`, then work
+   `normative.uncovered`: every section of every normative document becomes a
+   component requirement or a reviewed attestation. Prove each requirement
+   with implementation evidence, or leave it `REQUIREMENT_UNVERIFIED` for a
+   human. For other major claims, record which of the four inventories
+   supports them; anything supported by none goes to `reviewedAmbiguity`.
 2. **Contradiction detection.** Work `contradictions` and
    `documentationContradictions`. Each one needs a human decision: fix the
    documentation, fix the code, or record an authority rule saying which class
@@ -152,7 +212,11 @@ Then, in order:
    from a human everywhere else.
 7. **Catalog proposal.** `scaffold` lists what it would write.
 8. **Migration.** `scaffold --write`, then review every generated file.
-9. **Validation.** `validate` → `compile` → `check`.
+9. **Validation.** `validate` → `compile` → `check --strict`. The strict gate
+   fails on every warning not accepted with pinned evidence, so a migration
+   cannot finish with an unreviewed normative section or an unproven
+   requirement. A known gap is accepted explicitly (`warningAcceptances`) and
+   stays `UNRESOLVED` in the audit.
 
 ### Do not trust the documentation
 
