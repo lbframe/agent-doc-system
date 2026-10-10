@@ -236,7 +236,7 @@ try {
       const open = (res.diagnostics || []).filter((d) => d.severity === "warning" && !d.acceptance);
       if (open.length) {
         fail(
-          open.map((d) => new AgentDocError(d.code, (d.subject ? d.subject + ": " : "") + d.message)),
+          open.map((d) => new AgentDocError(d.code, (d.subject && !d.message.includes(d.subject) ? d.subject + ": " : "") + d.message)),
           { ...res.stats, strict: true }
         );
       }
