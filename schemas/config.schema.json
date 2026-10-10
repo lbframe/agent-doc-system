@@ -358,7 +358,8 @@
               "capability",
               "component-placement",
               "event-producer",
-              "event-consumer"
+              "event-consumer",
+              "requirement-satisfaction"
             ]
           },
           "subject": {
@@ -415,6 +416,12 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200
+          },
+          "key": {
+            "$ref": "common.json#/$defs/requirementKey"
+          },
+          "value": {
+            "$ref": "common.json#/$defs/requirementValue"
           },
           "reason": {
             "$ref": "common.json#/$defs/rationale"
@@ -633,6 +640,59 @@
                 ]
               }
             }
+          },
+          {
+            "if": {
+              "properties": {
+                "fact": {
+                  "const": "requirement-satisfaction"
+                }
+              },
+              "required": [
+                "fact"
+              ]
+            },
+            "then": {
+              "required": [
+                "key",
+                "value"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "target"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "transport"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  }
+                ]
+              }
+            },
+            "else": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "key"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "value"
+                    ]
+                  }
+                ]
+              }
+            }
           }
         ]
       }
@@ -642,6 +702,51 @@
       "maxItems": 128,
       "items": {
         "$ref": "common.json#/$defs/warningAcceptance"
+      }
+    },
+    "normativeCoverage": {
+      "description": "Reviewed attestations that a normative section carries no implementation obligation. Pinned by the section digest; a changed section invalidates its attestation and forces a fresh review.",
+      "type": "array",
+      "maxItems": 2048,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "section",
+          "sha256",
+          "disposition",
+          "reason",
+          "reviewWhen"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "common.json#/$defs/repoPath"
+          },
+          "section": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^\\S+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "disposition": {
+            "enum": [
+              "no-implementation-obligation",
+              "informative"
+            ]
+          },
+          "reason": {
+            "$ref": "common.json#/$defs/rationale"
+          },
+          "reviewWhen": {
+            "type": "string",
+            "minLength": 12
+          }
+        }
       }
     },
     "output": {
@@ -678,6 +783,17 @@
         },
         "runbookDir": {
           "$ref": "common.json#/$defs/repoPath"
+        },
+        "normative": {
+          "description": "Globs of normative documents (specifications, technical profiles). Every level-2 section of a matched Markdown document must be cited by a component requirement or attested in normativeCoverage; otherwise AGENTDOC_NORMATIVE_UNCOVERED.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }

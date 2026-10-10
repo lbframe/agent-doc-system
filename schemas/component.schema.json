@@ -27,7 +27,11 @@
           "description": "Published artifacts or remotes this component is consumed through.",
           "items": { "$ref": "common.json#/$defs/repoPath" }
         },
-        "context": { "$ref": "common.json#/$defs/context" }
+        "context": { "$ref": "common.json#/$defs/context" },
+        "requirements": {
+          "type": "array", "minItems": 1, "maxItems": 64,
+          "items": { "$ref": "common.json#/$defs/requirement" }
+        }
       },
       "oneOf": [
         { "required": ["system"], "not": { "anyOf": [{ "required": ["domain"] }, { "required": ["placementRationale"] }] } },

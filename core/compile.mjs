@@ -18,6 +18,9 @@ import { formatErrors } from "./jsonschema.mjs";
 import { validateContractFile } from "./contracts.mjs";
 import { sourceFiles, importSpecifiers } from "./sourcescan.mjs";
 import { applyWarningAcceptances } from "./acceptances.mjs";
+import {
+  loadNormativeDocuments, verifyCitation, normativeCoverage, isNormative, NORMATIVE_SEMANTICS_PREFIX,
+} from "./normative.mjs";
 import { loadAdapters } from "../adapters/index.mjs";
 import {
   COMPILER_NAME, COMPILER_VERSION, GRAPH_SCHEMA_VERSION,
@@ -114,6 +117,13 @@ export function compile(root, opts = {}) {
     reviewWhen: o.reviewWhen,
     evidence: o.evidence.map((ev) => ({ path: ev.path, sha256: ev.sha256 })),
   });
+
+  // ── normative requirements ───────────────────────────────────────────────
+  // Checked before discovery so a stale citation is reported alongside every
+  // other authored-input error rather than hiding behind a coverage failure.
+  const normative = loadNormative(repo, cfg, sources, overrides.overrides);
+  res.errors.push(...normative.errors);
+  res.normative = { sections: normative.sections, uncovered: normative.uncovered, requirements: normative.requirements };
 
   res.errors.push(...checkContractCoverage({ repo, cfg, sources }));
 
@@ -436,6 +446,21 @@ export function compile(root, opts = {}) {
     }
   }
 
+  // A requirement is an AUTHORED claim that the implementation must make true.
+  // It is a fact like any other so the authority engine compares it with the
+  // implementation evidence on the same key — and it carries its citation, so
+  // every report can say which section of which document it came from.
+  for (const r of normative.requirements) {
+    facts.add({
+      subject: r.subject, key: r.key, value: r.value, evidenceClass: "AUTHORED", confidence: "declared",
+      provRecs: [
+        prov.add("declared", r.file, "requirement-extractor", ["ass:pending"]),
+        prov.add("declared", r.source.path, "requirement-extractor", ["ass:pending"]),
+      ],
+      semantics: NORMATIVE_SEMANTICS_PREFIX + r.source.path + "#" + r.source.section,
+    });
+  }
+
   // ── reviewed overrides → relations and facts ─────────────────────────────
   const overrideEdges = [];
   for (const o of overrides.overrides) {
@@ -503,6 +528,13 @@ export function compile(root, opts = {}) {
         evidenceClass: "REVIEWED_OVERRIDE", confidence: "reviewed", provRecs: provs, semantics: o.reason,
         review: reviewed(o),
       });
+    } else if (o.fact === "requirement-satisfaction") {
+      facts.add({
+        subject: o.subject, key: o.key, value: o.value,
+        evidenceClass: "REVIEWED_OVERRIDE", confidence: "reviewed", provRecs: provs,
+        semantics: o.reason,
+        review: reviewed(o),
+      });
     } else if (o.fact === "component-placement") {
       const key = o.system ? "placement.system" : "placement.domain";
       facts.add({
@@ -557,6 +589,7 @@ export function compile(root, opts = {}) {
 
   const { conflicts: rawConflicts } = resolveAssertions(facts.facts, authority);
   pushConflictDiagnostics(rawConflicts, diagnostics, facts);
+  pushNormativeDiagnostics(normative, facts, adapters, diagnostics);
 
   // ── relations ────────────────────────────────────────────────────────────
   const rel = buildRelations(ctx);
@@ -791,6 +824,96 @@ function pushConflictDiagnostics(rawConflicts, diagnostics, facts) {
           ". The contradicted value remains in the graph.",
       });
     }
+  }
+}
+
+// Normative documents, the requirements components declare against them, and
+// which sections nobody has accounted for. Every citation is re-verified
+// against the section's current digest: a requirement or an attestation
+// written against an older wording of the specification is a review that has
+// not happened yet.
+function loadNormative(repo, cfg, sources, overrides) {
+  const errors = [];
+  const out = { errors, sections: [], uncovered: [], requirements: [] };
+  let docs;
+  try {
+    docs = loadNormativeDocuments(repo, cfg);
+  } catch (e) {
+    if (!(e instanceof AgentDocError)) throw e;
+    errors.push(e);
+    return out;
+  }
+  for (const e of sources.entities) {
+    if (e.kind !== "Component") continue;
+    const seen = new Set();
+    for (const r of e.doc.spec.requirements || []) {
+      collect(() => {
+        if (seen.has(r.id) || seen.has(r.key)) {
+          throw new AgentDocError(CODES.CONFIG, "duplicate requirement id or key on " + e.ref + ": " + r.id + " / " + r.key, { path: e.file, ref: e.ref });
+        }
+        seen.add(r.id);
+        seen.add(r.key);
+        verifyCitation(docs, r.source, e.file, e.ref);
+        out.requirements.push({ ...r, subject: e.ref, file: e.file, satisfiedBy: r.satisfiedBy || [] });
+      }, errors);
+    }
+  }
+  // A satisfaction override must answer a requirement someone declared. One
+  // that answers nothing would be an implementation claim with no obligation
+  // behind it, which no report could ever surface.
+  const declared = new Set(out.requirements.map((r) => r.subject + "\u0000" + r.key));
+  for (const o of overrides) {
+    if (o.fact !== "requirement-satisfaction") continue;
+    if (!declared.has(o.subject + "\u0000" + o.key)) {
+      errors.push(new AgentDocError(
+        CODES.CONFIG,
+        "requirement-satisfaction override answers no declared requirement: " + o.subject + " " + o.key,
+        { path: CONFIG_PATH, ref: o.subject }
+      ));
+    }
+  }
+  const cov = normativeCoverage(docs, out.requirements, cfg.normativeCoverage || [], errors);
+  out.sections = cov.sections;
+  out.uncovered = cov.uncovered;
+  return out;
+}
+
+function pushNormativeDiagnostics(normative, facts, adapters, diagnostics) {
+  for (const s of normative.uncovered) {
+    const id = s.path + "#" + s.section;
+    diagnostics.push({
+      severity: "warning",
+      code: CODES.NORMATIVE_UNCOVERED,
+      subject: id,
+      paths: [s.path],
+      refs: [],
+      message:
+        "normative section " + id + " (sha256 " + s.sha256 + ") is routed but not reviewed: " +
+        "declare the requirement it places on a component (spec.requirements), or attest in normativeCoverage " +
+        "that it carries no implementation obligation.",
+    });
+  }
+  const enabled = new Set(adapters.map((a) => a.name));
+  for (const r of normative.requirements) {
+    const group = facts.facts.filter((f) => f.subject === r.subject && f.key === r.key && f.status !== "superseded");
+    if (group.some((f) => !isNormative(f))) continue;
+    const missing = r.satisfiedBy.filter((a) => !enabled.has(a));
+    const why = !r.satisfiedBy.length
+      ? "no adapter is named as able to derive it"
+      : missing.length
+        ? "the adapter able to derive it is not enabled or not available: " + missing.join(", ")
+        : "the enabled adapter (" + r.satisfiedBy.join(", ") + ") derived no evidence for it";
+    diagnostics.push({
+      severity: "warning",
+      code: CODES.REQUIREMENT_UNVERIFIED,
+      subject: r.subject + "#" + r.key,
+      paths: [r.source.path],
+      refs: [r.subject],
+      message:
+        "requirement " + r.key + " = " + r.value + " on " + r.subject + " (from " + r.source.path + "#" + r.source.section +
+        ") has no implementation evidence; " + why + ". Add a requirement-satisfaction reviewed override citing the " +
+        "implementation, or accept the gap with review.",
+    });
   }
 }
 

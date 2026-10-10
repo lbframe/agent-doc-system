@@ -227,7 +227,21 @@ try {
     if (gj !== text) {
       fail([new AgentDocError(CODES.STALE_GRAPH, "compiled graph is not canonically serialized — rebuild the graph")]);
     }
-    console.log("agentdoc check: PASS " + JSON.stringify({ ...res.stats, observationFreshness: fresh.length }));
+    // `--strict` is the migration gate: the graph is current *and* nothing is
+    // left for a human. Every warning is either accepted with pinned evidence
+    // or the gate fails, so a normative section nobody reviewed or a
+    // requirement nothing proves cannot ride along in a green check. Opt-in, so
+    // plain `check` keeps meaning "the committed graph is fresh".
+    if (flags.has("strict")) {
+      const open = (res.diagnostics || []).filter((d) => d.severity === "warning" && !d.acceptance);
+      if (open.length) {
+        fail(
+          open.map((d) => new AgentDocError(d.code, (d.subject ? d.subject + ": " : "") + d.message)),
+          { ...res.stats, strict: true }
+        );
+      }
+    }
+    console.log("agentdoc check: PASS " + JSON.stringify({ ...res.stats, observationFreshness: fresh.length, ...(flags.has("strict") ? { strict: true } : {}) }));
   } else if (cmd === "query") {
     const needle = positional[0];
     if (!needle) { console.error("usage: agentdoc query <repo-path|entity-ref> [--json] [--md] [--budget relations=10,verification=4]"); process.exit(2); }

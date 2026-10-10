@@ -197,7 +197,8 @@ test("NORMATIVE: no authority rule may elect an override over a normative requir
 
   const r = cliFails(dir, ["validate"]);
   assert.ok(r, "an authority rule waived a normative requirement");
-  assert.match(r.stdout + r.stderr, /AGENTDOC_CONFLICT_UNRESOLVED|AGENTDOC_CONFIG/);
+  assert.match(r.stdout + r.stderr, /AGENTDOC_CONFLICT_UNRESOLVED/);
+  assert.match(r.stdout + r.stderr, /no authority rule may settle it/);
 });
 
 test("NORMATIVE: a reviewed proof satisfies the requirement and is re-verified against its evidence", (t) => {
@@ -251,3 +252,38 @@ test("NORMATIVE: a changed normative document makes the committed graph stale", 
   const r = cliFails(dir, ["check"]);
   assert.ok(r, "check did not notice a new normative section");
 });
+
+test("NORMATIVE: an accepted gap passes the strict gate but stays UNRESOLVED in the audit", (t) => {
+  const dir = fixture(t);
+  declareRequirement(dir, audit(dir));
+  attestOtherSections(dir, audit(dir), ALL_OTHER);
+  const cfg = read(dir, "agentdoc/agentdoc.config.yaml").replace(
+    "warningAcceptances: []\n",
+    [
+      "warningAcceptances:",
+      "  - code: AGENTDOC_REQUIREMENT_UNVERIFIED",
+      "    subject: " + PROVISIONING + "#" + REQ_KEY,
+      "    classification: KNOWN_GAP",
+      '    reason: "The verifier runtime is not provisioned yet; tracked as a release blocker."',
+      '    reviewWhen: "Review when the provisioning playbooks change."',
+      "    observedRefs:",
+      "      - " + PROVISIONING,
+      "    evidence:",
+      evidence(dir, ["provisioning/runtime_sandbox/site.yml"]),
+      "",
+    ].join("\n")
+  );
+  write(dir, "agentdoc/agentdoc.config.yaml", cfg);
+  commitAll(dir, "accept the known gap");
+
+  cli(dir, ["compile"]);
+  assert.equal(cliFails(dir, ["check", "--strict"]), null, describe(dir));
+  // Accepting a gap records a decision; it does not make the obligation true.
+  const row = audit(dir).facts.find((f) => f.fact === PROVISIONING + " " + REQ_KEY);
+  assert.equal(row.classification, "UNRESOLVED");
+});
+
+function describe(dir) {
+  const r = cliFails(dir, ["check", "--strict"]);
+  return r ? (r.stderr || r.stdout).slice(0, 800) : "";
+}

@@ -15,7 +15,7 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { AgentDocError, CODES, collect } from "./codes.mjs";
-import { assertRepoPath, expandGlob, sha256Hex } from "./fsx.mjs";
+import { assertGlob, assertRepoPath, expandGlob, sha256Hex } from "./fsx.mjs";
 import { parseYamlDocuments } from "./yaml.mjs";
 import { scanForSecrets } from "./secrets.mjs";
 import { formatErrors } from "./jsonschema.mjs";
@@ -160,10 +160,13 @@ export function loadConfig(repo, bundle) {
     cfg.output.graph, cfg.output.observations,
     ...(cfg.discovery.supplementalRoots || []),
     ...(cfg.discovery.contractRoots || []),
-    ...(cfg.docs ? Object.values(cfg.docs) : []),
+    ...(cfg.docs ? Object.entries(cfg.docs).filter(([k]) => k !== "normative").map(([, v]) => v) : []),
   ].filter(Boolean)) {
     assertRepoPath(p, CONFIG_PATH);
   }
+  // `docs.normative` holds globs, not paths: the only role that names a set of
+  // documents rather than one.
+  for (const g of (cfg.docs && cfg.docs.normative) || []) assertGlob(g, CONFIG_PATH);
   return cfg;
 }
 
