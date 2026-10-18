@@ -93,7 +93,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | `openapi` | `*.openapi.y[a]ml` | operation inventory, deterministic consumers |
 | `protobuf` / `graphql` | contract files | method/type inventory, consumers |
 | `oidc` | discovery-path literals | OIDC client consumers |
-| `github-actions` | `.github/workflows` | component-scoped checks and repository gates |
+| `github-actions` | repository-root `.github/workflows` (not a unit marker; a nested one is ignored, as GitHub ignores it) | component-scoped checks and repository gates |
 | `dockerfile` | `Dockerfile`, `Containerfile` | deployable evidence |
 | `deploy-config` | `fly.toml`, `Procfile`, … | deployable evidence |
 | `wrangler` | `wrangler.toml/json` | bindings, crons, service bindings, trigger targets |

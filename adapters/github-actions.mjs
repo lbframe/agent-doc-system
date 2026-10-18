@@ -12,11 +12,11 @@ export class GitHubActionsAdapter extends Adapter {
   constructor() {
     super({ name: "github-actions", version: "1.0.0", kind: "ci" });
   }
-  detect(ctx, root) {
-    const p = root + "/.github/workflows";
-    if (!ctx.repo.isDir(p)) return null;
-    return { path: p, shape: "importable" };
-  }
+  // No detect(): a workflow directory is not a unit marker. It is not evidence
+  // of an importable or deployable artifact, and a marker path is hashed as a
+  // file for provenance, so a directory marker can only fail. GitHub runs only
+  // the repository-root .github/workflows; a nested one (vendored upstream, a
+  // subtree) is inert and is ignored here too.
   contracts(ctx) {
     const dir = ".github/workflows";
     if (!ctx.repo.isDir(dir)) return [];
