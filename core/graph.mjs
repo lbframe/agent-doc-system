@@ -9,7 +9,7 @@ import { assertDeterministic, structuralProjection } from "./determinism.mjs";
 import { sha256Hex } from "./fsx.mjs";
 
 export const COMPILER_NAME = "agentdoc-compiler";
-export const COMPILER_VERSION = "1.0.0";
+export const COMPILER_VERSION = "1.1.0";
 export const GRAPH_SCHEMA_VERSION = "agentdoc.dev/graph/v1";
 
 // Resolve symbolic provenance subjects to RFC 6901 pointers into the graph.
