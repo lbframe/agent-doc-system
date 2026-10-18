@@ -175,16 +175,17 @@ export class Repo {
     return names;
   }
 
-  git(args) {
+  git(args, { trim = true } = {}) {
     // stderr must be piped, not inherited: every caller treats a non-zero exit
     // as a signal to degrade (unborn HEAD, detached worktree, missing remote),
     // and execFileSync would otherwise print git's own "fatal:" line to the
     // user's terminal while the command reports success.
-    return execFileSync("git", args, {
+    const out = execFileSync("git", args, {
       cwd: this.root,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
-    }).trim();
+    });
+    return trim ? out.trim() : out;
   }
   hasGit() {
     if (this.noGit) return false;
@@ -239,7 +240,12 @@ export class Repo {
     if (this.noGit || !this.hasGit()) return [];
     let raw;
     try {
-      raw = this.git(["status", "--porcelain", "-z", "--untracked-files=all"]);
+      // Untrimmed: a porcelain record is `XY <path>` with fixed columns, and an
+      // unstaged change has X = " ". Trimming would eat that space from the
+      // first record, so `.slice(3)` would drop the path's first character —
+      // ` M .agentdoc/graph.json` became `agentdoc/graph.json`, slipped past
+      // the output exclusion and counted as a dirty input (issue #11).
+      raw = this.git(["status", "--porcelain", "-z", "--untracked-files=all"], { trim: false });
     } catch {
       return [];
     }

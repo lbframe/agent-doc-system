@@ -131,6 +131,17 @@ test("packaging: a catalog nested inside a larger checkout tracks only its own t
   write(outer, "nested/app/new.ts", "export {};\n");
   assert.deepEqual(repo.dirtyPaths(), ["app/new.ts"]);
 
+  // An unstaged modification is a porcelain record with a leading space
+  // (` M <path>`). When it is the first record, the path must survive intact
+  // (issue #11: trimming git's output used to drop its first character).
+  git(outer, ["add", "-A"]);
+  git(outer, ["-c", "core.hooksPath=/dev/null", "commit", "-qm", "more"]);
+  write(outer, "nested/app/package.json", JSON.stringify({ name: "nested-app", edited: true }));
+  assert.deepEqual(repo.dirtyPaths(), ["app/package.json"]);
+  const top = new Repo(outer);
+  assert.deepEqual(top.dirtyPaths(), ["nested/app/package.json"]);
+  git(outer, ["checkout", "--", "."]);
+
   // diffPaths — the input to `agentdoc impact --diff` — is relativized the
   // same way: outer-repo changes are out of scope.
   write(outer, "nested/app/package.json", JSON.stringify({ name: "nested-app", version: "2.0.0" }));

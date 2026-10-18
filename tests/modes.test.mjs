@@ -149,6 +149,54 @@ test("VALIDATE: a dirty source is refused under --require-clean", (t) => {
   assert.match(r.stderr, /DIRTY|FRESHNESS/);
 });
 
+// Issue #11. With the graph committed (the default `init` setup), CI runs
+// validate → compile → check on a clean checkout. compile rewrites
+// `source.commit`, so the graph itself is modified relative to HEAD. The graph
+// is an output, not an input: it must not flip the dirty flag, or a committed
+// graph could never pass the generated workflow.
+function committedGraphFixture(t) {
+  const dir = baseFixture(t, {});
+  write(dir, ".gitignore", "node_modules/\n");
+  cli(dir, ["validate"]);
+  cli(dir, ["compile"]);
+  commitAll(dir, "catalog");
+  assert.equal(git(dir, ["status", "--porcelain"]), "", "fixture must start from a clean tree");
+  return dir;
+}
+
+test("VALIDATE: a committed graph passes validate → compile → check → check --require-clean (#11)", (t) => {
+  const dir = committedGraphFixture(t);
+  // Twice: committing the recompiled graph moves HEAD, and the next CI run
+  // must still pass.
+  for (let round = 0; round < 2; round++) {
+    cli(dir, ["validate"]);
+    cli(dir, ["compile"]);
+    assert.match(git(dir, ["status", "--porcelain"]), /^ M \.agentdoc\/graph\.json$/m,
+      "compile rewrites source.commit, so the committed graph is modified");
+    assert.equal(graphOf(dir).source.dirty, false);
+    assert.equal(cliFails(dir, ["check"]), null);
+    assert.equal(cliFails(dir, ["check", "--require-clean"]), null);
+    commitAll(dir, "recompile " + round);
+  }
+});
+
+test("VALIDATE: with a committed graph, an uncommitted input change still fails --require-clean (#11)", (t) => {
+  const dir = committedGraphFixture(t);
+  cli(dir, ["compile"]);
+  // An unstaged modification of a tracked input: porcelain `XY` is ` M`, the
+  // exact shape the graph had. It must still count.
+  write(dir, "service/CONSTRAINTS.md", "# Constraints\n\n- One rule, edited.\n  - Reason: because.\n  - Checked by: `pnpm test`\n");
+  const stale = cliFails(dir, ["check"]);
+  assert.ok(stale, "an input change after compile must make the graph stale");
+  assert.match(stale.stderr, /AGENTDOC_GRAPH_FRESHNESS/);
+  const out = cli(dir, ["compile"]);
+  assert.match(out, /"dirty":true/);
+  assert.equal(graphOf(dir).source.dirty, true);
+  const r = cliFails(dir, ["check", "--require-clean"]);
+  assert.ok(r, "a dirty input must be refused under --require-clean");
+  assert.match(r.stderr, /AGENTDOC_DIRTY_SOURCE/);
+});
+
 test("VALIDATE: compiling twice produces identical bytes", (t) => {
   const dir = baseFixture(t, {});
   cli(dir, ["compile"]);
