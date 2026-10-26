@@ -71,7 +71,12 @@ AgentDoc turns scattered repository knowledge into task-specific context your co
 
 ## What it understands
 
-AgentDoc reads manifests, contracts and configuration. It never runs your toolchain. Each technology is an opt-in adapter. `agentdoc init` enables the language and deployment adapters whose manifests it finds; you add the others in `agentdoc/agentdoc.config.yaml`.
+AgentDoc reads manifests, contracts and configuration. It never runs your toolchain.
+
+Support comes from adapters and from built-in contract validation (AsyncAPI needs no adapter).
+- `agentdoc init` picks `node`, `go`, `rust`, `python`, `dockerfile` and `wrangler` from the files it finds.
+- It always includes `database`, `openapi`, `events` and `github-actions`.
+- Add the others in `agentdoc/agentdoc.config.yaml`.
 
 | area | supported |
 |---|---|

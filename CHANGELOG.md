@@ -58,9 +58,9 @@ component with no language, no dependency edges and no verification commands.
   `agentdoc scaffold` names crates and distributions from their manifests and
   types them from their artifact shape: `service`, `library`, or `other` when
   neither is proven. A virtual Cargo or uv workspace manifest is not scaffolded.
-- Two new corpora: `fixtures/e-rust-workspace` and `fixtures/f-python-workspace`.
-  Both are compiled and checked in CI and covered by routing evaluations
-  ([#23]).
+- Rust and Python sample repositories (`fixtures/e-rust-workspace`,
+  `fixtures/f-python-workspace`), checked in CI and used to test context
+  routing ([#23]).
 
 ### Changed
 
@@ -82,8 +82,9 @@ component with no language, no dependency edges and no verification commands.
   as a service containing a tool package, a Cargo root package with member
   crates below it, or a uv workspace root with its own `[project]`.
 - An Alembic `alembic/versions` directory was listed as a migration location
-  but never recognised. It now counts as migration evidence, with
-  `alembic.ini` or `[tool.alembic]` as the evidence file.
+  but never recognised. It now counts as migration evidence. The evidence file
+  is a qualifying `alembic.ini` or `[tool.alembic]` configuration when one
+  exists, and otherwise a revision file.
 
 ### Upgrading
 
@@ -95,11 +96,14 @@ component with no language, no dependency edges and no verification commands.
   then run `agentdoc audit`: units that were invisible appear as
   `AGENTDOC_COVERAGE_ZERO` until they have a descriptor.
   `agentdoc scaffold --write` writes those descriptors.
-- If your repository has nested units, the recompiled graph moves facts from
-  the parent component to the nested one it belongs to. Review the graph diff,
-  and any descriptor or document that relied on the parent carrying those facts.
-- A graph that enables neither new adapter, has no nested units and no Alembic
-  migrations is unchanged apart from the compiler version and input hash.
+- If your repository has nested units, recompiling removes facts that were
+  wrongly attributed to an enclosing component. Review the affected facts,
+  dependency edges and verification commands, and any descriptor or document
+  that relied on them.
+- Recompiling always updates the compiler version, source commit and input
+  hash. Review the other derived changes, especially in repositories with
+  nested units, Alembic migrations or Wrangler TOML manifests: a manifest the
+  old TOML reader could not parse now yields facts.
 
 ## [1.1.0] - 2026-10-18
 
