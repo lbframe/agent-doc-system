@@ -9,7 +9,7 @@ its own scenarios against it.
 | `b-go-multi-service` | multi-service Go, protobuf, shared library, resources | contracts that are not HTTP |
 | `c-alt-monorepo` | `backend`/`frontend`/`shared`/`edge`, mixed runtimes, stale docs | the engine must not assume `apps`+`packages`+`workers` |
 | `d-normative-provisioning` | specifications, an Ansible provisioning tree, no adapter for either | a routed specification must not pass for a reviewed one (issue #5) |
-| `e-rust-workspace` | a Cargo workspace: a bin crate, path and workspace deps, an import-only crate, one refused ambiguity | Rust support at the same evidence bar as Go and Node (issue #17) |
+| `e-rust-workspace` | a Cargo workspace: a bin crate, path and workspace deps, a local module that must not become an edge, one refused ambiguity | Rust support at the same evidence bar as Go and Node (issue #17) |
 
 Each is a self-contained cataloged repository: its own
 `agentdoc/agentdoc.config.yaml` and committed graph inputs, tracked in this

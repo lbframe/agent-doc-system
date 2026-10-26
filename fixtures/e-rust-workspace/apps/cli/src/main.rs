@@ -1,9 +1,10 @@
 use engine::Engine;
-use logging::init;
 use foo_bar::Thing;
+
+mod logging;
 
 fn main() {
     let _engine = Engine::start();
-    init();
+    logging::init();
     let _thing = foo_bar::Thing::name();
 }

@@ -2,7 +2,7 @@ apiVersion: agentdoc.dev/v1
 kind: Component
 metadata:
   name: logging
-  description: "Provides the logging entry point the command line calls."
+  description: "Provides a logging entry point for crates that declare the dependency."
 spec:
   type: library
   system: pipeline

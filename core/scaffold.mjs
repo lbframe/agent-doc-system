@@ -16,7 +16,7 @@ import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 import { parse as parseToml } from "./toml.mjs";
-import { isExcludedWorkspaceMember } from "../adapters/rust.mjs";
+import { cargoUnitShape, isExcludedWorkspaceMember, isVirtualWorkspaceManifest } from "../adapters/rust.mjs";
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
@@ -116,7 +116,7 @@ function scanLayout(repo) {
       const parent = () => rel.slice(0, -("/" + e.name).length);
       if (e.name === "package.json") note(parent(), "node");
       if (e.name === "go.mod") note(parent(), "go");
-      if (e.name === "Cargo.toml" && !isExcludedWorkspaceMember(repo, parent())) note(parent(), "rust");
+      if (e.name === "Cargo.toml" && cargoUnitShape(repo, parent()) && !isExcludedWorkspaceMember(repo, parent())) note(parent(), "rust");
       if (e.name === "Dockerfile") note(parent(), "docker");
       if (/^wrangler\.(toml|json|jsonc)$/.test(e.name)) note(parent(), "platform");
       if (e.name === "go.mod") note(rel.slice(0, -"/go.mod".length), "go");
@@ -167,8 +167,22 @@ function discoverUnitNames(repo, cfg, eligible = null) {
     })),
     ...scanLayout(repo).map((u) => ({ root: u.root, kinds: [...u.kinds].sort(), deployable: false, importable: false })),
   ];
-  for (const u of units) {
-    if (u.root === "." || !u.root || seenRoots.has(u.root)) continue;
+  for (const found of units) {
+    if (found.root === "." || !found.root || seenRoots.has(found.root)) continue;
+    if (isVirtualWorkspaceManifest(repo, found.root)) continue;
+    let u = found;
+    if (u.kinds.includes("rust")) {
+      const shape = cargoUnitShape(repo, u.root);
+      if (!shape) continue;
+      // Crate shape, not the technology name: a bin-only crate is deployable
+      // and not importable. Treating every Cargo package as a library makes
+      // validate fail with AGENTDOC_ARTIFACT_TYPE.
+      u = {
+        ...u,
+        deployable: u.deployable || shape === "deployable" || shape === "both",
+        importable: u.importable || shape === "importable" || shape === "both",
+      };
+    }
     seenRoots.add(u.root);
     const name = nameFor(u.root);
     if (seen.has(name)) continue;
@@ -181,7 +195,10 @@ function discoverUnitNames(repo, cfg, eligible = null) {
 
 function componentDescriptor(u) {
   const deployable = u.deployable || u.kinds.some((k) => k === "docker" || k === "platform");
-  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go" || k === "rust");
+  // Rust is not in this list. A crate's type comes from cargoUnitShape above:
+  // deployable-only → service, importable → library, both → service because
+  // deployable is decided first (the rule every other marker already follows).
+  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
   // "library" and "service" both have to be corroborated by artifact evidence
   // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
   // shows neither, so claiming a concrete type would manufacture an error.

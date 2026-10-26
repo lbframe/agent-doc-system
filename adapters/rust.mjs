@@ -1,11 +1,24 @@
 // Rust adapter: Cargo.toml as the unit marker, workspace members as roots,
 // and crate dependencies as build relations. Nothing here runs cargo, reads
-// Cargo.lock, or talks to crates.io. A dependency is a sibling only when a
-// path, a workspace = true entry, or a source import says so.
+// Cargo.lock, or talks to crates.io. A sibling edge comes from a path, a
+// workspace = true entry, or a [patch]/[replace] path that stays inside the
+// repository. A source import can only add provenance to an edge the manifest
+// already resolved: Rust cannot name a crate the manifest does not declare.
+import fs from "node:fs";
 import { Adapter } from "./registry.mjs";
 import { AgentDocError, CODES } from "../core/codes.mjs";
 import { globToRegExp } from "../core/fsx.mjs";
 import { parse } from "../core/toml.mjs";
+import { DEFAULT_NOT_UNIT_ROOTS } from "../core/discover.mjs";
+
+// How far below the repository root a workspace manifest may sit. Deep enough
+// for a polyglot layout (`services/<name>/rust/Cargo.toml`) and bounded so
+// discovery does not walk a repository without a limit.
+const WORKSPACE_MANIFEST_DEPTH = 5;
+// Directory names that are not searched for a workspace manifest. A member
+// glob of a workspace that was found still expands into these names: the skip
+// applies to the search, not to an explicit member list.
+const WORKSPACE_SKIP_DIRS = new Set(["test", "tests", "examples", "example"]);
 
 const SKIP_IDENTS = new Set(["self", "super", "crate"]);
 
@@ -60,6 +73,10 @@ export function hasPackageHeader(text) {
   return /^\s*\[package\]\s*$/m.test(text || "");
 }
 
+export function hasWorkspaceHeader(text) {
+  return /^\s*\[workspace\]\s*$/m.test(text || "");
+}
+
 export function isCargoPackage(parsed) {
   if (!parsed || parsed.missing) return false;
   if (crateNameOf(parsed.doc)) return true;
@@ -81,6 +98,23 @@ export function crateShape(repo, root, parsed) {
   if (deployable) return "deployable";
   if (importable) return "importable";
   return "package";
+}
+
+// null when this directory is not a Cargo package (missing, virtual workspace,
+// or a file that does not parse and has no [package] header). Scaffold uses
+// this so a virtual manifest never becomes a component descriptor.
+export function cargoUnitShape(repo, root) {
+  const parsed = readCargo(repo, manifestPath(root));
+  if (!isCargoPackage(parsed)) return null;
+  return crateShape(repo, root, parsed);
+}
+
+export function isVirtualWorkspaceManifest(repo, root) {
+  const parsed = readCargo(repo, manifestPath(root));
+  if (parsed.missing || isCargoPackage(parsed)) return false;
+  const ws = parsed.doc && parsed.doc.workspace;
+  if (ws && typeof ws === "object" && !Array.isArray(ws)) return true;
+  return hasWorkspaceHeader(parsed.text);
 }
 
 export function findWorkspace(repo, root) {
@@ -169,13 +203,77 @@ function expandMember(repo, workspaceRoot, pattern) {
 
 export function isExcludedWorkspaceMember(repo, dir) {
   if (!dir) return false;
-  const parsed = readCargo(repo, "Cargo.toml");
-  if (!parsed.doc || !parsed.doc.workspace) return false;
+  const ws = findWorkspace(repo, dir);
+  if (!ws || !ws.doc || !ws.doc.workspace || ws.root === dir) return false;
   const excluded = new Set();
-  for (const pat of asStringList(parsed.doc.workspace.exclude)) {
-    for (const d of expandMember(repo, "", pat)) excluded.add(d);
+  for (const pat of asStringList(ws.doc.workspace.exclude)) {
+    for (const d of expandMember(repo, ws.root, pat)) excluded.add(d);
   }
   return excluded.has(dir);
+}
+
+function childDirectoryNames(repo, dir) {
+  let entries;
+  try {
+    entries = fs.readdirSync(repo.abs(dir || "."), { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const generated = repo.generatedDirs || new Set();
+  const names = [];
+  for (const ent of entries) {
+    if (ent.isSymbolicLink() || !ent.isDirectory()) continue;
+    if (!ent.name || ent.name.startsWith(".")) continue;
+    if (generated.has(ent.name) || WORKSPACE_SKIP_DIRS.has(ent.name)) continue;
+    names.push(ent.name);
+  }
+  names.sort();
+  return names;
+}
+
+function notUnitRootsOf(cfg) {
+  const list = cfg && cfg.discovery && cfg.discovery.notUnitRoots;
+  return new Set(Array.isArray(list) ? list : DEFAULT_NOT_UNIT_ROOTS);
+}
+
+function coveredByNotUnit(rel, notUnit) {
+  if (!rel) return false;
+  if (notUnit.has(rel)) return true;
+  for (const n of notUnit) {
+    if (!n || n === ".") continue;
+    if (rel === n || rel.startsWith(n + "/")) return true;
+  }
+  return false;
+}
+
+// Workspace manifests at or below the repository root, shallowest paths first.
+// A file that does not parse is included when it still claims [workspace], so
+// the failure can be reported instead of looking like an empty repository.
+export function workspaceManifests(repo, cfg) {
+  const notUnit = notUnitRootsOf(cfg);
+  const found = [];
+  const walk = (dir, depth) => {
+    if (coveredByNotUnit(dir, notUnit)) return;
+    const rel = dir ? dir + "/Cargo.toml" : "Cargo.toml";
+    if (repo.exists(rel)) {
+      const parsed = readCargo(repo, rel);
+      const ws = parsed.doc && parsed.doc.workspace;
+      const claims = (ws && typeof ws === "object" && !Array.isArray(ws)) || hasWorkspaceHeader(parsed.text);
+      if (claims) found.push({ root: dir, path: rel, doc: parsed.doc, error: parsed.error || null });
+    }
+    if (depth >= WORKSPACE_MANIFEST_DEPTH) return;
+    // Directory names are read here, not through repo.listDir. listDir records
+    // every name, including `.agentdoc`, and the graph file appearing between
+    // two compiles would change the input hash. Generated directories are not
+    // inputs. Each child is still probed for Cargo.toml, so a new manifest
+    // changes the hash.
+    for (const base of childDirectoryNames(repo, dir)) {
+      walk(dir ? dir + "/" + base : base, depth + 1);
+    }
+  };
+  walk("", 0);
+  found.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  return found;
 }
 
 export function memberDirs(repo, workspaceRoot, doc) {
@@ -257,15 +355,76 @@ function entryPath(entry) {
   return typeof entry.path === "string" ? entry.path : null;
 }
 
-function resolveCargoTarget(dep, fromDir, ws, unitsByRoot) {
+function sameCrate(a, b) {
+  return a === b || rustIdent(a) === rustIdent(b);
+}
+
+// [patch.<registry>] and [replace] path redirects. Paths are relative to the
+// manifest that declares them. A URL replace key names no package, so it is
+// not a redirect this reader can apply.
+function redirectEntries(doc) {
+  const out = [];
+  if (!doc) return out;
+  const patch = doc.patch;
+  if (patch && typeof patch === "object" && !Array.isArray(patch)) {
+    for (const registry of Object.keys(patch).sort()) {
+      const table = patch[registry];
+      if (!table || typeof table !== "object" || Array.isArray(table)) continue;
+      for (const name of Object.keys(table).sort()) {
+        const entry = table[name];
+        const path = entryPath(entry);
+        if (!path) continue;
+        const packageName = entry && typeof entry === "object" && !Array.isArray(entry) && typeof entry.package === "string" && entry.package
+          ? entry.package
+          : name;
+        out.push({ packageName, path });
+      }
+    }
+  }
+  const replace = doc.replace;
+  if (replace && typeof replace === "object" && !Array.isArray(replace)) {
+    // The TOML reader splits every dotted key, so "engine:0.1.0" arrives as
+    // nested tables. Join them back before taking the package name.
+    for (const entry of flattenPathEntries(replace)) {
+      const packageName = entry.packageName || replaceKeyPackage(entry.key);
+      if (!packageName || !entry.path) continue;
+      out.push({ packageName, path: entry.path });
+    }
+  }
+  return out;
+}
+
+function flattenPathEntries(table, prefix = "") {
+  const out = [];
+  if (!table || typeof table !== "object" || Array.isArray(table)) return out;
+  for (const key of Object.keys(table).sort()) {
+    const next = prefix ? prefix + "." + key : key;
+    const child = table[key];
+    if (!child || typeof child !== "object" || Array.isArray(child)) continue;
+    if (typeof child.path === "string") {
+      const packageName = typeof child.package === "string" && child.package ? child.package : null;
+      out.push({ key: next, path: child.path, packageName });
+    } else {
+      out.push(...flattenPathEntries(child, next));
+    }
+  }
+  return out;
+}
+
+function replaceKeyPackage(key) {
+  if (typeof key !== "string" || !key || key.includes("://")) return null;
+  const colon = key.indexOf(":");
+  return (colon < 0 ? key : key.slice(0, colon)).trim() || null;
+}
+
+function resolveCargoTarget(dep, fromDir, ws, unitsByRoot, ownDoc) {
   const hits = [];
   if (dep.path) {
     const dir = resolveInside(fromDir, dep.path);
     if (dir == null) return { target: null, ambiguous: false, escaped: true };
     hits.push(lookupUnit(unitsByRoot, dir));
   }
-  if (dep.workspace) {
-    if (!ws) return { target: null, ambiguous: false, escaped: false };
+  if (dep.workspace && ws) {
     const { entries } = workspaceEntry(ws, dep);
     const dirs = [];
     for (const entry of entries) {
@@ -279,7 +438,26 @@ function resolveCargoTarget(dep, fromDir, ws, unitsByRoot) {
     if (unique.length > 1) return { target: null, ambiguous: true, escaped: false };
     if (unique.length === 1) hits.push(lookupUnit(unitsByRoot, unique[0]));
   }
-  const units = [...new Set(hits.filter(Boolean))];
+  const sources = [];
+  if (ownDoc) sources.push({ doc: ownDoc, base: fromDir });
+  if (ws && ws.doc && ws.doc !== ownDoc) sources.push({ doc: ws.doc, base: ws.root });
+  for (const src of sources) {
+    for (const redir of redirectEntries(src.doc)) {
+      if (!sameCrate(redir.packageName, dep.packageName)) continue;
+      const dir = resolveInside(src.base, redir.path);
+      // A redirect that leaves the repository is not a sibling. It does not
+      // erase a path that already resolved inside the repo.
+      if (dir == null) continue;
+      hits.push(lookupUnit(unitsByRoot, dir));
+    }
+  }
+  const units = [];
+  const seen = new Set();
+  for (const u of hits) {
+    if (!u || seen.has(u)) continue;
+    seen.add(u);
+    units.push(u);
+  }
   if (units.length > 1) return { target: null, ambiguous: true, escaped: false };
   return { target: units[0] || null, ambiguous: false, escaped: false };
 }
@@ -296,7 +474,7 @@ export function analyzeCargoDeps(unit, unitsByRoot) {
       seen.add(dep.packageName);
       prod.push(dep.packageName);
     }
-    const hit = resolveCargoTarget(dep, fromDir, unit.cargoWorkspace, unitsByRoot);
+    const hit = resolveCargoTarget(dep, fromDir, unit.cargoWorkspace, unitsByRoot, doc);
     resolved.push({ dep, kind, ...hit });
   };
   for (const dep of depsOf(doc, "dependencies")) consider(dep, "build");
@@ -333,24 +511,33 @@ function shellCrate(name) {
 export class RustAdapter extends Adapter {
   static adapterName = "rust";
   constructor() {
-    super({ name: "rust", version: "1.0.0", kind: "unit-marker" });
+    super({ name: "rust", version: "1.0.1", kind: "unit-marker" });
   }
 
   roots(ctx) {
-    const parsed = readCargo(ctx.repo, "Cargo.toml");
-    if (!parsed.doc || !parsed.doc.workspace) return [];
+    const notUnit = notUnitRootsOf(ctx.cfg);
     const out = [];
-    for (const dir of memberDirs(ctx.repo, "", parsed.doc)) {
-      const manifest = readCargo(ctx.repo, dir + "/Cargo.toml");
-      if (!isCargoPackage(manifest)) continue;
+    const seen = new Set();
+    const consider = (dir) => {
+      if (dir == null || seen.has(dir) || coveredByNotUnit(dir, notUnit)) return;
+      const manifest = readCargo(ctx.repo, manifestPath(dir));
+      if (!isCargoPackage(manifest)) return;
+      seen.add(dir);
       const shape = crateShape(ctx.repo, dir, manifest);
       out.push({
         root: dir,
         deployable: shape === "deployable" || shape === "both",
         importable: shape === "importable" || shape === "both",
       });
+    };
+    for (const ws of workspaceManifests(ctx.repo, ctx.cfg)) {
+      if (!ws.doc) continue;
+      // A workspace root that also has [package] is a member of itself.
+      // A virtual manifest has no package and is not a unit.
+      consider(ws.root);
+      for (const dir of memberDirs(ctx.repo, ws.root, ws.doc)) consider(dir);
     }
-    return out;
+    return out.sort((a, b) => (a.root < b.root ? -1 : a.root > b.root ? 1 : 0));
   }
 
   detect(ctx, root) {
@@ -471,7 +658,13 @@ export class RustAdapter extends Adapter {
         );
         continue;
       }
-      const matches = unitsMatchingIdent(ctx.discovery.eligible || [], ident).filter((u) => u.component.ref !== compRef);
+      // No manifest edge. An import of one sibling is not a dependency: a
+      // local module (`mod engine; engine::run()`) and an undeclared crate
+      // look the same, and Rust will not link a crate the manifest omitted.
+      // Two sibling crates sharing the ident is still a refusal — electing
+      // either one would be an assertion — and it creates no edge.
+      if (hits.some((h) => h.ambiguous)) continue;
+      const matches = unitsMatchingIdent(ctx.discovery.eligible || [], ident).filter((u) => u.component && u.component.ref !== compRef);
       if (matches.length > 1) {
         noteAmbiguity(
           ctx,
@@ -479,18 +672,6 @@ export class RustAdapter extends Adapter {
           "crate import '" + ident + "' matches " + matches.length + " crates (" + matches.map((u) => u.crateName).join(", ") + "); no dependency edge was created",
           [...files, ...matches.map((u) => manifestPath(u.root))],
           [compRef, ...matches.map((u) => u.component.ref)]
-        );
-        continue;
-      }
-      if (matches.length === 1) {
-        const provs = files.map((f) => prov.add("observed", f, "cargo-import-extractor", ["rel:pending"]));
-        ctx.addEdge(
-          "buildDependsOn",
-          compRef,
-          matches[0].component.ref,
-          { via: "source-import", package: matches[0].crateName },
-          provs.length ? provs : [pr],
-          "DERIVED"
         );
       }
     }
@@ -541,14 +722,17 @@ export class RustAdapter extends Adapter {
         refs: [...rec.refs].sort(),
       });
     }
-    const rootUnit = (ctx.discovery.eligible || []).find((u) => !u.root || u.root === ".");
-    const root = readCargo(ctx.repo, "Cargo.toml");
-    if (root.error && !rootUnit) {
+    const reported = new Set();
+    for (const ws of workspaceManifests(ctx.repo, ctx.cfg)) {
+      if (!ws.error || reported.has(ws.path)) continue;
+      const unit = (ctx.discovery.eligible || []).find((u) => manifestPath(u.root) === ws.path && u.cargoPackage);
+      if (unit) continue;
+      reported.add(ws.path);
       ctx.diagnostics.push({
         severity: "warning",
-        code: root.error.code || "AGENTDOC_YAML_PARSE",
-        message: "workspace Cargo.toml could not be parsed; workspace members were not derived from it: " + root.error.message,
-        paths: ["Cargo.toml"],
+        code: ws.error.code || "AGENTDOC_YAML_PARSE",
+        message: "workspace Cargo.toml could not be parsed; workspace members were not derived from it: " + ws.error.message,
+        paths: [ws.path],
         refs: [],
       });
     }
@@ -654,16 +838,39 @@ function extractRustIdents(src) {
   return out;
 }
 
+function isIdentChar(c) {
+  return typeof c === "string" && /[A-Za-z0-9_]/.test(c);
+}
+
 function skipNoise(src, i) {
   if (src[i] === "/" && src[i + 1] === "/") {
     const j = src.indexOf("\n", i);
     return j < 0 ? src.length : j;
   }
   if (src[i] === "/" && src[i + 1] === "*") return skipBlockComment(src, i);
-  if (src[i] === "b" && (src[i + 1] === '"' || src[i + 1] === "'")) return skipQuoted(src, i + 1);
-  if (src[i] === "b" && src[i + 1] === "r" && rawStringEnd(src, i + 1) > i + 1) return rawStringEnd(src, i + 1);
-  if (src[i] === "r" && rawStringEnd(src, i) > i) return rawStringEnd(src, i);
-  if (src[i] === '"' || src[i] === "'") return skipQuoted(src, i);
+  // A string prefix is a token of its own. `crab"…"` is an ident plus a
+  // string, not a byte string.
+  if (!isIdentChar(src[i - 1])) {
+    const prefixed = prefixedLiteralEnd(src, i);
+    if (prefixed > i) return prefixed;
+  }
+  if (src[i] === '"') return skipQuoted(src, i);
+  if (src[i] === "'") return skipCharOrLifetime(src, i);
+  return i;
+}
+
+function prefixedLiteralEnd(src, i) {
+  let j = i;
+  if (src[j] === "b" || src[j] === "c") j++;
+  if (src[j] === "r") {
+    const end = rawStringEnd(src, j);
+    return end > j ? end : i;
+  }
+  if (j !== i && src[j] === '"') return skipQuoted(src, j);
+  if (j !== i && src[i] === "b" && src[j] === "'") {
+    const end = charLiteralEnd(src, j);
+    return end > j ? end : i;
+  }
   return i;
 }
 
@@ -702,17 +909,79 @@ function rawStringEnd(src, i) {
   return at < 0 ? src.length : at + close.length;
 }
 
+// A `"` string may contain newlines. Stopping at the newline would treat the
+// rest of the line as code, so `fake_crate::thing` inside the string became
+// an import. A `'` is not this kind of string: it is a char literal or a
+// lifetime, and a lifetime must not mask the rest of the file.
 function skipQuoted(src, i) {
   const q = src[i];
+  if (q !== '"') return i;
   let j = i + 1;
   while (j < src.length) {
     if (src[j] === "\\") {
-      j += 2;
+      j += j + 1 < src.length ? 2 : 1;
       continue;
     }
     if (src[j] === q) return j + 1;
-    if (q === '"' && src[j] === "\n") return j;
     j++;
   }
   return src.length;
+}
+
+function skipCharOrLifetime(src, i) {
+  const end = charLiteralEnd(src, i);
+  if (end > i) return end;
+  return skipLifetime(src, i);
+}
+
+// 'x' / '\n' / '\u{1F600}' / '\''. Anything else that starts with ' is not a
+// char, and must not be scanned for a closing quote.
+function charLiteralEnd(src, i) {
+  if (src[i] !== "'") return i;
+  const n = src[i + 1];
+  if (n === undefined || n === "'" || n === "\n" || n === "\r") return i;
+  let j;
+  if (n === "\\") {
+    j = escapeEnd(src, i + 1);
+    if (j <= i + 1) return i;
+  } else {
+    const cp = src.codePointAt(i + 1);
+    j = i + 1 + (cp > 0xffff ? 2 : 1);
+  }
+  return src[j] === "'" ? j + 1 : i;
+}
+
+function escapeEnd(src, i) {
+  if (src[i] !== "\\") return i;
+  const n = src[i + 1];
+  if (n === undefined) return i;
+  if (n === "u") {
+    if (src[i + 2] !== "{") return i;
+    let j = i + 3;
+    let hex = 0;
+    while (j < src.length && hex < 6 && /[0-9a-fA-F]/.test(src[j])) {
+      j++;
+      hex++;
+    }
+    if (hex === 0 || src[j] !== "}") return i;
+    return j + 1;
+  }
+  if (n === "x") {
+    if (!/[0-9a-fA-F]/.test(src[i + 2] || "") || !/[0-9a-fA-F]/.test(src[i + 3] || "")) return i;
+    return i + 4;
+  }
+  if ("nrt\\0'\"".includes(n) || n === "\n") return i + 2;
+  return i;
+}
+
+// 'a, 'static, '_. The quote is consumed so it cannot open a false string.
+function skipLifetime(src, i) {
+  if (src[i] !== "'") return i;
+  const n = src[i + 1];
+  if (n === "_" || (typeof n === "string" && /[A-Za-z]/.test(n))) {
+    let j = i + 2;
+    while (j < src.length && isIdentChar(src[j])) j++;
+    return j;
+  }
+  return i + 1;
 }

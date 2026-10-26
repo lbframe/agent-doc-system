@@ -12,6 +12,7 @@ import { SYSTEM_ROOT, write, git, commitAll, cli, read } from "./helpers.mjs";
 import { compile } from "../core/compile.mjs";
 import { impact } from "../core/impact.mjs";
 import { queryContext } from "../core/query.mjs";
+import { rustIdentsInSource } from "../adapters/rust.mjs";
 
 const FIXTURE = path.join(SYSTEM_ROOT, "fixtures", "e-rust-workspace");
 
@@ -52,10 +53,8 @@ test("RUST: workspace fixture derives crate edges, commands, and refuses the amb
   assert.ok(engineEdge, "workspace = true dependency missing");
   assert.deepEqual(engineEdge.attributes.via, ["cargo-manifest", "source-import"]);
   assert.equal(engineEdge.attributes.package, "engine");
-  const loggingEdge = edge(graph, "buildDependsOn", cliRef, "component:default/logging");
-  assert.ok(loggingEdge, "import-only sibling missing");
-  assert.deepEqual(loggingEdge.attributes.via, ["source-import"]);
-  assert.equal(loggingEdge.attributes.package, "logging");
+  assert.equal(edge(graph, "buildDependsOn", cliRef, "component:default/logging"), undefined, "local module became a crate edge");
+  assert.equal(edge(graph, "testDependsOn", cliRef, "component:default/logging"), undefined, "local module became a crate edge");
   const devEdge = edge(graph, "testDependsOn", cliRef, "component:default/testutil");
   assert.ok(devEdge, "dev-dependency missing");
   assert.deepEqual(devEdge.attributes.via, ["cargo-manifest"]);
@@ -182,7 +181,7 @@ test("RUST: validate, compile, and check pass on the fixture", (t) => {
   assert.ok(impacted.affectedComponents.some((c) => c.ref === "component:default/engine"));
 });
 
-function catalog(t, files, { adapters = ["rust"], extra = "" } = {}) {
+function catalog(t, files, { adapters = ["rust"], extra = "", globs = null } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), "agentdoc-rust-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   git(dir, ["init", "-q", "-b", "main"]);
@@ -199,8 +198,7 @@ function catalog(t, files, { adapters = ["rust"], extra = "" } = {}) {
     "discovery:",
     "  componentDescriptorName: agentdoc.yaml",
     "  componentDescriptors:",
-    '    - "crates/**/agentdoc.yaml"',
-    '    - "apps/**/agentdoc.yaml"',
+    ...(globs || ['"crates/**/agentdoc.yaml"', '"apps/**/agentdoc.yaml"']).map((g) => "    - " + g),
     "  centralDescriptors:",
     "    - agentdoc/domains.yaml",
     "    - agentdoc/systems.yaml",
@@ -307,22 +305,158 @@ test("RUST: path, rename, workspace, target cfg, and build-dependencies share on
   assert.equal(res.graph.relations.filter((r) => r.type === "buildDependsOn" && r.sourceRef === "component:default/app" && r.targetRef === "component:default/logging").length, 1);
 });
 
-test("RUST: extern crate and a bare path import a sibling that the manifest does not name", (t) => {
+test("RUST: a local module is not a dependency on a sibling crate", (t) => {
   const dir = catalog(t, {
     "Cargo.toml": '[workspace]\nmembers = ["crates/*"]\n',
-    "crates/logging/Cargo.toml": '[package]\nname = "logging"\nversion = "0.1.0"\n',
-    "crates/logging/src/lib.rs": "pub fn init() {}\n",
-    "crates/logging/agentdoc.yaml": LIB("logging", "Provides the logging entry point."),
+    "crates/engine/Cargo.toml": '[package]\nname = "engine"\nversion = "0.1.0"\n',
+    "crates/engine/src/lib.rs": "pub fn run() {}\n",
+    "crates/engine/agentdoc.yaml": LIB("engine", "Provides the engine entry point."),
     "crates/app/Cargo.toml": '[package]\nname = "app"\nversion = "0.1.0"\n',
-    "crates/app/src/lib.rs": "extern crate logging;\npub fn boot() { logging::init(); }\n",
-    "crates/app/agentdoc.yaml": LIB("app", "Imports logging without a manifest dependency."),
+    "crates/app/src/engine.rs": "pub fn run() {}\n",
+    "crates/app/src/main.rs": "mod engine;\nfn main() { engine::run(); }\n",
+    "crates/app/agentdoc.yaml": [
+      "apiVersion: agentdoc.dev/v1",
+      "kind: Component",
+      "metadata:",
+      "  name: app",
+      '  description: "Calls a local module that shares a sibling crate name."',
+      "spec:",
+      "  type: service",
+      "  system: pipeline",
+      "",
+    ].join("\n"),
   });
   const res = compile(dir);
   assert.equal(res.errors.length, 0, res.errors.map((e) => (e.format ? e.format() : e.message)).join("\n"));
-  const rel = edge(res.graph, "buildDependsOn", "component:default/app", "component:default/logging");
-  assert.ok(rel);
-  assert.deepEqual(rel.attributes.via, ["source-import"]);
-  assert.equal(rel.attributes.package, "logging");
+  assert.equal(edge(res.graph, "buildDependsOn", "component:default/app", "component:default/engine"), undefined);
+  assert.equal(edge(res.graph, "testDependsOn", "component:default/app", "component:default/engine"), undefined);
+  assert.equal(res.graph.relations.filter((r) => r.type === "buildDependsOn" || r.type === "testDependsOn").length, 0);
+});
+
+test("RUST: patch and replace paths redirect a declared dependency inside the repository", (t) => {
+  const dir = catalog(t, {
+    "Cargo.toml": [
+      "[workspace]",
+      'members = ["crates/*"]',
+      "[patch.crates-io]",
+      'logging = { path = "crates/logging" }',
+      "",
+    ].join("\n"),
+    "crates/logging/Cargo.toml": '[package]\nname = "logging"\nversion = "0.1.0"\n',
+    "crates/logging/src/lib.rs": "pub fn init() {}\n",
+    "crates/logging/agentdoc.yaml": LIB("logging", "Provides the logging entry point."),
+    "crates/engine/Cargo.toml": '[package]\nname = "engine"\nversion = "0.1.0"\n',
+    "crates/engine/src/lib.rs": "pub fn run() {}\n",
+    "crates/engine/agentdoc.yaml": LIB("engine", "Provides the engine entry point."),
+    "crates/app/Cargo.toml": [
+      "[package]",
+      'name = "app"',
+      'version = "0.1.0"',
+      "[dependencies]",
+      'logging = "0.1.0"',
+      'engine = "0.1.0"',
+      'outside = "1.0.0"',
+      "[replace]",
+      '"engine:0.1.0" = { path = "../engine" }',
+      "[patch.crates-io]",
+      'outside = { path = "../../../outside" }',
+      "",
+    ].join("\n"),
+    "crates/app/src/lib.rs": "pub fn boot() { logging::init(); engine::run(); }\n",
+    "crates/app/agentdoc.yaml": LIB("app", "Depends on siblings through patch and replace."),
+    "crates/clash/Cargo.toml": [
+      "[package]",
+      'name = "clash"',
+      'version = "0.1.0"',
+      "[dependencies]",
+      'logging = { path = "../logging" }',
+      "[patch.crates-io]",
+      'logging = { path = "../engine" }',
+      "",
+    ].join("\n"),
+    "crates/clash/src/lib.rs": "pub fn boot() {}\n",
+    "crates/clash/agentdoc.yaml": LIB("clash", "Points one dependency at two different crates."),
+  });
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => (e.format ? e.format() : e.message)).join("\n"));
+  const logging = edge(res.graph, "buildDependsOn", "component:default/app", "component:default/logging");
+  assert.ok(logging, "patch path missing");
+  assert.deepEqual(logging.attributes.via, ["cargo-manifest", "source-import"]);
+  const engine = edge(res.graph, "buildDependsOn", "component:default/app", "component:default/engine");
+  assert.ok(engine, "replace path missing");
+  assert.equal(engine.attributes.package, "engine");
+  assert.equal(res.graph.relations.some((r) => r.type === "buildDependsOn" && String(r.attributes.package || "").includes("outside")), false);
+  assert.equal(edge(res.graph, "buildDependsOn", "component:default/clash", "component:default/logging"), undefined);
+  assert.equal(edge(res.graph, "buildDependsOn", "component:default/clash", "component:default/engine"), undefined);
+  assert.ok(res.diagnostics.some((d) => d.code === "AGENTDOC_BINDING_AMBIGUOUS" && /clash|logging/.test(d.message)));
+});
+
+test("RUST: a workspace below the repository root is discovered, and a virtual manifest is not a unit", (t) => {
+  const dir = catalog(t, {
+    "pyproject.toml": "[project]\nname = \"poly\"\nversion = \"0.1.0\"\n",
+    "rust/Cargo.toml": [
+      "[workspace]",
+      'members = ["crates/*"]',
+      "[workspace.dependencies]",
+      'engine = { path = "crates/engine", version = "0.1.0" }',
+      "",
+    ].join("\n"),
+    "rust/crates/engine/Cargo.toml": '[package]\nname = "engine"\nversion = "0.1.0"\n',
+    "rust/crates/engine/src/lib.rs": "pub fn start() {}\n",
+    "rust/crates/engine/agentdoc.yaml": LIB("engine", "Provides the engine the nested workspace builds."),
+    "rust/crates/app/Cargo.toml": '[package]\nname = "app"\nversion = "0.1.0"\n\n[dependencies]\nengine = { workspace = true }\n',
+    "rust/crates/app/src/main.rs": "fn main() { engine::start(); }\n",
+    "rust/crates/app/agentdoc.yaml": [
+      "apiVersion: agentdoc.dev/v1",
+      "kind: Component",
+      "metadata:",
+      "  name: app",
+      '  description: "Runs the nested workspace binary."',
+      "spec:",
+      "  type: service",
+      "  system: pipeline",
+      "",
+    ].join("\n"),
+    "docs/Cargo.toml": '[workspace]\nmembers = ["hidden"]\n',
+    "docs/hidden/Cargo.toml": '[package]\nname = "hidden"\nversion = "0.1.0"\n',
+    "docs/hidden/src/lib.rs": "pub fn hidden() {}\n",
+    "examples/Cargo.toml": '[workspace]\nmembers = ["demo"]\n',
+    "examples/demo/Cargo.toml": '[package]\nname = "demo"\nversion = "0.1.0"\n',
+    "examples/demo/src/lib.rs": "pub fn demo() {}\n",
+  }, { globs: ['"rust/**/agentdoc.yaml"'] });
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => (e.format ? e.format() : e.message)).join("\n"));
+  const names = res.graph.entities.filter((e) => e.kind === "Component").map((e) => e.name).sort();
+  assert.deepEqual(names, ["app", "engine"]);
+  assert.equal(res.discovery.eligible.some((u) => u.root === "rust" || u.root === "docs" || u.root === "docs/hidden" || u.root === "examples" || u.root === "examples/demo"), false);
+  const rel = edge(res.graph, "buildDependsOn", "component:default/app", "component:default/engine");
+  assert.ok(rel, "workspace = true did not resolve against the nested workspace");
+  assert.deepEqual(rel.attributes.via, ["cargo-manifest", "source-import"]);
+});
+
+test("RUST: a nested workspace that also has a package is a unit", (t) => {
+  const dir = catalog(t, {
+    "rust/Cargo.toml": [
+      "[package]",
+      'name = "rustpkg"',
+      'version = "0.1.0"',
+      "[workspace]",
+      'members = ["crates/*"]',
+      "",
+    ].join("\n"),
+    "rust/src/lib.rs": "pub fn root() {}\n",
+    "rust/agentdoc.yaml": LIB("rustpkg", "Is the package at the nested workspace root."),
+    "rust/crates/engine/Cargo.toml": '[package]\nname = "engine"\nversion = "0.1.0"\n',
+    "rust/crates/engine/src/lib.rs": "pub fn start() {}\n",
+    "rust/crates/engine/agentdoc.yaml": LIB("engine", "Is a member of the nested workspace."),
+  }, { globs: ['"rust/**/agentdoc.yaml"'] });
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => (e.format ? e.format() : e.message)).join("\n"));
+  assert.deepEqual(
+    res.graph.entities.filter((e) => e.kind === "Component").map((e) => e.name).sort(),
+    ["engine", "rustpkg"]
+  );
+  assert.equal(component(res.graph, "rustpkg").derived.crateName, "rustpkg");
 });
 
 test("RUST: a path that leaves the repository and a missing workspace entry create no edge", (t) => {
@@ -480,6 +614,80 @@ test("RUST: a workspace Cargo.toml that does not parse is a diagnostic, not a cr
   assert.equal(res.errors.length, 0, res.errors.map((e) => (e.format ? e.format() : e.message)).join("\n"));
   assert.ok(component(res.graph, "app"));
   assert.ok(res.diagnostics.some((d) => d.code === "AGENTDOC_YAML_PARSE" && (d.paths || []).includes("Cargo.toml")));
+});
+
+test("RUST: lifetimes and multi-line strings do not change which idents are code", () => {
+  const lifetime = rustIdentsInSource("fn f<'a>(s: &'a str) -> &'a str { s }\nuse engine::run;\n");
+  assert.ok(lifetime.has("engine"), [...lifetime].join(","));
+  assert.equal(lifetime.has("a"), false);
+
+  const spanned = rustIdentsInSource('let s = "line one\nfake_crate::thing";\nuse engine::run;\n');
+  assert.ok(spanned.has("engine"), [...spanned].join(","));
+  assert.equal(spanned.has("fake_crate"), false);
+
+  const chars = rustIdentsInSource("fn f() { let c = 'x'; let n = '\\n'; let u = '\\u{1F600}'; let q = '\\''; let b = b'z'; }\nextern crate engine;\n");
+  assert.ok(chars.has("engine"), [...chars].join(","));
+  assert.equal(chars.has("n"), false);
+  assert.equal(chars.has("u"), false);
+
+  const lifetimeThenString = rustIdentsInSource("pub fn bucket() -> &'static str { \"fake_crate::thing\" }\nuse engine::run;\n");
+  assert.ok(lifetimeThenString.has("engine"));
+  assert.equal(lifetimeThenString.has("fake_crate"), false);
+  assert.equal(lifetimeThenString.has("static"), false);
+});
+
+test("RUST: scaffold types a bin-only crate as a service and skips a virtual manifest", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "agentdoc-rust-shape-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  write(dir, "pyproject.toml", "[project]\nname = \"poly\"\nversion = \"0.1.0\"\n");
+  write(dir, "rust/Cargo.toml", '[workspace]\nmembers = ["crates/*", "tools/*"]\n');
+  write(dir, "rust/crates/engine/Cargo.toml", '[package]\nname = "engine"\nversion = "0.1.0"\n');
+  write(dir, "rust/crates/engine/src/lib.rs", "pub fn start() {}\n");
+  write(dir, "rust/tools/mycli/Cargo.toml", '[package]\nname = "mycli"\nversion = "0.1.0"\n');
+  write(dir, "rust/tools/mycli/src/main.rs", "fn main() {}\n");
+  write(dir, "rust/crates/both/Cargo.toml", '[package]\nname = "both"\nversion = "0.1.0"\n\n[lib]\npath = "src/lib.rs"\n\n[[bin]]\nname = "both"\npath = "src/main.rs"\n');
+  write(dir, "rust/crates/both/src/lib.rs", "pub fn lib() {}\n");
+  write(dir, "rust/crates/both/src/main.rs", "fn main() {}\n");
+  write(dir, "agentdoc/domains.yaml", 'apiVersion: agentdoc.dev/v1\nkind: Domain\nmetadata:\n  name: workspace\n  description: "Groups the crates under test."\nspec: {}\n');
+  write(dir, "agentdoc/systems.yaml", 'apiVersion: agentdoc.dev/v1\nkind: System\nmetadata:\n  name: pipeline\n  description: "Holds the crates under test."\nspec:\n  domain: workspace\n');
+  write(dir, "agentdoc/apis.yaml", "# none\n");
+  write(dir, "agentdoc/resources.yaml", "# none\n");
+  write(dir, "agentdoc/journeys.yaml", "schemaVersion: agentdoc.dev/journeys/v1\njourneys: []\n");
+  write(dir, "agentdoc/agentdoc.config.yaml", [
+    "apiVersion: agentdoc.dev/config/v1",
+    "namespace: default",
+    "discovery:",
+    "  componentDescriptorName: agentdoc.yaml",
+    "  componentDescriptors:",
+    '    - "rust/**/agentdoc.yaml"',
+    "  centralDescriptors:",
+    "    - agentdoc/domains.yaml",
+    "    - agentdoc/systems.yaml",
+    "    - agentdoc/apis.yaml",
+    "    - agentdoc/resources.yaml",
+    "  journeyDefinitions: agentdoc/journeys.yaml",
+    "adapters:",
+    "  - rust",
+    "authority:",
+    "  rules: []",
+    "output:",
+    "  graph: .agentdoc/graph.json",
+    "  observations: agentdoc/observations",
+    "",
+  ].join("\n"));
+  const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  assert.ok(res.written.includes("rust/tools/mycli/agentdoc.yaml"), res.written.join(","));
+  assert.ok(res.written.includes("rust/crates/engine/agentdoc.yaml"), res.written.join(","));
+  assert.ok(res.written.includes("rust/crates/both/agentdoc.yaml"), res.written.join(","));
+  assert.ok(!res.written.includes("rust/agentdoc.yaml"), res.written.join(","));
+  assert.match(read(dir, "rust/tools/mycli/agentdoc.yaml"), /type: service/);
+  assert.match(read(dir, "rust/crates/engine/agentdoc.yaml"), /type: library/);
+  assert.match(read(dir, "rust/crates/both/agentdoc.yaml"), /type: service/);
+  for (const rel of ["rust/tools/mycli/agentdoc.yaml", "rust/crates/engine/agentdoc.yaml", "rust/crates/both/agentdoc.yaml"]) {
+    const text = read(dir, rel).replace("  # system: <system-name>", "  system: pipeline");
+    write(dir, rel, text);
+  }
+  assert.match(cli(dir, ["validate"]), /agentdoc validate: PASS/);
 });
 
 test("RUST: dev-dependency source in tests/ does not become a production edge", (t) => {
