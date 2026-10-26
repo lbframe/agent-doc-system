@@ -132,7 +132,7 @@ function isYaml(f) {
 
 function playbooks(repo, root) {
   const out = [];
-  for (const f of repo.walk(root)) {
+  for (const f of repo.walkUnit(root)) {
     if (!isYaml(f) || /(^|\/)(tasks|handlers|vars|defaults|meta|group_vars|host_vars|templates|files)\//.test(f.slice(root.length))) continue;
     const docs = parse(repo, f);
     if (!docs) continue;

@@ -24,7 +24,7 @@ export class ObjectStoreAdapter extends Adapter {
     const usesStore = ctx.unitImports && [...ctx.unitImports.keys()].some((k) => /s3|minio|storage|blob/i.test(k));
     const bindings = [];
     const claimed = new Set();
-    for (const f of repo.walk(unit.root)) {
+    for (const f of repo.walkUnit(unit.root)) {
       if (!SRC_EXT.test(f)) continue;
       if (TEST_PATH.test(f) || TEST_FILE.test(f)) continue;
       const text = repo.readText(f);

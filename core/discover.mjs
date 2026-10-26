@@ -82,7 +82,28 @@ export function discoverUnits(repo, cfg, adapters) {
 
   const list = [...units.values()].sort((a, b) => (a.root < b.root ? -1 : 1));
   const eligible = list.filter((u) => u.deployable || u.importable || u.explicit || u.present);
-  return { units: list, eligible };
+  // Only eligible units create ownership boundaries. Record immediate children
+  // once; pruning one of them also prunes every deeper descendant. Normalise
+  // the repository root so descriptor roots (".") and workspace roots agree.
+  const nestedRoots = new Map(eligible.map((u) => [unitRoot(u.root), new Set()]));
+  for (const root of nestedRoots.keys()) {
+    if (!root) continue;
+    let parent = unitRoot(path.posix.dirname(root));
+    while (true) {
+      if (nestedRoots.has(parent)) {
+        nestedRoots.get(parent).add(root);
+        break;
+      }
+      if (!parent) break;
+      parent = unitRoot(path.posix.dirname(parent));
+    }
+  }
+  return { units: list, eligible, nestedRoots };
+}
+
+function unitRoot(root) {
+  const normalized = path.posix.normalize(root || ".");
+  return normalized === "." ? "" : normalized;
 }
 
 function markerShape(marker) {

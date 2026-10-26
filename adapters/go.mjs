@@ -61,7 +61,7 @@ export class GoAdapter extends Adapter {
       }
     }
 
-    const hasTests = repo.walk(unit.root).some((f) => /_test\.go$/.test(f));
+    const hasTests = repo.walkUnit(unit.root).some((f) => /_test\.go$/.test(f));
     ctx.addVerification({
       id: compRef + ":go-test",
       componentRefs: [compRef],

@@ -132,11 +132,6 @@ export function compile(root, opts = {}) {
   for (const api of sources.entities.filter((e) => e.kind === "API")) {
     collect(() => validateContractFile(repo, bundle, api), res.errors);
   }
-  res.errors.push(...validateOidcProviders({ repo, sources, discovery: null }));
-
-  if (res.errors.length) {
-    return earlyOut(res, { entities: sources.entities.length });
-  }
 
   let adapters;
   try {
@@ -149,16 +144,22 @@ export function compile(root, opts = {}) {
     throw e;
   }
   const discovery = discoverUnits(repo, cfg, adapters);
+  repo.nestedUnitRoots = discovery.nestedRoots;
   // Eligibility is the compiler's own answer to "which directories are units" —
   // exposed on the result so scaffold can write descriptors for exactly these
   // roots rather than re-deriving them from filesystem markers.
   res.discovery = discovery;
+
+  // A provider descriptor sits at its unit root. Check its source only after
+  // ownership is known, while still reporting this error alongside other
+  // descriptor/contract errors rather than hiding it behind an early return.
+  res.errors.push(...validateOidcProviders({ repo, sources, discovery }));
+  if (res.errors.length) {
+    return earlyOut(res, { entities: sources.entities.length });
+  }
+
   const match = matchComponents(discovery.eligible, sources.entities.filter((e) => e.kind === "Component"));
   res.errors.push(...match.errors);
-
-  // OIDC discovery must be exposed by the provider's own source. Re-check now
-  // that component -> unit bindings are known.
-  res.errors.push(...validateOidcProviders({ repo, sources, discovery }));
 
   if (res.errors.length) {
     return earlyOut(res, { entities: sources.entities.length, units: discovery.eligible.length });
@@ -1124,7 +1125,7 @@ function validateOidcProviders({ repo, sources, discovery }) {
     const roots = unit ? [unit.root] : [dirOf(provider.file)];
     let found = false;
     for (const root of roots) {
-      for (const f of repo.walk(root)) {
+      for (const f of repo.walkUnit(root)) {
         if (!/\.(ts|tsx|js|mjs|jsx|py|go|rb|java|kt|rs)$/.test(f)) continue;
         if (/(^|\/)(test|tests|__tests__)\//.test(f) || /\.(test|spec)\./.test(f)) continue;
         if (repo.readText(f).includes(dp)) { found = true; break; }

@@ -48,6 +48,13 @@ Available on `ctx`:
 | `unitByPythonDist`, `unitByPythonImport` | Python distribution names (PEP 503) and import names, built before extraction |
 | `errors.push({ code, message })` | a hard error, collected rather than thrown |
 
+For per-unit source inventories, use `sourceFiles(repo, unit.root)` or
+`repo.walkUnit(unit.root, directory = unit.root)`. Discovery computes ownership
+once from eligible units: these scans prune nested unit roots, so a file belongs
+only to its deepest enclosing unit. `repo.ownsUnitPath(unit.root, path)` applies
+the same boundary to custom traversals. Keep `repo.walk` for repository-wide
+discovery and authored inputs; explicit cross-unit references can still be read.
+
 ## The three rules
 
 ### 1. An adapter may not know the repository

@@ -70,7 +70,7 @@ export class EventsAdapter extends Adapter {
       if (other.component && visible.has(other.component.ref) && other.component.ref !== compRef) collectDecls(other.root);
     }
     const families = new Set();
-    for (const f of repo.walk(unit.root)) {
+    for (const f of repo.walkUnit(unit.root)) {
       if (!SRC_EXT.test(f)) continue;
       if (TEST_PATH.test(f) || TEST_FILE.test(f)) continue;
       const text = repo.readText(f);
