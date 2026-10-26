@@ -1,0 +1,9 @@
+[workspace]
+members = ["crates/*", "apps/cli"]
+exclude = ["crates/excluded"]
+resolver = "2"
+
+[workspace.dependencies]
+engine = { path = "crates/engine", version = "0.1.0" }
+testutil = { path = "crates/testutil", version = "0.1.0" }
+logging = { path = "crates/logging", version = "0.1.0" }

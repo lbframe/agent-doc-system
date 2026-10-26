@@ -1,0 +1,27 @@
+apiVersion: agentdoc.dev/config/v1
+namespace: default
+discovery:
+  componentDescriptorName: agentdoc.yaml
+  componentDescriptors:
+    - apps/**/agentdoc.yaml
+    - crates/**/agentdoc.yaml
+  centralDescriptors:
+    - agentdoc/domains.yaml
+    - agentdoc/systems.yaml
+    - agentdoc/apis.yaml
+    - agentdoc/resources.yaml
+  journeyDefinitions: agentdoc/journeys.yaml
+  externalDependencies:
+    - match: "^serde$"
+      name: serde
+      mechanism: sdk
+      role: "Serialization library declared by the crate manifest."
+adapters:
+  - rust
+authority:
+  rules: []
+reviewedOverrides: []
+warningAcceptances: []
+output:
+  graph: .agentdoc/graph.json
+  observations: agentdoc/observations

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: cli
+  description: "Serves the workspace command line."
+spec:
+  type: service
+  system: pipeline

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: foo-u-bar
+  description: "Exposes one function under the underscored crate name."
+spec:
+  type: library
+  system: pipeline

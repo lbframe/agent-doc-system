@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: logging
+  description: "Provides the logging entry point the command line calls."
+spec:
+  type: library
+  system: pipeline
