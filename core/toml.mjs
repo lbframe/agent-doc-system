@@ -1,12 +1,13 @@
 // TOML reader for deployment manifests and Python project files.
 //
-// The subset is the one those files actually use: tables, arrays of tables,
-// dotted keys, strings, integers, floats, booleans, arrays and inline tables.
-// Strings follow TOML 1.0: basic, literal, and both multi-line forms. Literal
-// strings are raw — a backslash is a backslash. Anything outside this subset
-// (dates, hex integers, inf/nan, an unknown escape) is rejected. Returning the
-// raw text would be a mis-parse, and a mis-parsed manifest is worse than a
-// diagnostic.
+// Values follow TOML 1.0: tables, arrays of tables, dotted keys, strings,
+// integers (decimal, hex, octal, binary, with `_` separators), floats
+// (including inf and nan), booleans, dates and times, arrays and inline
+// tables. Strings are basic, literal, and both multi-line forms. Literal
+// strings are raw — a backslash is a backslash. Dates and times are returned
+// as the exact lexeme; nothing in the compiler derives a fact from them.
+// Only a form the spec rejects is a diagnostic. A mis-parsed manifest is
+// worse than one, and a valid `[tool.*]` table must not fail the compile.
 import { AgentDocError, CODES } from "./codes.mjs";
 
 export function parse(src, path = "") {
@@ -136,7 +137,7 @@ class Parser {
     if (c === "{") return this.parseInlineTable();
     if (c === "t" && this.startsWithWord("true")) { this.i += 4; return true; }
     if (c === "f" && this.startsWithWord("false")) { this.i += 5; return false; }
-    if (c === "+" || c === "-" || (c >= "0" && c <= "9")) return this.parseNumber();
+    if (c === "+" || c === "-" || c === "i" || c === "n" || (c >= "0" && c <= "9")) return this.parseNumber();
     this.die("unsupported TOML value");
   }
 
@@ -306,26 +307,114 @@ class Parser {
   }
 
   parseNumber() {
+    if (this.peek() !== "+" && this.peek() !== "-") {
+      const dated = this.tryDateOrTime();
+      if (dated !== null) return dated;
+      if (this.s.startsWith("0x", this.i) || this.s.startsWith("0o", this.i) || this.s.startsWith("0b", this.i)) {
+        return this.parseRadixInt();
+      }
+    }
+    const special = this.trySpecialFloat();
+    if (special !== null) return special;
     const start = this.i;
-    if (this.peek() === "+" || this.peek() === "-") this.i++;
-    const body = this.s.slice(this.i);
-    if (/^0[xob]/i.test(body) || /^inf\b/i.test(body) || /^nan\b/i.test(body)) {
-      this.die("unsupported TOML numeric form");
-    }
-    // Date-times start like numbers (`2024-` or `12:`). They are not floats.
     const rest = this.s.slice(start);
-    if (/^[+-]?\d{4}-\d{2}-\d{2}/.test(rest) || /^[+-]?\d{2}:\d{2}:\d{2}/.test(rest)) {
-      this.die("unsupported TOML date or time");
-    }
     const num = /^[+-]?(?:0|[1-9](?:_?\d)*)(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?/.exec(rest);
     if (!num) this.die("invalid number");
     const raw = num[0];
     if (raw === "+" || raw === "-" || raw.endsWith("_") || raw.includes("__")) this.die("invalid number");
     this.i = start + raw.length;
-    if (/[A-Za-z_]/.test(this.peek())) this.die("unsupported TOML numeric form");
+    if (/[A-Za-z_]/.test(this.peek())) this.die("invalid number");
     const n = Number(raw.replace(/_/g, ""));
-    if (!Number.isFinite(n)) this.die("unsupported TOML numeric form");
+    if (!Number.isFinite(n)) this.die("invalid number");
     return n;
+  }
+
+  // inf and nan are lowercase. A sign is allowed. `Inf` is not a float.
+  trySpecialFloat() {
+    const m = /^[+-]?(inf|nan)(?![A-Za-z0-9_])/.exec(this.s.slice(this.i));
+    if (!m) return null;
+    this.i += m[0].length;
+    if (m[1] === "nan") return NaN;
+    return m[0].startsWith("-") ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+  }
+
+  // Hex, octal and binary have no sign. Underscores sit between digits.
+  parseRadixInt() {
+    const prefix = this.s.slice(this.i, this.i + 2);
+    const base = prefix === "0x" ? 16 : prefix === "0o" ? 8 : prefix === "0b" ? 2 : 0;
+    const digit = base === 16 ? /[0-9a-fA-F]/ : base === 8 ? /[0-7]/ : /[01]/;
+    this.i += 2;
+    if (!digit.test(this.peek())) this.die("invalid number");
+    let body = "";
+    let prevUnderscore = false;
+    while (digit.test(this.peek()) || this.peek() === "_") {
+      const c = this.peek();
+      if (c === "_") {
+        if (prevUnderscore) this.die("invalid number");
+        prevUnderscore = true;
+      } else {
+        prevUnderscore = false;
+        body += c;
+      }
+      this.i++;
+    }
+    if (prevUnderscore || !body) this.die("invalid number");
+    if (/[A-Za-z0-9_]/.test(this.peek())) this.die("invalid number");
+    return parseInt(body, base);
+  }
+
+  // A local date, local time, local date-time, or offset date-time. The
+  // lexeme is the value: callers do not interpret it.
+  tryDateOrTime() {
+    const s = this.s.slice(this.i);
+    if (/^\d{2}:\d{2}:\d{2}/.test(s)) return this.readLocalTime();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return this.readDate();
+    return null;
+  }
+
+  readLocalTime() {
+    const m = /^(\d{2}):(\d{2}):(\d{2})(\.\d+)?/.exec(this.s.slice(this.i));
+    if (!m) this.die("invalid date or time");
+    this.checkTime(m[1], m[2], m[3]);
+    this.i += m[0].length;
+    this.rejectDateTail();
+    return m[0];
+  }
+
+  readDate() {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(this.s.slice(this.i));
+    if (!m) this.die("invalid date or time");
+    this.checkDate(Number(m[1]), Number(m[2]), Number(m[3]));
+    let raw = m[0];
+    const rest = this.s.slice(this.i + raw.length);
+    if (rest.startsWith("T") || rest.startsWith(" ")) {
+      const tm = /^[T ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?/.exec(rest);
+      if (!tm) this.die("invalid date or time");
+      this.checkTime(tm[1], tm[2], tm[3]);
+      if (tm[5] && tm[5] !== "Z") this.checkTime(tm[5].slice(1, 3), tm[5].slice(4, 6), "00");
+      raw += tm[0];
+    }
+    this.i += raw.length;
+    this.rejectDateTail();
+    return raw;
+  }
+
+  rejectDateTail() {
+    if (/[0-9A-Za-z_]/.test(this.peek())) this.die("invalid date or time");
+  }
+
+  checkDate(y, m, d) {
+    if (m < 1 || m > 12) this.die("invalid date or time");
+    const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+    const dim = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (d < 1 || d > dim[m - 1]) this.die("invalid date or time");
+  }
+
+  checkTime(hh, mm, ss) {
+    const h = Number(hh);
+    const m = Number(mm);
+    const s = Number(ss);
+    if (h > 23 || m > 59 || s > 60) this.die("invalid date or time");
   }
 
   rejectControl(c, multi) {

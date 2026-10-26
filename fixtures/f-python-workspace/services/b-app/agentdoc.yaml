@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: b-app
+  description: "Runs the app whose local utils module is not the sibling distribution."
+spec:
+  type: library
+  system: ledger

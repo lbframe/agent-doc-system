@@ -17,6 +17,7 @@ import { Repo } from "./fsx.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 import { parse as parseToml } from "./toml.mjs";
 import { cargoUnitShape, isExcludedWorkspaceMember, isVirtualWorkspaceManifest } from "../adapters/rust.mjs";
+import { readPythonUnit } from "../adapters/python.mjs";
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
@@ -125,7 +126,30 @@ function scanLayout(repo) {
     }
   };
   walk("", 0);
+  for (const u of [...candidates.values()]) {
+    if (!u.kinds.has("python")) continue;
+    const info = readPythonUnit(repo, u.root);
+    u.deployable = Boolean(info.deployable);
+    u.importable = Boolean(info.importable);
+    // A uv workspace root with no distribution is not a unit. Scaffolding it
+    // would invent a component for the virtual manifest.
+    if (!info.dist && !info.deployable && !info.importable && !info.error && virtualUvWorkspace(repo, u.root)) {
+      candidates.delete(u.root);
+    }
+  }
   return [...candidates.values()].sort((a, b) => (a.root < b.root ? -1 : 1));
+}
+
+function virtualUvWorkspace(repo, root) {
+  const file = !root || root === "." ? "pyproject.toml" : root + "/pyproject.toml";
+  if (!repo.exists(file)) return false;
+  try {
+    const doc = parseToml(repo.readText(file), file);
+    const ws = doc.tool && doc.tool.uv && doc.tool.uv.workspace;
+    return Boolean(ws && typeof ws === "object" && !Array.isArray(ws));
+  } catch {
+    return false;
+  }
 }
 
 function discoverUnitNames(repo, cfg, eligible = null) {
@@ -183,7 +207,12 @@ function discoverUnitNames(repo, cfg, eligible = null) {
       deployable: Boolean(u.deployable),
       importable: Boolean(u.importable),
     })),
-    ...scanLayout(repo).map((u) => ({ root: u.root, kinds: [...u.kinds].sort(), deployable: false, importable: false })),
+    ...scanLayout(repo).map((u) => ({
+      root: u.root,
+      kinds: [...u.kinds].sort(),
+      deployable: Boolean(u.deployable),
+      importable: Boolean(u.importable),
+    })),
   ];
   for (const found of units) {
     if (found.root === "." || !found.root || seenRoots.has(found.root)) continue;
@@ -216,7 +245,9 @@ function componentDescriptor(u) {
   // Rust is not in this list. A crate's type comes from cargoUnitShape above:
   // deployable-only → service, importable → library, both → service because
   // deployable is decided first (the rule every other marker already follows).
-  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go" || k === "python");
+  // Python is not importable just because a manifest exists. The adapter's
+  // shape is the evidence: deployable, importable, or neither.
+  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
   // "library" and "service" both have to be corroborated by artifact evidence
   // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
   // shows neither, so claiming a concrete type would manufacture an error.

@@ -294,6 +294,10 @@ export function compile(root, opts = {}) {
   ctx.unitByCrateName = new Map();
   ctx.ambiguousCrateNames = new Map();
   ctx.rustAmbiguity = new Map();
+  // A Python manifest is read only when the python adapter is on. An existence
+  // probe is part of the input hash, so probing one for every unit would change
+  // every graph that does not enable python.
+  const pythonOn = adapters.some((a) => a.name === "python");
   for (const unit of discovery.eligible) {
     const pkgPath = unit.root + "/package.json";
     if (repo.exists(pkgPath)) {
@@ -311,19 +315,21 @@ export function compile(root, opts = {}) {
       unit.goModule = m ? m[1] : null;
     }
     if (rustOn) loadCargoUnit(repo, unit);
-    const py = readPythonUnit(repo, unit.root);
-    if (py.manifest) {
-      unit.pythonMarker = py.manifest;
-      unit.pythonManifest = py.manifest;
-      unit.pythonDist = py.dist;
-      unit.pythonImports = py.ambiguousImports ? null : py.importNames;
-      unit.pythonProdDeps = [...new Set([
-        ...py.prodDeps,
-        ...py.sourceDeps.filter((n) => !py.devDeps.includes(n) && !py.prodDeps.includes(n)),
-      ])].sort();
-      unit.pythonDevDeps = py.devDeps;
-      unit.pythonPathDeps = py.pathDeps;
-      if (py.error) res.errors.push(py.error);
+    if (pythonOn) {
+      const py = readPythonUnit(repo, unit.root);
+      if (py.manifest) {
+        unit.pythonMarker = py.manifest;
+        unit.pythonManifest = py.manifest;
+        unit.pythonDist = py.dist;
+        unit.pythonImports = py.ambiguousImports ? null : py.importNames;
+        unit.pythonProdDeps = [...new Set([
+          ...py.prodDeps,
+          ...py.sourceDeps.filter((n) => !py.devDeps.includes(n) && !py.prodDeps.includes(n)),
+        ])].sort();
+        unit.pythonDevDeps = py.devDeps;
+        unit.pythonPathDeps = py.pathDeps;
+        if (py.error) res.errors.push(py.error);
+      }
     }
   }
   const unitByPkgName = new Map();

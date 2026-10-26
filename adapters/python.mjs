@@ -26,6 +26,12 @@ import { parse as parseToml } from "../core/toml.mjs";
 import { AgentDocError, CODES } from "../core/codes.mjs";
 import { globToRegExp } from "../core/fsx.mjs";
 import { sourceFiles } from "../core/sourcescan.mjs";
+import { DEFAULT_NOT_UNIT_ROOTS } from "../core/discover.mjs";
+
+// Nested workspace manifests are discovered only this deep. The same bound
+// is what a Cargo workspace walk should use: deterministic, inside the repo,
+// and short enough that a generated tree cannot become the search.
+const MAX_WORKSPACE_DEPTH = 6;
 
 const DEV_EXTRA = /^(dev|devel|development|test|tests|testing|lint|type|types|typecheck)$/i;
 const APP_ASSIGN = /(?:^|\n)\s*(?:app|application)\s*(?::[^\n=]+)?=\s*(?:FastAPI|Flask|Starlette|Litestar|Sanic|Quart)\s*\(/;
@@ -210,6 +216,7 @@ function emptyUnit(loc) {
     devDeps: [],
     sourceDeps: [],
     pathDeps: [],
+    workspaceNames: [],
     pytestInManifest: false,
     ruffInManifest: false,
     mypyInManifest: false,
@@ -253,9 +260,11 @@ function finish(repo, root, info, explicitNames) {
   info.prodDeps = [...info._prod].sort();
   info.devDeps = [...info._dev].filter((n) => !info._prod.has(n)).sort();
   info.sourceDeps = [...info._source].sort();
+  info.workspaceNames = [...info._workspace].sort();
   delete info._prod;
   delete info._dev;
   delete info._source;
+  delete info._workspace;
   delete info.backend;
   return info;
 }
@@ -265,6 +274,7 @@ function blank(loc) {
   info._prod = new Set();
   info._dev = new Set();
   info._source = new Set();
+  info._workspace = new Set();
   info.backend = false;
   return info;
 }
@@ -326,11 +336,32 @@ function readPyproject(repo, root, loc) {
       if (!/^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(name)) { warn(info, "uv source name is not a distribution name: " + name); continue; }
       const norm = pep503(name);
       info._source.add(norm);
-      if (val && typeof val === "object" && typeof val.path === "string") {
+      if (!val || typeof val !== "object" || Array.isArray(val)) continue;
+      const hasPath = typeof val.path === "string";
+      const hasWorkspace = val.workspace === true;
+      if (!hasPath && !hasWorkspace) continue;
+      if (hasWorkspace) info._workspace.add(norm);
+      if (hasPath && hasWorkspace) {
+        const dir = resolveInside(root, val.path);
+        const member = resolveWorkspaceMember(repo, root, norm);
+        if (dir && member.dir === dir && !member.ambiguous) info.pathDeps.push({ name: norm, dir });
+        else info.warnings.push({ code: "AGENTDOC_BINDING_AMBIGUOUS", message: "uv source '" + name + "' sets both path and workspace = true and they do not name one directory" });
+        continue;
+      }
+      if (hasPath) {
         const dir = resolveInside(root, val.path);
         if (dir) info.pathDeps.push({ name: norm, dir });
         else warn(info, "uv source path for '" + name + "' does not stay inside the repository");
+        continue;
       }
+      const member = resolveWorkspaceMember(repo, root, norm);
+      if (member.ambiguous) {
+        info.warnings.push({ code: "AGENTDOC_BINDING_AMBIGUOUS", message: "uv source '" + name + "' matches more than one member of the enclosing workspace" });
+        continue;
+      }
+      if (member.dir) info.pathDeps.push({ name: norm, dir: member.dir });
+      else if (member.missingWorkspace) warn(info, "uv source '" + name + "' sets workspace = true but no enclosing workspace manifest was found");
+      else warn(info, "uv source '" + name + "' sets workspace = true but no member of the enclosing workspace has that name");
     }
   }
   info.pytestInManifest = Boolean(doc.tool && doc.tool.pytest && doc.tool.pytest.ini_options);
@@ -646,35 +677,33 @@ function addCommand(ctx, compRef, prov, id, tier, command, configPaths) {
 export class PythonAdapter extends Adapter {
   static adapterName = "python";
   constructor() {
-    super({ name: "python", version: "1.0.0", kind: "unit-marker" });
+    super({ name: "python", version: "1.1.0", kind: "unit-marker" });
   }
 
   roots(ctx) {
     const out = new Map();
-    const ws = "pyproject.toml";
-    if (!ctx.repo.exists(ws)) return [];
-    let doc;
-    try { doc = parseToml(ctx.repo.readText(ws), ws); }
-    catch { return []; }
-    const workspace = doc.tool && doc.tool.uv && doc.tool.uv.workspace;
-    const members = expandMembers(ctx.repo, (workspace && workspace.members) || []);
-    const excluded = new Set(expandMembers(ctx.repo, (workspace && workspace.exclude) || []));
-    for (const dir of members) {
-      if (excluded.has(dir)) continue;
-      if (hasMarker(ctx.repo, dir)) out.set(dir, { root: dir });
-    }
-    const hop = [".", ...out.keys()];
-    for (const dir of hop) {
-      const file = dir === "." ? ws : dir + "/pyproject.toml";
-      if (dir !== "." && !ctx.repo.exists(file)) continue;
-      let parsed = doc;
-      if (dir !== ".") {
-        try { parsed = parseToml(ctx.repo.readText(file), file); }
-        catch { continue; }
+    const workspaces = uvWorkspaceManifests(ctx.repo, ctx.cfg);
+    const hop = new Set();
+    for (const ws of workspaces) {
+      hop.add(ws.dir || ".");
+      const members = expandMembers(ctx.repo, ws.dir, ws.table.members || []);
+      const excluded = new Set(expandMembers(ctx.repo, ws.dir, ws.table.exclude || []));
+      for (const dir of members) {
+        if (excluded.has(dir) || skippedRoot(ctx, dir)) continue;
+        if (hasMarker(ctx.repo, dir)) out.set(dir, { root: dir });
       }
+    }
+    for (const dir of out.keys()) hop.add(dir);
+    for (const dir of [...hop].sort()) {
+      const file = !dir || dir === "." ? "pyproject.toml" : dir + "/pyproject.toml";
+      if (!ctx.repo.exists(file)) continue;
+      let parsed;
+      try { parsed = parseToml(ctx.repo.readText(file), file); }
+      catch { continue; }
+      const from = dir === "." ? "" : dir;
       for (const rel of pathDepsOf(parsed)) {
-        const resolved = resolveInside(dir, rel);
-        if (!resolved || !ctx.repo.isDir(resolved) || !hasMarker(ctx.repo, resolved)) continue;
+        const resolved = resolveInside(from, rel);
+        if (!resolved || skippedRoot(ctx, resolved) || !ctx.repo.isDir(resolved) || !hasMarker(ctx.repo, resolved)) continue;
         if (!out.has(resolved)) out.set(resolved, { root: resolved });
       }
     }
@@ -740,8 +769,12 @@ export class PythonAdapter extends Adapter {
     };
 
     const byRoot = new Map(ctx.discovery.eligible.map((u) => [u.root, u]));
+    const workspaceOnly = new Set(info.workspaceNames || []);
     const consider = new Set([...info.prodDeps, ...info.devDeps, ...info.sourceDeps]);
     for (const name of [...consider].sort()) {
+      // `workspace = true` is resolved against the nearest enclosing workspace.
+      // The global distribution map must not substitute a different sibling.
+      if (workspaceOnly.has(name)) continue;
       const target = ctx.unitByPythonDist.get(name);
       if (!target) continue;
       link(target, target.pythonDist || name, classify(info, name, target), "python-manifest", []);
@@ -755,11 +788,32 @@ export class PythonAdapter extends Adapter {
 
     const imports = (ctx.importIndex.pythonImportsByUnit && ctx.importIndex.pythonImportsByUnit.get(unit)) || new Map();
     const byTarget = new Map();
+    const shadowed = [];
     for (const name of [...imports.keys()].sort()) {
-      const target = ctx.unitByPythonImport.get(name);
-      if (!target || !target.component || target.component.ref === compRef) continue;
+      const files = imports.get(name);
+      const siblings = siblingImportUnits(ctx, unit, name);
+      // A module or package the unit itself provides is not a sibling import.
+      // Script-style layouts keep that module next to the importing file.
+      if (unitProvidesImport(repo, unit.root, name, files)) {
+        if (siblings.some((u) => u.component)) shadowed.push(name);
+        continue;
+      }
+      if (siblings.length !== 1) continue;
+      const target = siblings[0];
+      if (!target.component || target.component.ref === compRef) continue;
       if (!byTarget.has(target)) byTarget.set(target, new Set());
-      for (const f of imports.get(name)) byTarget.get(target).add(f);
+      for (const f of files) byTarget.get(target).add(f);
+    }
+    if (shadowed.length) {
+      const files = shadowed.flatMap((name) => [...imports.get(name)]);
+      ctx.diagnostics.push({
+        severity: "warning",
+        code: "AGENTDOC_BINDING_AMBIGUOUS",
+        subject: compRef,
+        refs: [compRef],
+        paths: [...new Set([info.manifest, ...files])].sort(),
+        message: "import " + shadowed.join(", ") + " is provided by unit '" + unit.root + "' and also by a sibling; no import edge was recorded",
+      });
     }
     for (const [target, files] of [...byTarget.entries()].sort((a, b) => (a[0].root < b[0].root ? -1 : 1))) {
       const pkg = target.pythonDist || pep503([...imports.keys()].find((n) => ctx.unitByPythonImport.get(n) === target) || target.root.split("/").pop());
@@ -819,20 +873,159 @@ function hasMarker(repo, dir) {
     || repo.listDir(dir).some((n) => /^requirements.*\.txt$/.test(n));
 }
 
-function expandMembers(repo, patterns) {
+function notUnitSet(cfg) {
+  const configured = cfg && cfg.discovery && cfg.discovery.notUnitRoots;
+  return new Set(configured || DEFAULT_NOT_UNIT_ROOTS);
+}
+
+function skippedRoot(ctx, dir) {
+  if (!dir) return false;
+  if (notUnitSet(ctx.cfg).has(dir)) return true;
+  const skip = ctx.repo.generatedDirs;
+  return dir.split("/").some((seg) => skip && skip.has(seg));
+}
+
+function underSkippedRoot(dir, notUnit, skip) {
+  if (!dir) return false;
+  const parts = dir.split("/");
+  if (parts.some((seg) => seg.startsWith(".") || (skip && skip.has(seg)))) return true;
+  for (let i = 1; i <= parts.length; i++) {
+    if (notUnit.has(parts.slice(0, i).join("/"))) return true;
+  }
+  return false;
+}
+
+// Workspace manifests at the repository root and below it. The file list comes
+// from walk(), which already skips generated directories, so creating
+// `.agentdoc/` between compiles does not change the input. Only manifests
+// within MAX_WORKSPACE_DEPTH are workspaces.
+function uvWorkspaceManifests(repo, cfg) {
+  const notUnit = notUnitSet(cfg);
+  const skip = repo.generatedDirs || new Set();
+  const found = [];
+  for (const f of repo.walk(".")) {
+    if (f !== "pyproject.toml" && !f.endsWith("/pyproject.toml")) continue;
+    const dir = f === "pyproject.toml" ? "" : f.slice(0, -"/pyproject.toml".length);
+    const depth = dir ? dir.split("/").length : 0;
+    if (depth > MAX_WORKSPACE_DEPTH) continue;
+    if (underSkippedRoot(dir, notUnit, skip)) continue;
+    try {
+      const doc = parseToml(repo.readText(f), f);
+      const table = doc.tool && doc.tool.uv && doc.tool.uv.workspace;
+      if (table && typeof table === "object" && !Array.isArray(table)) found.push({ dir, table });
+    } catch { /* a broken file is not a workspace; the unit reports the parse */ }
+  }
+  found.sort((a, b) => (a.dir < b.dir ? -1 : a.dir > b.dir ? 1 : 0));
+  return found;
+}
+
+function nearestUvWorkspace(repo, root) {
+  let dir = !root || root === "." ? "" : root;
+  const seen = new Set();
+  while (!seen.has(dir)) {
+    seen.add(dir);
+    const manifest = dir ? dir + "/pyproject.toml" : "pyproject.toml";
+    if (repo.exists(manifest)) {
+      try {
+        const doc = parseToml(repo.readText(manifest), manifest);
+        const table = doc.tool && doc.tool.uv && doc.tool.uv.workspace;
+        if (table && typeof table === "object" && !Array.isArray(table)) return { dir, table };
+      } catch { /* walk through a file that does not parse */ }
+    }
+    if (!dir) return null;
+    const i = dir.lastIndexOf("/");
+    dir = i < 0 ? "" : dir.slice(0, i);
+  }
+  return null;
+}
+
+function resolveWorkspaceMember(repo, fromRoot, name) {
+  const ws = nearestUvWorkspace(repo, fromRoot);
+  if (!ws) return { dir: null, ambiguous: false, missingWorkspace: true };
+  const members = expandMembers(repo, ws.dir, ws.table.members || []);
+  const excluded = new Set(expandMembers(repo, ws.dir, ws.table.exclude || []));
+  const hits = [];
+  for (const dir of members) {
+    if (excluded.has(dir)) continue;
+    if (distributionNameAt(repo, dir) === name) hits.push(dir);
+  }
+  if (hits.length > 1) return { dir: null, ambiguous: true, missingWorkspace: false };
+  if (hits.length === 1) return { dir: hits[0], ambiguous: false, missingWorkspace: false };
+  return { dir: null, ambiguous: false, missingWorkspace: false };
+}
+
+function distributionNameAt(repo, dir) {
+  const loc = locate(repo, dir);
+  try {
+    if (loc.kind === "pyproject") {
+      const doc = parseToml(repo.readText(loc.manifest), loc.manifest);
+      const project = doc.project && doc.project.name;
+      const poetry = doc.tool && doc.tool.poetry && doc.tool.poetry.name;
+      if (typeof project === "string" && project.trim()) return pep503(project);
+      if (typeof poetry === "string" && poetry.trim()) return pep503(poetry);
+      return null;
+    }
+    if (loc.kind === "setup.cfg") {
+      const meta = /\[metadata\]([^[]*)/.exec(repo.readText(loc.manifest));
+      const n = meta && /^name\s*=\s*(\S+)/m.exec(meta[1]);
+      return n ? pep503(n[1]) : null;
+    }
+    if (loc.kind === "setup.py") {
+      const name = /(?:^|\n)\s*name\s*=\s*(['"])([^'"]+)\1/.exec(repo.readText(loc.manifest));
+      return name ? pep503(name[2]) : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function hasModule(repo, dir, name) {
+  const base = !dir || dir === "." ? "" : dir;
+  const py = (base ? base + "/" : "") + name + ".py";
+  const init = (base ? base + "/" : "") + name + "/__init__.py";
+  return repo.exists(py) || repo.exists(init);
+}
+
+// Top-level module at the unit root, under src/, or beside the importing file.
+function unitProvidesImport(repo, unitRoot, name, files) {
+  const root = !unitRoot || unitRoot === "." ? "" : unitRoot;
+  if (hasModule(repo, root, name)) return true;
+  if (hasModule(repo, root ? root + "/src" : "src", name)) return true;
+  for (const f of files || []) {
+    const slash = f.lastIndexOf("/");
+    if (hasModule(repo, slash < 0 ? "" : f.slice(0, slash), name)) return true;
+  }
+  return false;
+}
+
+function siblingImportUnits(ctx, unit, name) {
+  const out = [];
+  for (const u of ctx.discovery.eligible) {
+    if (u === unit || !Array.isArray(u.pythonImports)) continue;
+    if (u.pythonImports.includes(name)) out.push(u);
+  }
+  return out.sort((a, b) => (a.root < b.root ? -1 : a.root > b.root ? 1 : 0));
+}
+
+function expandMembers(repo, base, patterns) {
+  const root = !base || base === "." ? "" : String(base).replace(/\/$/, "");
   const dirs = [];
-  for (const g of patterns) {
+  const list = Array.isArray(patterns) ? patterns : [];
+  for (const g of list) {
     if (typeof g !== "string") continue;
     const pat = g.replace(/^\.\//, "").replace(/\/$/, "");
     if (!pat || pat.startsWith("/") || pat.split("/").includes("..")) continue;
+    const full = root ? root + "/" + pat : pat;
+    if (full.split("/").includes("..")) continue;
     if (!/[*?]/.test(pat)) {
-      if (repo.isDir(pat)) dirs.push(pat);
+      if (repo.isDir(full)) dirs.push(full);
       continue;
     }
     let re;
-    try { re = globToRegExp(pat); }
+    try { re = globToRegExp(full); }
     catch { continue; }
-    const prefix = pat.split(/[*?]/)[0].replace(/\/$/, "");
+    const prefix = full.split(/[*?]/)[0].replace(/\/$/, "");
     if (prefix && !repo.isDir(prefix)) continue;
     for (const d of nestedDirs(repo, prefix || ".", 6)) if (re.test(d)) dirs.push(d);
   }
@@ -847,7 +1040,7 @@ function nestedDirs(repo, base, maxDepth) {
     for (const name of repo.listDir(dir)) {
       if (!name.endsWith("/")) continue;
       const baseName = name.slice(0, -1);
-      if (baseName.startsWith(".") || baseName === "__pycache__" || baseName === "node_modules") continue;
+      if (baseName.startsWith(".") || baseName === "__pycache__" || (repo.generatedDirs && repo.generatedDirs.has(baseName))) continue;
       const child = dir ? dir + "/" + baseName : baseName;
       out.push(child);
       walk(child, depth + 1);

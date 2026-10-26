@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: utils
+  description: "Publishes the utils import name used by no manifest dependency."
+spec:
+  type: library
+  system: ledger

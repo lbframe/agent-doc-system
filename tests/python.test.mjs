@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { parse as parseToml } from "../core/toml.mjs";
 import { parsePep508 } from "../adapters/python.mjs";
-import { SYSTEM_ROOT, write, git, commitAll, cli, cliFails, compile } from "./helpers.mjs";
+import { SYSTEM_ROOT, write, git, commitAll, cli, cliFails, compile, baseFixture } from "./helpers.mjs";
 
 const FIXTURE = path.join(SYSTEM_ROOT, "fixtures", "f-python-workspace");
 
@@ -101,14 +101,62 @@ test("toml: a multi-line literal string is raw, and a line-ending backslash join
   assert.equal(parseToml('p = """\nhello \\\nworld\n"""\n').p, "hello world\n");
 });
 
-test("toml: unsupported forms are a diagnostic, not a value", () => {
+test("toml: genuinely invalid forms are a diagnostic, not a value", () => {
   throwsParse('p = "\\\'"\n');
   throwsParse('p = "unterminated\n');
   throwsParse('p = """\nhello\n');
-  throwsParse("p = 2024-01-01\n");
-  throwsParse("p = 0x10\n");
-  throwsParse("p = inf\n");
-  throwsParse("p = nan\n");
+  throwsParse("p = 2024-13-01\n");
+  throwsParse("p = 2023-02-29\n");
+  throwsParse("p = 2024-05-01T\n");
+  throwsParse("p = 0x\n");
+  throwsParse("p = 0x_10\n");
+  throwsParse("p = +0x10\n");
+  throwsParse("p = 0o8\n");
+  throwsParse("p = 0b2\n");
+  throwsParse("p = Inf\n");
+  throwsParse("p = 1__0\n");
+});
+
+test("toml: dates, times, radix integers, inf, nan and separators are values", () => {
+  const doc = parseToml([
+    "d = 2024-05-01",
+    "leap = 2024-02-29",
+    "odt = 1979-05-27T07:32:00Z",
+    "local = 1979-05-27T00:32:00.999999",
+    "spaced = 1979-05-27 07:32:00-07:00",
+    "frac = 1979-05-27T00:32:00.999999-07:00",
+    "t = 07:32:00",
+    "tf = 00:32:00.999999",
+    "hex = 0xDEAD_BEEF",
+    "oct = 0o755",
+    "bin = 0b11010110",
+    "pos = +inf",
+    "neg = -inf",
+    "bare = inf",
+    "n = nan",
+    "nn = -nan",
+    "sep = 1_000_000",
+    "flt = 1_000.000_1",
+    "",
+  ].join("\n"));
+  assert.equal(doc.d, "2024-05-01");
+  assert.equal(doc.leap, "2024-02-29");
+  assert.equal(doc.odt, "1979-05-27T07:32:00Z");
+  assert.equal(doc.local, "1979-05-27T00:32:00.999999");
+  assert.equal(doc.spaced, "1979-05-27 07:32:00-07:00");
+  assert.equal(doc.frac, "1979-05-27T00:32:00.999999-07:00");
+  assert.equal(doc.t, "07:32:00");
+  assert.equal(doc.tf, "00:32:00.999999");
+  assert.equal(doc.hex, 0xDEADBEEF);
+  assert.equal(doc.oct, 0o755);
+  assert.equal(doc.bin, 0b11010110);
+  assert.equal(doc.pos, Infinity);
+  assert.equal(doc.neg, Number.NEGATIVE_INFINITY);
+  assert.equal(doc.bare, Infinity);
+  assert.equal(Object.is(doc.n, NaN), true);
+  assert.equal(Object.is(doc.nn, NaN), true);
+  assert.equal(doc.sep, 1000000);
+  assert.equal(doc.flt, 1000.0001);
 });
 
 test("toml: comments, dotted keys, inline tables and arrays of tables still parse", () => {
@@ -153,7 +201,7 @@ test("PYTHON: the workspace fixture derives edges, commands and the refused impo
   assert.deepEqual(res.errors.map((e) => e.code), []);
   const g = res.graph;
   const names = g.entities.filter((e) => e.kind === "Component").map((e) => e.name).sort();
-  assert.deepEqual(names, ["ambiguous-dist", "ledger-api", "ledger-core", "ledger-jobs", "ledger-proto", "ledger-testing"]);
+  assert.deepEqual(names, ["ambiguous-dist", "b-app", "ledger-api", "ledger-core", "ledger-jobs", "ledger-proto", "ledger-testing", "utils"]);
 
   const api = componentOf(g, "ledger-api");
   assert.equal(api.entity.spec.type, "service");
@@ -191,6 +239,9 @@ test("PYTHON: the workspace fixture derives edges, commands and the refused impo
 
   assert.equal(componentOf(g, "ambiguous-dist").derived.pythonImportNames, undefined);
   assert.ok(res.diagnostics.some((d) => d.code === "AGENTDOC_BINDING_AMBIGUOUS" && d.subject.endsWith("/ambiguous-dist")));
+  assert.equal(edge(g, "buildDependsOn", "b-app", "utils"), undefined);
+  assert.equal(edge(g, "testDependsOn", "b-app", "utils"), undefined);
+  assert.ok(res.diagnostics.some((d) => d.code === "AGENTDOC_BINDING_AMBIGUOUS" && d.subject.endsWith("/b-app") && /\butils\b/.test(d.message)));
   assert.equal(componentOf(g, "ledger-core").derived.hasTests, undefined);
   assert.equal(componentOf(g, "ledger-jobs").entity.spec.type, "job");
 
@@ -222,6 +273,8 @@ test("PYTHON: scaffold writes a corroborated type for every discovered unit", (t
     "libs/ledger-proto/agentdoc.yaml",
     "libs/ledger-testing/agentdoc.yaml",
     "libs/ambiguous-dist/agentdoc.yaml",
+    "libs/utils-dist/agentdoc.yaml",
+    "services/b-app/agentdoc.yaml",
     "jobs/ledger-jobs/agentdoc.yaml",
   ]) fs.rmSync(path.join(dir, rel));
   const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
@@ -230,6 +283,8 @@ test("PYTHON: scaffold writes a corroborated type for every discovered unit", (t
   assert.match(typeOf("services/ledger-api/agentdoc.yaml"), /name: ledger-api[\s\S]*type: service/);
   assert.match(typeOf("libs/ledger-core/agentdoc.yaml"), /name: ledger-core[\s\S]*type: library/);
   assert.match(typeOf("libs/ambiguous-dist/agentdoc.yaml"), /name: ambiguous-dist[\s\S]*type: library/);
+  assert.match(typeOf("libs/utils-dist/agentdoc.yaml"), /name: utils[\s\S]*type: library/);
+  assert.match(typeOf("services/b-app/agentdoc.yaml"), /name: b-app[\s\S]*type: library/);
   assert.match(typeOf("jobs/ledger-jobs/agentdoc.yaml"), /name: ledger-jobs[\s\S]*type: service/);
   for (const rel of res.written.filter((w) => w.endsWith("agentdoc.yaml"))) {
     assert.doesNotMatch(fs.readFileSync(path.join(dir, rel), "utf8"), /type: other/);
@@ -424,4 +479,156 @@ test("PYTHON: an unclosed multi-line string fails the compile", (t) => {
   });
   const res = compile(dir);
   assert.ok(res.errors.some((e) => e.code === "AGENTDOC_YAML_PARSE"));
+});
+
+test("PYTHON: a date in an unread table does not fail the compile", (t) => {
+  const dir = pyRepo(t, {
+    "app/pyproject.toml": [
+      "[project]",
+      'name = "app"',
+      'version = "0.1.0"',
+      "",
+      "[tool.release]",
+      "date = 2024-05-01",
+      "hex = 0x10",
+      "ratio = inf",
+      "",
+      "[build-system]",
+      'requires = ["hatchling"]',
+      'build-backend = "hatchling.build"',
+      "",
+    ].join("\n"),
+    "app/src/app/__init__.py": "",
+    "app/agentdoc.yaml": component("app"),
+  });
+  const res = compile(dir);
+  assert.deepEqual(res.errors.map((e) => e.code), []);
+  assert.equal(componentOf(res.graph, "app").derived.pythonDistribution, "app");
+});
+
+test("PYTHON: a uv workspace below the repository root is a unit, and workspace = true stays inside it", (t) => {
+  const dir = pyRepo(t, {
+    "python/pyproject.toml": '[tool.uv.workspace]\nmembers = ["packages/*"]\nexclude = ["packages/skip"]\n',
+    "python/packages/app/pyproject.toml": [
+      "[project]",
+      'name = "app"',
+      'version = "0.1.0"',
+      'dependencies = ["helper"]',
+      "",
+      "[tool.uv.sources]",
+      "helper = { workspace = true }",
+      "",
+      "[project.scripts]",
+      'app = "app.main:main"',
+      "",
+      "[build-system]",
+      'requires = ["hatchling"]',
+      'build-backend = "hatchling.build"',
+      "",
+    ].join("\n"),
+    "python/packages/app/src/app/__init__.py": "",
+    "python/packages/app/src/app/main.py": "import helper\n",
+    "python/packages/app/agentdoc.yaml": component("app", "service"),
+    "python/packages/helper/pyproject.toml": [
+      "[project]",
+      'name = "helper"',
+      'version = "0.1.0"',
+      "",
+      "[build-system]",
+      'requires = ["hatchling"]',
+      'build-backend = "hatchling.build"',
+      "",
+    ].join("\n"),
+    "python/packages/helper/src/helper/__init__.py": "",
+    "python/packages/helper/agentdoc.yaml": component("helper"),
+    "python/packages/skip/pyproject.toml": '[project]\nname = "skip-me"\nversion = "0.1.0"\n\n[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n',
+    "python/packages/skip/src/skip_me/__init__.py": "",
+    "outside/pyproject.toml": [
+      "[project]",
+      'name = "helper"',
+      'version = "0.1.0"',
+      "",
+      "[build-system]",
+      'requires = ["hatchling"]',
+      'build-backend = "hatchling.build"',
+      "",
+    ].join("\n"),
+    "outside/src/decoy_pkg/__init__.py": "",
+    "outside/agentdoc.yaml": component("decoy-helper"),
+    "scripts/pyproject.toml": '[tool.uv.workspace]\nmembers = ["hidden"]\n',
+    "scripts/hidden/pyproject.toml": '[project]\nname = "hidden-pkg"\nversion = "0.1.0"\n\n[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n',
+    "scripts/hidden/src/hidden_pkg/__init__.py": "",
+    "node_modules/nested/pyproject.toml": '[tool.uv.workspace]\nmembers = ["pkg"]\n',
+    "node_modules/nested/pkg/pyproject.toml": '[project]\nname = "from-modules"\nversion = "0.1.0"\n',
+    "rust/Cargo.toml": '[workspace]\nmembers = ["crates/engine"]\n',
+  });
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.message).join("\n"));
+  const names = res.graph.entities.filter((e) => e.kind === "Component").map((e) => e.name).sort();
+  assert.deepEqual(names, ["app", "decoy-helper", "helper"]);
+  const rel = edge(res.graph, "buildDependsOn", "app", "helper");
+  assert.ok(rel, "workspace = true did not resolve inside the nested workspace");
+  assert.ok(rel.attributes.via.includes("python-manifest"));
+  assert.equal(edge(res.graph, "buildDependsOn", "app", "decoy-helper"), undefined);
+  assert.equal(edge(res.graph, "buildDependsOn", "app", "skip-me"), undefined);
+});
+
+test("PYTHON: scaffold then validate accepts a present unit and keeps a real library", (t) => {
+  const dir = pyRepo(t, {
+    "b/pyproject.toml": '[project]\nname = "bare"\nversion = "0.1.0"\n',
+    "e/requirements.txt": "requests==2.31.0\n",
+    "e/run.py": "print('hi')\n",
+    "e/tests/test_run.py": "import unittest\n",
+    "lib/pyproject.toml": '[project]\nname = "lib"\nversion = "0.1.0"\n\n[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n',
+    "lib/src/lib/__init__.py": "",
+    "svc/pyproject.toml": [
+      "[project]",
+      'name = "svc"',
+      'version = "0.1.0"',
+      "",
+      "[project.scripts]",
+      'svc = "svc.main:main"',
+      "",
+      "[build-system]",
+      'requires = ["hatchling"]',
+      'build-backend = "hatchling.build"',
+      "",
+    ].join("\n"),
+    "svc/src/svc/__init__.py": "",
+    "python/pyproject.toml": '[tool.uv.workspace]\nmembers = ["packages/*"]\n',
+  });
+  const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  const typeOf = (rel) => fs.readFileSync(path.join(dir, rel), "utf8");
+  assert.match(typeOf("b/agentdoc.yaml"), /name: bare[\s\S]*type: other/);
+  assert.match(typeOf("e/agentdoc.yaml"), /name: e[\s\S]*type: other/);
+  assert.match(typeOf("lib/agentdoc.yaml"), /name: lib[\s\S]*type: library/);
+  assert.match(typeOf("svc/agentdoc.yaml"), /name: svc[\s\S]*type: service/);
+  assert.equal(res.written.includes("python/agentdoc.yaml"), false, "a virtual workspace manifest was scaffolded");
+  for (const rel of ["b/agentdoc.yaml", "e/agentdoc.yaml", "lib/agentdoc.yaml", "svc/agentdoc.yaml"]) {
+    write(dir, rel, typeOf(rel).replace("  # placementRationale:", "  placementRationale:"));
+  }
+  const v = cliFails(dir, ["validate"]);
+  assert.equal(v, null, v ? v.stderr : "");
+});
+
+test("PYTHON: creating the graph directory does not change the next input hash", (t) => {
+  const dir = pyRepo(t, {
+    "python/pyproject.toml": '[tool.uv.workspace]\nmembers = ["packages/app"]\n',
+    "python/packages/app/pyproject.toml": '[project]\nname = "app"\nversion = "0.1.0"\n\n[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n',
+    "python/packages/app/src/app/__init__.py": "",
+    "python/packages/app/agentdoc.yaml": component("app"),
+  });
+  const first = compile(dir);
+  assert.equal(first.errors.length, 0, first.errors.map((e) => e.message).join("\n"));
+  fs.mkdirSync(path.join(dir, ".agentdoc"));
+  fs.writeFileSync(path.join(dir, ".agentdoc", "graph.json"), first.serialized);
+  const second = compile(dir);
+  assert.equal(second.stats.inputHash, first.stats.inputHash);
+});
+
+test("PYTHON: manifests are not probed when the python adapter is off", (t) => {
+  const dir = baseFixture(t);
+  const res = compile(dir);
+  const probed = [...res.repo.probes.keys()];
+  assert.equal(probed.some((p) => /(?:^|\/)(?:pyproject\.toml|setup\.py|setup\.cfg)$/.test(p)), false);
 });

@@ -212,7 +212,7 @@ not run Python, resolve a lockfile, or inspect a virtualenv.
 | deployable | `[project.scripts]`, `[project.gui-scripts]`, `[tool.poetry.scripts]`, a `console_scripts` entry point, `__main__.py`, `manage.py`, or an ASGI/WSGI app object (`app` / `application` assigned from `FastAPI`, `Flask`, `Starlette`, `Litestar`, `Sanic` or `Quart`, or a call to `get_asgi_application` / `get_wsgi_application`) |
 | importable | a build backend (`[build-system] build-backend`, or `setup.py` / `setup.cfg`) and a package |
 | the import name | an explicit package list (`[tool.setuptools] packages`, `[tool.poetry] packages`, `[tool.hatch.build.targets.wheel] packages`); otherwise the distribution name with `-` turned into `_` when that directory exists; otherwise the only package directory |
-| `buildDependsOn` | `[project] dependencies`, `[tool.uv.sources]` (`workspace = true` or `path`), Poetry `path`, `-e <dir>` in a production `requirements*.txt`, or a production `import` / `from` of a sibling's import name |
+| `buildDependsOn` | `[project] dependencies`, `[tool.uv.sources]` (`path`, or `workspace = true` resolved against the nearest enclosing uv workspace), Poetry `path`, `-e <dir>` in a production `requirements*.txt`, or a production `import` / `from` of a sibling's import name |
 | `testDependsOn` | `[dependency-groups]`, `[project.optional-dependencies]` groups named dev/test/lint/type, `[tool.poetry.group.*]`, or a requirements file whose name contains `dev` or `test` |
 | `languages` / `runtimes` | the manifest. `requiresPython` only when `requires-python`, `python_requires`, or Poetry's `python` dependency is written down |
 | `pytest` | a pytest dependency or group, `[tool.pytest.ini_options]`, `pytest.ini`, or `conftest.py` |
@@ -226,10 +226,27 @@ parsed and not evaluated. Two import packages and no explicit list, or two
 units publishing the same distribution or import name, produce
 `AGENTDOC_BINDING_AMBIGUOUS` and no cross-unit link.
 
+An import under `if TYPE_CHECKING:` is still an import. The adapter does not
+evaluate control flow, so the name is classified like any other import:
+`buildDependsOn` when it resolves to a sibling, or `testDependsOn` when the
+manifest puts that distribution in a dev group. It is not a separate edge.
+
+A uv workspace manifest is read at the repository root and below it, to a
+fixed depth, in path order, staying inside the repository. `notUnitRoots` and
+generated directories are not searched. `workspace = true` names the member of
+the nearest enclosing workspace whose distribution name matches; another unit
+with the same name is not substituted. A manifest that only declares the
+workspace, with no distribution of its own, is not a unit.
+
+An import is not evidence of a sibling when the importing unit itself provides
+that top-level module or package — at the unit root, under `src/`, or in the
+importing file's own directory. If a sibling publishes the same import name,
+the result is `AGENTDOC_BINDING_AMBIGUOUS` and no edge.
+
 **What it cannot see:** a namespace package with no `__init__.py`; a
 `setup.py` dependency that is not a list of string literals; a `requirements`
 file pulled in with `-r` / `-c`; a lockfile's resolved versions; a PDM
-workspace; a workspace that is not the repository-root `pyproject.toml`.
+workspace; a workspace manifest deeper than the search bound.
 
 `asyncapi` is a contract **type** (declared on an API descriptor, validated by
 the contract layer), not an adapter — there is no `asyncapi` entry in
@@ -287,8 +304,10 @@ places, and those are the honest exceptions worth naming:
 - The same pre-pass reads a Python manifest (`pyproject.toml`, otherwise
   `setup.cfg` / `setup.py` / `requirements*.txt`) into `unitByPythonDist` and
   `unitByPythonImport`, and feeds those siblings into `dependencyMap` and
-  `productionDependencies`. Each unit root is listed so `requirements*.txt`
-  is visible; that listing is part of the input hash.
+  `productionDependencies`, only when the `python` adapter is enabled. Each
+  unit root is then listed so `requirements*.txt` is visible; that listing is
+  part of the input hash. A repository that does not enable `python` is not
+  probed, and its graph does not change.
 - `core/impact.mjs` classifies a changed file by consulting the compiled graph —
   its contracts, its provenance paths, its extractor identities — rather than a
   hand-written list of technology filenames. A list would silently under-report
