@@ -10,7 +10,7 @@ const SRC_EXT = /\.(ts|tsx|js|jsx|mts|cts|go|py|rb|java|kt|rs)$/;
 const TEST_PATH = /(^|\/)(tests?|__tests__|spec)\//;
 const TEST_FILE = /\.(test|spec)\./;
 const BUCKET_LITERAL = /["'`]([a-z][a-z0-9-]{4,60})["'`]/g;
-const STORE_HINT = /(@aws-sdk\/client-s3|minio|google\.cloud\.storage|\bS3\b|bucket|Bucket|BlobService|createBucket)/i;
+const STORE_HINT = /(@aws-sdk\/client-s3|aws-sdk-s3|aws_sdk_s3|minio|google\.cloud\.storage|\bS3\b|bucket|Bucket|BlobService|createBucket)/i;
 
 export class ObjectStoreAdapter extends Adapter {
   static adapterName = "object-store";

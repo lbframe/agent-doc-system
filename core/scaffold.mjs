@@ -15,6 +15,8 @@ import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
 import { classifyContractFile } from "./contracts.mjs";
+import { parse as parseToml } from "./toml.mjs";
+import { isExcludedWorkspaceMember } from "../adapters/rust.mjs";
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
@@ -114,6 +116,7 @@ function scanLayout(repo) {
       const parent = () => rel.slice(0, -("/" + e.name).length);
       if (e.name === "package.json") note(parent(), "node");
       if (e.name === "go.mod") note(parent(), "go");
+      if (e.name === "Cargo.toml" && !isExcludedWorkspaceMember(repo, parent())) note(parent(), "rust");
       if (e.name === "Dockerfile") note(parent(), "docker");
       if (/^wrangler\.(toml|json|jsonc)$/.test(e.name)) note(parent(), "platform");
       if (e.name === "go.mod") note(rel.slice(0, -"/go.mod".length), "go");
@@ -137,6 +140,16 @@ function discoverUnitNames(repo, cfg, eligible = null) {
     if (repo.exists(gomod)) {
       const m = /^module\s+(\S+)/m.exec(repo.readText(gomod));
       if (m) return kebab(m[1].split("/").pop());
+    }
+    const cargo = root + "/Cargo.toml";
+    if (repo.exists(cargo)) {
+      try {
+        const doc = parseToml(repo.readText(cargo));
+        const n = doc && doc.package && typeof doc.package.name === "string" ? doc.package.name : "";
+        // `_` becomes `-u-` before kebab, so `foo_bar` does not collapse into
+        // the same component name as `foo-bar`.
+        if (n) return kebab(n.replace(/_/g, "-u-"));
+      } catch { /* a manifest that does not parse is not a name */ }
     }
     return kebab(path.basename(root));
   };
@@ -168,7 +181,7 @@ function discoverUnitNames(repo, cfg, eligible = null) {
 
 function componentDescriptor(u) {
   const deployable = u.deployable || u.kinds.some((k) => k === "docker" || k === "platform");
-  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
+  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go" || k === "rust");
   // "library" and "service" both have to be corroborated by artifact evidence
   // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
   // shows neither, so claiming a concrete type would manufacture an error.
@@ -194,6 +207,7 @@ function componentDescriptor(u) {
 const ADAPTER_FOR_MARKER = {
   node: "node",
   go: "go",
+  rust: "rust",
   docker: "dockerfile",
   platform: "wrangler",
 };
