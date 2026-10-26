@@ -1,6 +1,6 @@
 {
   "name": "agent-doc-system",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Portable documentation and software-catalog system with an explicit authority model, for AI coding agents",
   "keywords": [
