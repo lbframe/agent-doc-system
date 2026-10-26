@@ -101,6 +101,8 @@ Two additional gates use the same numbers:
 | `fixtures/a-node-ts-postgres` | 3 | single Node/TypeScript service, REST, Postgres, GitHub Actions |
 | `fixtures/b-go-multi-service` | 4 | multi-service Go, protobuf contracts, shared library, resources |
 | `fixtures/c-alt-monorepo` | 4 | a layout that is deliberately not `apps`+`packages`+`workers`, mixed runtimes, inconsistent pre-existing documentation |
+| `fixtures/e-rust-workspace` | 4 | Cargo workspace, shared crate and its dependent, member manifest, local module, ambiguous crate names |
+| `fixtures/f-python-workspace` | 6 | uv workspace, shared library and its dependent, member manifest, shadowed import, nested workspace, Alembic database, unittest |
 
 Scenarios are repository-scoped: a scenario only runs against the corpus it was
 written for, declared by a `repository` tag in a `.agentdoc-fixture.json` at the
@@ -117,7 +119,12 @@ cron; debug a production mismatch.
 The synthetic fixtures add: change an API contract; change a write path; change
 the only-writer rule; break an end-to-end journey; change an edge worker's flush
 schedule; follow stale documentation while debugging; change a subject vocabulary
-shared across runtimes; add an operation to a contract.
+shared across runtimes; add an operation to a contract. The Rust workspace adds
+a shared crate, the manifest that declares its dependents, a local module that
+shares a name with another crate, and a hyphenated crate beside its underscored
+twin. The Python workspace adds a shared library, a service manifest, an import
+shadowed by a local module, a nested workspace member, an Alembic migration
+bound to its database, and a job whose check is `python -m unittest discover`.
 
 ## Running it
 

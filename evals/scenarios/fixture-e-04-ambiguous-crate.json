@@ -1,0 +1,14 @@
+{
+  "id": "e-04",
+  "repository": "fixture-e",
+  "title": "Change each crate of the foo-bar / foo_bar pair",
+  "touch": ["crates/foo-bar/src/lib.rs", "crates/foo_bar/src/lib.rs"],
+  "truth": ["component:default/foo-bar", "component:default/foo-u-bar"],
+  "critical": [],
+  "verification": [
+    "verify:cargo test -p foo-bar",
+    "verify:cargo clippy -p foo-bar",
+    "verify:cargo test -p foo_bar",
+    "verify:cargo clippy -p foo_bar"
+  ]
+}

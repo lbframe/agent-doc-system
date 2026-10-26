@@ -1,0 +1,9 @@
+{
+  "id": "f-04",
+  "repository": "fixture-f",
+  "title": "Change a nested workspace member, not its parent",
+  "touch": ["python/packages/api/src/api_svc/main.py"],
+  "truth": ["component:default/api-svc", "component:default/core-lib"],
+  "critical": [],
+  "verification": []
+}

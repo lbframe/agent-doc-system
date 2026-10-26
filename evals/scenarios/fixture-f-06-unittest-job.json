@@ -1,0 +1,9 @@
+{
+  "id": "f-06",
+  "repository": "fixture-f",
+  "title": "Change the ledger job exercised by unittest",
+  "touch": ["jobs/ledger-jobs/tests/test_jobs.py"],
+  "truth": ["component:default/ledger-jobs"],
+  "critical": [],
+  "verification": ["verify:python -m unittest discover"]
+}

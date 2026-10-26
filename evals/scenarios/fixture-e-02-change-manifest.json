@@ -1,0 +1,9 @@
+{
+  "id": "e-02",
+  "repository": "fixture-e",
+  "title": "Change the CLI crate manifest",
+  "touch": ["apps/cli/Cargo.toml"],
+  "truth": ["component:default/cli", "component:default/engine", "component:default/testutil", "external:serde"],
+  "critical": [],
+  "verification": ["verify:cargo test -p cli", "verify:cargo clippy -p cli"]
+}

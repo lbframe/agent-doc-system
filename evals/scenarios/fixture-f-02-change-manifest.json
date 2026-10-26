@@ -1,0 +1,9 @@
+{
+  "id": "f-02",
+  "repository": "fixture-f",
+  "title": "Change the ledger API manifest",
+  "touch": ["services/ledger-api/pyproject.toml"],
+  "truth": ["component:default/ledger-api", "component:default/ledger-core", "component:default/ledger-testing", "external:sqlalchemy"],
+  "critical": [],
+  "verification": ["verify:uv run pytest", "verify:uv run ruff check", "verify:uv run mypy"]
+}

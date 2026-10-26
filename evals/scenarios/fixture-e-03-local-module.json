@@ -1,0 +1,9 @@
+{
+  "id": "e-03",
+  "repository": "fixture-e",
+  "title": "Change CLI code that looks like the logging crate and an ambiguous foo_bar import",
+  "touch": ["apps/cli/src/logging.rs", "apps/cli/src/main.rs"],
+  "truth": ["component:default/cli", "component:default/engine"],
+  "critical": [],
+  "verification": ["verify:cargo test -p cli", "verify:cargo clippy -p cli"]
+}

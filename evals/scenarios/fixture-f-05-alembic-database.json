@@ -1,0 +1,9 @@
+{
+  "id": "f-05",
+  "repository": "fixture-f",
+  "title": "Change the ledger API Alembic migration",
+  "touch": ["services/ledger-api/alembic/versions/0001_init.py"],
+  "truth": ["component:default/ledger-api", "uses:resource:default/ledger-api-postgres"],
+  "critical": ["uses:resource:default/ledger-api-postgres"],
+  "verification": ["verify:uv run pytest", "verify:uv run ruff check", "verify:uv run mypy"]
+}
