@@ -234,7 +234,7 @@ const LIB = (name, desc) => [
 
 test("RUST: a Cargo.toml that does not parse stays a unit and yields AGENTDOC_YAML_PARSE", (t) => {
   const dir = catalog(t, {
-    "crates/broken/Cargo.toml": '[package]\nname = "broken"\nversion = "0.1.0"\ndescription = """\nhello\n"""\n',
+    "crates/broken/Cargo.toml": '[package]\nname = "broken"\nversion = "0.1.0"\ndescription = "unterminated\n',
     "crates/broken/src/lib.rs": "pub fn broken() {}\n",
     "crates/broken/agentdoc.yaml": LIB("broken", "Holds a manifest the TOML reader rejects."),
   });
@@ -604,7 +604,7 @@ test("RUST: sqlx, diesel, redis, and aws-sdk-s3 become resource edges", (t) => {
 
 test("RUST: a workspace Cargo.toml that does not parse is a diagnostic, not a crash", (t) => {
   const dir = catalog(t, {
-    "Cargo.toml": '[workspace]\nmembers = """\ncrates/app\n"""\n',
+    "Cargo.toml": '[workspace]\nmembers = "unterminated\n',
     "crates/app/Cargo.toml": '[package]\nname = "app"\nversion = "0.1.0"\n',
     "crates/app/src/lib.rs": "pub fn boot() {}\n",
     "crates/app/agentdoc.yaml": LIB("app", "Sits under a workspace manifest that does not parse."),

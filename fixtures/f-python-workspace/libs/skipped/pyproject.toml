@@ -1,0 +1,8 @@
+[project]
+name = "skipped-dist"
+version = "0.1.0"
+description = "Excluded from the uv workspace."
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

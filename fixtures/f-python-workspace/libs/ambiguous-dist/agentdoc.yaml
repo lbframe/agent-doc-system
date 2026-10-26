@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ambiguous-dist
+  description: "Publishes two packages and does not say which one is the import name."
+spec:
+  type: library
+  system: ledger

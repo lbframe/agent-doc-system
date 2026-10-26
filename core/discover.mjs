@@ -72,12 +72,16 @@ export function discoverUnits(repo, cfg, adapters) {
         const shape = markerShape(marker);
         if (shape === "deployable" || shape === "both") u.deployable = true;
         if (shape === "importable" || shape === "both") u.importable = true;
+        // A manifest with no artifact shape is still a unit. deployable and
+        // importable stay false, so scaffold does not invent a service or a
+        // library. A descriptor is not required before the unit is recognised.
+        if (shape === "present") u.present = true;
       }
     }
   }
 
   const list = [...units.values()].sort((a, b) => (a.root < b.root ? -1 : 1));
-  const eligible = list.filter((u) => u.deployable || u.importable || u.explicit);
+  const eligible = list.filter((u) => u.deployable || u.importable || u.explicit || u.present);
   return { units: list, eligible };
 }
 

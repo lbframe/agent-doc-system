@@ -1,0 +1,13 @@
+version = 1
+
+[[package]]
+name = "pytest"
+version = "8.3.0"
+
+[[package]]
+name = "ruff"
+version = "0.6.0"
+
+[[package]]
+name = "mypy"
+version = "1.11.0"

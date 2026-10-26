@@ -376,6 +376,7 @@ test("the committed graph of every shipped corpus is current with the compiler",
     path.join(ROOT, "fixtures", "b-go-multi-service"),
     path.join(ROOT, "fixtures", "c-alt-monorepo"),
     path.join(ROOT, "fixtures", "e-rust-workspace"),
+    path.join(ROOT, "fixtures", "f-python-workspace"),
   ];
   for (const src of corpora) {
     const name = path.basename(src);

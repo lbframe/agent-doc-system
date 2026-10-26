@@ -1,0 +1,9 @@
+[project]
+name = "ledger-jobs"
+version = "0.1.0"
+description = "Runs ledger maintenance jobs."
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

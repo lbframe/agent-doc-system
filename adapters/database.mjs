@@ -35,6 +35,17 @@ export class DatabaseAdapter extends Adapter {
     if (migrationDirs.length) {
       evidencePath = repo.walk(migrationDirs[0])[0] || migrationDirs[0];
     }
+    const alembicDir = migrationDirs.find((d) => d === "alembic/versions" || d.endsWith("/alembic/versions"));
+    if (alembicDir) {
+      const ini = root + "/alembic.ini";
+      const pyproject = root + "/pyproject.toml";
+      if (repo.exists(ini)) {
+        const text = repo.readText(ini);
+        if (/^\s*\[alembic\]/m.test(text) || /^\s*script_location\s*=/m.test(text)) evidencePath = ini;
+      } else if (repo.exists(pyproject) && /\[tool\.alembic\]/.test(repo.readText(pyproject))) {
+        evidencePath = pyproject;
+      }
+    }
     const pr = prov.add("observed", evidencePath, "migration-extractor", ["der:" + compRef + ":/bindings"]);
 
     // A component that both migrates and opens a connection owns the database.
@@ -96,7 +107,7 @@ export class DatabaseAdapter extends Adapter {
   }
 }
 
-const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|psycopg2?\.connect|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::)/;
+const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|psycopg2?\.connect|asyncpg\.(?:connect|create_pool)|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::|create_engine\s*\(|\bDATABASES\s*=)/;
 
 function hasConnectionEvidence(ctx, unit) {
   for (const f of ctx.repo.walk(unit.root)) {

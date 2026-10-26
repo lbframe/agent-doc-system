@@ -1,0 +1,3 @@
+[tool.uv.workspace]
+members = ["services/*", "libs/*", "jobs/*"]
+exclude = ["libs/skipped"]

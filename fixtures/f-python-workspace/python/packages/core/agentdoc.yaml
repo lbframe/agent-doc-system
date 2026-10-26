@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: core-lib
+  description: "Holds the types the nested API service imports."
+spec:
+  type: library
+  system: ledger
