@@ -27,7 +27,7 @@ export function sourceFiles(repo, root, { test = false, extensions } = {}) {
   const DEFAULT_EXT = /\.(ts|tsx|js|jsx|mts|cts|mjs|cjs|go|py|rb|java|kt|rs|ex|exs|cs|php|swift|scala|sh)$/;
   const re = extensions || DEFAULT_EXT;
   const out = [];
-  for (const f of repo.walk(root)) {
+  for (const f of repo.walkUnit(root)) {
     if (!re.test(f)) continue;
     const isTest = TEST_PATH.test(f) || TEST_FILE.test(f) || /_test\.[a-z]+$/.test(f);
     if (isTest !== test) continue;
@@ -64,8 +64,10 @@ export function findMigrationDirs(repo, root, maxDepth = 5) {
       if (!e.isDirectory() || e.isSymbolicLink()) continue;
       if (["node_modules", ".git", "vendor", "target", "dist", "build", ".next", "__pycache__"].includes(e.name)) continue;
       const abs = path.join(dirAbs, e.name);
+      const rel = path.relative(repo.root, abs).split(path.sep).join("/");
+      if (!repo.ownsUnitPath(root, rel)) continue;
       if (e.name === "migrations" || e.name === "migration") {
-        out.push(path.relative(repo.root, abs).split(path.sep).join("/"));
+        out.push(rel);
         continue;
       }
       // Alembic keeps revisions in versions/ under a directory named alembic.
@@ -84,7 +86,7 @@ export function findMigrationDirs(repo, root, maxDepth = 5) {
 
 export function firstExistingFile(repo, root, names) {
   for (const n of names) {
-    if (repo.exists(root + "/" + n)) return root + "/" + n;
+    if (repo.ownsUnitPath(root, root + "/" + n) && repo.exists(root + "/" + n)) return root + "/" + n;
   }
   return null;
 }

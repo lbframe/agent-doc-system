@@ -33,7 +33,7 @@ export class DatabaseAdapter extends Adapter {
 
     let evidencePath = ormConfig;
     if (migrationDirs.length) {
-      evidencePath = repo.walk(migrationDirs[0])[0] || migrationDirs[0];
+      evidencePath = repo.walkUnit(root, migrationDirs[0])[0] || migrationDirs[0];
     }
     const alembicDir = migrationDirs.find((d) => d === "alembic/versions" || d.endsWith("/alembic/versions"));
     if (alembicDir) {
@@ -110,7 +110,7 @@ export class DatabaseAdapter extends Adapter {
 const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|psycopg2?\.connect|asyncpg\.(?:connect|create_pool)|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::|create_engine\s*\(|\bDATABASES\s*=)/;
 
 function hasConnectionEvidence(ctx, unit) {
-  for (const f of ctx.repo.walk(unit.root)) {
+  for (const f of ctx.repo.walkUnit(unit.root)) {
     if (/\.(ts|tsx|js|mjs|go|py|rb|java|kt|rs|ex|cs|php)$/.test(f)) {
       if (/(^|\/)(tests?|__tests__)\//.test(f)) continue;
       if (POOL_HINT.test(ctx.repo.readText(f))) return true;

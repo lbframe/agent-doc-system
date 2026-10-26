@@ -44,7 +44,7 @@ export class TypeScriptAdapter extends Adapter {
     const routes = [];
     for (const base of ["src/app", "app", "src/pages", "pages"]) {
       if (!repo.isDir(unit.root + "/" + base)) continue;
-      for (const f of repo.walk(unit.root + "/" + base)) {
+      for (const f of repo.walkUnit(unit.root, unit.root + "/" + base)) {
         const routePath = routeFor(unit.root, base, f);
         if (!routePath) continue;
         const rpr = prov.add("observed", f, "route-extractor", ["der:" + compRef + ":/routes"]);

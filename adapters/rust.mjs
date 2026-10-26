@@ -742,9 +742,9 @@ export class RustAdapter extends Adapter {
 function hasRustTests(repo, root) {
   const prefix = unitDir(root);
   const tests = prefix ? prefix + "/tests" : "tests";
-  if (repo.isDir(tests)) return true;
+  if (repo.ownsUnitPath(root, tests) && repo.isDir(tests)) return true;
   const attr = /#\s*\[\s*(?:test|cfg\s*\(\s*test\s*\))\s*\]/;
-  for (const f of repo.walk(prefix)) {
+  for (const f of repo.walkUnit(root, prefix)) {
     if (!f.endsWith(".rs")) continue;
     if (attr.test(repo.readText(f))) return true;
   }

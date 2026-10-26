@@ -578,18 +578,20 @@ function nonEmpty(t) { return Boolean(t && typeof t === "object" && !Array.isArr
 function packageDirs(repo, root) {
   const found = [];
   const src = join(root, "src");
-  if (repo.isDir(src)) {
+  if (repo.ownsUnitPath(root, src) && repo.isDir(src)) {
     for (const name of repo.listDir(src)) {
       if (!name.endsWith("/")) continue;
       const base = name.slice(0, -1);
-      if (repo.exists(join(src, base) + "/__init__.py")) found.push(base);
+      const init = join(src, base) + "/__init__.py";
+      if (repo.ownsUnitPath(root, init) && repo.exists(init)) found.push(base);
     }
   }
   for (const name of repo.listDir(root)) {
     if (!name.endsWith("/")) continue;
     const base = name.slice(0, -1);
     if (SKIP_PKG_DIR.has(base) || base.startsWith(".")) continue;
-    if (repo.exists(join(root, base) + "/__init__.py")) found.push(base);
+    const init = join(root, base) + "/__init__.py";
+    if (repo.ownsUnitPath(root, init) && repo.exists(init)) found.push(base);
   }
   return [...new Set(found)].sort();
 }
@@ -597,7 +599,7 @@ function packageDirs(repo, root) {
 function hasEntrypointFile(repo, root) {
   if (repo.exists(join(root, "manage.py"))) return true;
   const prefix = !root || root === "." ? "" : root + "/";
-  for (const f of repo.walk(root)) {
+  for (const f of repo.walkUnit(root)) {
     if (!f.endsWith("/__main__.py") && f !== prefix + "__main__.py") continue;
     if (/(^|\/)tests?\//.test(prefix ? f.slice(prefix.length) : f)) continue;
     return true;
@@ -648,7 +650,7 @@ function runnerFor(repo, root, tool, warnings) {
 
 function testPyFiles(repo, root) {
   const prefix = !root || root === "." ? "" : root + "/";
-  return repo.walk(root).filter((f) => {
+  return repo.walkUnit(root).filter((f) => {
     if (!f.endsWith(".py")) return false;
     if (prefix && f !== root && !f.startsWith(prefix)) return false;
     const base = prefix ? f.slice(prefix.length) : f;
@@ -997,21 +999,22 @@ function distributionNameAt(repo, dir) {
   return null;
 }
 
-function hasModule(repo, dir, name) {
+function hasModule(repo, unitRoot, dir, name) {
   const base = !dir || dir === "." ? "" : dir;
   const py = (base ? base + "/" : "") + name + ".py";
   const init = (base ? base + "/" : "") + name + "/__init__.py";
-  return repo.exists(py) || repo.exists(init);
+  return (repo.ownsUnitPath(unitRoot, py) && repo.exists(py))
+    || (repo.ownsUnitPath(unitRoot, init) && repo.exists(init));
 }
 
 // Top-level module at the unit root, under src/, or beside the importing file.
 function unitProvidesImport(repo, unitRoot, name, files) {
   const root = !unitRoot || unitRoot === "." ? "" : unitRoot;
-  if (hasModule(repo, root, name)) return true;
-  if (hasModule(repo, root ? root + "/src" : "src", name)) return true;
+  if (hasModule(repo, unitRoot, root, name)) return true;
+  if (hasModule(repo, unitRoot, root ? root + "/src" : "src", name)) return true;
   for (const f of files || []) {
     const slash = f.lastIndexOf("/");
-    if (hasModule(repo, slash < 0 ? "" : f.slice(0, slash), name)) return true;
+    if (hasModule(repo, unitRoot, slash < 0 ? "" : f.slice(0, slash), name)) return true;
   }
   return false;
 }

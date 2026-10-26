@@ -18,7 +18,7 @@ const DOC_EXT = /\.(md|mdx|txt|adoc|rst)$/;
 
 export function contractReferenceSites(repo, unit) {
   const out = new Map(); // file -> true
-  for (const f of repo.walk(unit.root)) {
+  for (const f of repo.walkUnit(unit.root)) {
     const base = path.posix.basename(f);
     if (DOC_EXT.test(f)) continue;
     if (f.includes("/docs/") || f.startsWith("docs/")) continue;

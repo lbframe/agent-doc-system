@@ -59,6 +59,7 @@ export class Repo {
     this.probes = new Map();
     this.walks = new Map();
     this.listings = new Map();
+    this.nestedUnitRoots = new Map();
     this.generatedDirs = new Set(opts.generatedDirs || DEFAULT_GENERATED_DIRS);
     this.noGit = Boolean(opts.noGit);
   }
@@ -139,6 +140,22 @@ export class Repo {
     out.sort();
     this.walks.set(relDir || ".", out);
     return out;
+  }
+  // Per-unit scans use the discovery result, never filesystem heuristics.
+  // Keep walk() repository-wide for discovery, contracts and authored inputs.
+  ownsUnitPath(unitRoot, rel) {
+    const normalize = (p) => path.posix.normalize(p || ".").replace(/^\.$/, "");
+    const root = normalize(unitRoot);
+    const target = normalize(rel);
+    if (root && target !== root && !target.startsWith(root + "/")) return false;
+    for (const child of this.nestedUnitRoots.get(root) || []) {
+      if (target === child || target.startsWith(child + "/")) return false;
+    }
+    return true;
+  }
+  walkUnit(unitRoot, relDir = unitRoot, { exclude = () => false } = {}) {
+    if (!this.ownsUnitPath(unitRoot, relDir)) return [];
+    return this.walk(relDir, { exclude: (rel, ent) => !this.ownsUnitPath(unitRoot, rel) || exclude(rel, ent) });
   }
   // Files under a path or a path *prefix*. A contract is often named by a module
   // prefix rather than a single file (`events.go`, `events/*.go`), and

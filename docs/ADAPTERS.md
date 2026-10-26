@@ -48,6 +48,13 @@ Available on `ctx`:
 | `unitByPythonDist`, `unitByPythonImport` | Python distribution names (PEP 503) and import names, built before extraction |
 | `errors.push({ code, message })` | a hard error, collected rather than thrown |
 
+For per-unit source inventories, use `sourceFiles(repo, unit.root)` or
+`repo.walkUnit(unit.root, directory = unit.root)`. Discovery computes ownership
+once from eligible units: these scans prune nested unit roots, so a file belongs
+only to its deepest enclosing unit. `repo.ownsUnitPath(unit.root, path)` applies
+the same boundary to custom traversals. Keep `repo.walk` for repository-wide
+discovery and authored inputs; explicit cross-unit references can still be read.
+
 ## The three rules
 
 ### 1. An adapter may not know the repository
@@ -240,7 +247,9 @@ Its shape is still only the evidence, so scaffold writes `other` when the
 manifest is neither deployable nor importable. A manifest that only declares
 the workspace, with no distribution of its own, is not a unit.
 
-A `.py` file is indexed for the deepest eligible unit that contains it. A
+A `.py` file uses the shared source inventory and is indexed for the deepest
+eligible unit that contains it. Package, entrypoint and test discovery use the
+same ownership boundaries; workspace-member discovery remains repository-wide. A
 parent unit does not gain an import edge from a file that lives in a nested
 member.
 
