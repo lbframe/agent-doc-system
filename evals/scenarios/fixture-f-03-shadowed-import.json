@@ -1,0 +1,9 @@
+{
+  "id": "f-03",
+  "repository": "fixture-f",
+  "title": "Change the app that imports its own utils module",
+  "touch": ["services/b-app/b_app/main.py"],
+  "truth": ["component:default/b-app"],
+  "critical": [],
+  "verification": []
+}

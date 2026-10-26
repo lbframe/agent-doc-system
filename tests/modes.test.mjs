@@ -347,6 +347,8 @@ test("every bundled corpus compiles, checks and passes its routing scenarios", (
     path.join(ROOT, "fixtures", "a-node-ts-postgres"),
     path.join(ROOT, "fixtures", "b-go-multi-service"),
     path.join(ROOT, "fixtures", "c-alt-monorepo"),
+    path.join(ROOT, "fixtures", "e-rust-workspace"),
+    path.join(ROOT, "fixtures", "f-python-workspace"),
   ];
   for (const src of corpora) {
     const name = path.basename(src);

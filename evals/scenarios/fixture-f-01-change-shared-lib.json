@@ -1,0 +1,9 @@
+{
+  "id": "f-01",
+  "repository": "fixture-f",
+  "title": "Change the shared ledger-core library",
+  "touch": ["libs/ledger-core/src/ledger_core/models.py"],
+  "truth": ["component:default/ledger-core", "component:default/ledger-api"],
+  "critical": [],
+  "verification": ["verify:uv run pytest", "verify:uv run ruff check", "verify:uv run mypy"]
+}

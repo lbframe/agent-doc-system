@@ -1,0 +1,14 @@
+{
+  "id": "e-01",
+  "repository": "fixture-e",
+  "title": "Change the shared engine crate",
+  "touch": ["crates/engine/src/lib.rs"],
+  "truth": ["component:default/engine", "component:default/cli"],
+  "critical": [],
+  "verification": [
+    "verify:cargo test -p engine",
+    "verify:cargo clippy -p engine",
+    "verify:cargo test -p cli",
+    "verify:cargo clippy -p cli"
+  ]
+}

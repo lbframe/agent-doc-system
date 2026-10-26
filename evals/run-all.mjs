@@ -19,6 +19,8 @@ const REPOS = [
   { id: "fixture-a-node-ts-postgres", dir: path.join(ROOT, "fixtures", "a-node-ts-postgres") },
   { id: "fixture-b-go-multi-service", dir: path.join(ROOT, "fixtures", "b-go-multi-service") },
   { id: "fixture-c-alt-monorepo", dir: path.join(ROOT, "fixtures", "c-alt-monorepo") },
+  { id: "fixture-e-rust-workspace", dir: path.join(ROOT, "fixtures", "e-rust-workspace") },
+  { id: "fixture-f-python-workspace", dir: path.join(ROOT, "fixtures", "f-python-workspace") },
 ];
 
 const per = [];
