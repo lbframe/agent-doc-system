@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "0000000",
+    "commit": "7b1cf9ef5044974751a4952400cba52d73398525",
     "dirty": false,
-    "inputHash": "sha256:de1f32283d4218fc73db8bf88349afdcfe2eea05dd573c8a7793916e9cdccd3d"
+    "inputHash": "sha256:2a4efed38c542b1e3c6a20ad5a6ea2919815f1aeda7fa84121974147f980e0b1"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -31,7 +31,7 @@
       },
       {
         "name": "python",
-        "version": "1.0.0"
+        "version": "1.1.0"
       }
     ]
   },
@@ -79,6 +79,51 @@
       }
     },
     {
+      "ref": "component:default/b-app",
+      "kind": "Component",
+      "name": "b-app",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "b-app",
+          "description": "Runs the app whose local utils module is not the sibling distribution."
+        },
+        "spec": {
+          "type": "library",
+          "system": "ledger"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "services/b-app/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "services/b-app",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "python",
+            "path": "services/b-app/pyproject.toml"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "python"
+        ],
+        "runtimes": [
+          "python"
+        ],
+        "pythonDistribution": "b-app",
+        "pythonImportNames": [
+          "b_app"
+        ]
+      }
+    },
+    {
       "ref": "component:default/ledger-api",
       "kind": "Component",
       "name": "ledger-api",
@@ -119,7 +164,7 @@
             "logicalResourceRef": "resource:default/ledger-cache",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0056"
+              "p-0070"
             ]
           },
           {
@@ -127,7 +172,7 @@
             "logicalResourceRef": "resource:default/ledger-api-postgres",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0055"
+              "p-0069"
             ]
           },
           {
@@ -138,7 +183,7 @@
             },
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0060"
+              "p-0074"
             ]
           }
         ],
@@ -152,7 +197,7 @@
             "route": "/health",
             "semantics": "liveness",
             "provenanceIds": [
-              "p-0061"
+              "p-0075"
             ]
           }
         ],
@@ -356,6 +401,51 @@
       }
     },
     {
+      "ref": "component:default/utils",
+      "kind": "Component",
+      "name": "utils",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "utils",
+          "description": "Publishes the utils import name used by no manifest dependency."
+        },
+        "spec": {
+          "type": "library",
+          "system": "ledger"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "libs/utils-dist/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "libs/utils-dist",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "python",
+            "path": "libs/utils-dist/pyproject.toml"
+          }
+        ],
+        "dockerfiles": [],
+        "healthContracts": [],
+        "languages": [
+          "python"
+        ],
+        "runtimes": [
+          "python"
+        ],
+        "pythonDistribution": "utils",
+        "pythonImportNames": [
+          "utils"
+        ]
+      }
+    },
+    {
       "ref": "domain:default/finance",
       "kind": "Domain",
       "name": "finance",
@@ -471,8 +561,8 @@
         "package": "ledger-core"
       },
       "provenanceIds": [
-        "p-0059",
-        "p-0062"
+        "p-0073",
+        "p-0076"
       ]
     },
     {
@@ -487,7 +577,7 @@
         "package": "ledger-proto"
       },
       "provenanceIds": [
-        "p-0063"
+        "p-0077"
       ]
     },
     {
@@ -503,8 +593,8 @@
         "package": "ledger-core"
       },
       "provenanceIds": [
-        "p-0059",
-        "p-0062"
+        "p-0073",
+        "p-0076"
       ]
     },
     {
@@ -519,7 +609,7 @@
         "package": "ledger-proto"
       },
       "provenanceIds": [
-        "p-0063"
+        "p-0077"
       ]
     },
     {
@@ -545,11 +635,21 @@
     {
       "type": "hasPart",
       "sourceRef": "system:default/ledger",
+      "targetRef": "component:default/b-app",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0058"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ledger",
       "targetRef": "component:default/ledger-api",
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0053"
+        "p-0067"
       ]
     },
     {
@@ -595,6 +695,16 @@
     {
       "type": "hasPart",
       "sourceRef": "system:default/ledger",
+      "targetRef": "component:default/utils",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0051"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/ledger",
       "targetRef": "resource:default/ledger-api-postgres",
       "evidenceClass": "AUTHORED",
       "attributes": {},
@@ -634,12 +744,22 @@
     },
     {
       "type": "partOf",
+      "sourceRef": "component:default/b-app",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0058"
+      ]
+    },
+    {
+      "type": "partOf",
       "sourceRef": "component:default/ledger-api",
       "targetRef": "system:default/ledger",
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0053"
+        "p-0067"
       ]
     },
     {
@@ -680,6 +800,16 @@
       "attributes": {},
       "provenanceIds": [
         "p-0044"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/utils",
+      "targetRef": "system:default/ledger",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0051"
       ]
     },
     {
@@ -735,8 +865,8 @@
         "client": "sqlalchemy"
       },
       "provenanceIds": [
-        "p-0055",
-        "p-0057"
+        "p-0069",
+        "p-0071"
       ]
     },
     {
@@ -750,7 +880,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0056"
+        "p-0070"
       ]
     },
     {
@@ -764,7 +894,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0060"
+        "p-0074"
       ]
     },
     {
@@ -779,7 +909,7 @@
         "package": "ledger-testing"
       },
       "provenanceIds": [
-        "p-0059"
+        "p-0073"
       ]
     },
     {
@@ -794,7 +924,7 @@
         "package": "ledger-testing"
       },
       "provenanceIds": [
-        "p-0059"
+        "p-0073"
       ]
     },
     {
@@ -810,8 +940,8 @@
         "client": "sqlalchemy"
       },
       "provenanceIds": [
-        "p-0055",
-        "p-0057"
+        "p-0069",
+        "p-0071"
       ]
     },
     {
@@ -825,7 +955,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0056"
+        "p-0070"
       ]
     },
     {
@@ -839,7 +969,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0060"
+        "p-0074"
       ]
     }
   ],
@@ -854,7 +984,7 @@
       "mechanism": "sdk",
       "evidenceClass": "DERIVED",
       "provenanceIds": [
-        "p-0059"
+        "p-0073"
       ]
     }
   ],
@@ -872,7 +1002,7 @@
         "uv.lock"
       ],
       "provenanceIds": [
-        "p-0059"
+        "p-0073"
       ]
     },
     {
@@ -888,7 +1018,7 @@
         "uv.lock"
       ],
       "provenanceIds": [
-        "p-0059"
+        "p-0073"
       ]
     },
     {
@@ -903,7 +1033,7 @@
         "uv.lock"
       ],
       "provenanceIds": [
-        "p-0059"
+        "p-0073"
       ]
     },
     {
@@ -1047,6 +1177,54 @@
     },
     {
       "id": "a-0011",
+      "subject": "component:default/utils",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0054"
+      ]
+    },
+    {
+      "id": "a-0012",
+      "subject": "component:default/utils",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0054"
+      ]
+    },
+    {
+      "id": "a-0013",
+      "subject": "component:default/b-app",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0061"
+      ]
+    },
+    {
+      "id": "a-0014",
+      "subject": "component:default/b-app",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0061"
+      ]
+    },
+    {
+      "id": "a-0015",
       "subject": "component:default/ledger-api",
       "key": "component.deployable",
       "value": true,
@@ -1054,12 +1232,12 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0050",
-        "p-0058"
+        "p-0064",
+        "p-0072"
       ]
     },
     {
-      "id": "a-0012",
+      "id": "a-0016",
       "subject": "component:default/ledger-api",
       "key": "component.importable",
       "value": true,
@@ -1067,12 +1245,12 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0050",
-        "p-0058"
+        "p-0064",
+        "p-0072"
       ]
     },
     {
-      "id": "a-0013",
+      "id": "a-0017",
       "subject": "component:default/ledger-api",
       "key": "resource.ownership",
       "value": "ledger-api-postgres",
@@ -1080,12 +1258,12 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0055"
+        "p-0069"
       ],
       "semantics": "migration and connection authority in this root resolve to the authored logical database"
     },
     {
-      "id": "a-0014",
+      "id": "a-0018",
       "subject": "component:default/ledger-api",
       "key": "resource.ownership",
       "value": "ledger-api-postgres",
@@ -1093,12 +1271,12 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0057"
+        "p-0071"
       ],
       "semantics": "the component depends on sqlalchemy, declared as a client of the logical-database Resource"
     },
     {
-      "id": "a-0015",
+      "id": "a-0019",
       "subject": "component:default/ledger-jobs",
       "key": "placement.system",
       "value": "ledger",
@@ -1110,7 +1288,7 @@
       ]
     },
     {
-      "id": "a-0016",
+      "id": "a-0020",
       "subject": "component:default/ambiguous-dist",
       "key": "placement.system",
       "value": "ledger",
@@ -1122,7 +1300,7 @@
       ]
     },
     {
-      "id": "a-0017",
+      "id": "a-0021",
       "subject": "component:default/ledger-core",
       "key": "placement.system",
       "value": "ledger",
@@ -1134,7 +1312,7 @@
       ]
     },
     {
-      "id": "a-0018",
+      "id": "a-0022",
       "subject": "component:default/ledger-proto",
       "key": "placement.system",
       "value": "ledger",
@@ -1146,7 +1324,7 @@
       ]
     },
     {
-      "id": "a-0019",
+      "id": "a-0023",
       "subject": "component:default/ledger-testing",
       "key": "placement.system",
       "value": "ledger",
@@ -1158,7 +1336,31 @@
       ]
     },
     {
-      "id": "a-0020",
+      "id": "a-0024",
+      "subject": "component:default/utils",
+      "key": "placement.system",
+      "value": "ledger",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0052"
+      ]
+    },
+    {
+      "id": "a-0025",
+      "subject": "component:default/b-app",
+      "key": "placement.system",
+      "value": "ledger",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0059"
+      ]
+    },
+    {
+      "id": "a-0026",
       "subject": "component:default/ledger-api",
       "key": "placement.system",
       "value": "ledger",
@@ -1166,11 +1368,11 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0054"
+        "p-0068"
       ]
     },
     {
-      "id": "a-0021",
+      "id": "a-0027",
       "subject": "resource:default/ledger-api-postgres",
       "key": "placement.system",
       "value": "ledger",
@@ -1182,7 +1384,7 @@
       ]
     },
     {
-      "id": "a-0022",
+      "id": "a-0028",
       "subject": "resource:default/ledger-cache",
       "key": "placement.system",
       "value": "ledger",
@@ -1194,7 +1396,7 @@
       ]
     },
     {
-      "id": "a-0023",
+      "id": "a-0029",
       "subject": "resource:default/uploads",
       "key": "placement.system",
       "value": "ledger",
@@ -1206,7 +1408,7 @@
       ]
     },
     {
-      "id": "a-0024",
+      "id": "a-0030",
       "subject": "system:default/ledger",
       "key": "placement.domain",
       "value": "finance",
@@ -1231,44 +1433,6 @@
       },
       "contentHash": "sha256:3698a043b001acb1400f919b599f14816e60794dd5015702d975c76e5ad37262",
       "subjects": [
-        "/entities/6",
-        "/entities/6/entity/apiVersion",
-        "/entities/6/entity/kind",
-        "/entities/6/entity/metadata",
-        "/entities/6/entity/metadata/description",
-        "/entities/6/entity/metadata/name",
-        "/entities/6/entity/spec"
-      ]
-    },
-    {
-      "id": "p-0002",
-      "class": "declared",
-      "path": "agentdoc/resources.yaml",
-      "extractor": {
-        "name": "descriptor-reader",
-        "version": "1.0.0"
-      },
-      "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
-      "subjects": [
-        "/entities/7",
-        "/entities/7/entity/apiVersion",
-        "/entities/7/entity/kind",
-        "/entities/7/entity/metadata",
-        "/entities/7/entity/metadata/description",
-        "/entities/7/entity/metadata/name",
-        "/entities/7/entity/spec"
-      ]
-    },
-    {
-      "id": "p-0003",
-      "class": "declared",
-      "path": "agentdoc/resources.yaml",
-      "extractor": {
-        "name": "descriptor-reader",
-        "version": "1.0.0"
-      },
-      "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
-      "subjects": [
         "/entities/8",
         "/entities/8/entity/apiVersion",
         "/entities/8/entity/kind",
@@ -1279,7 +1443,7 @@
       ]
     },
     {
-      "id": "p-0004",
+      "id": "p-0002",
       "class": "declared",
       "path": "agentdoc/resources.yaml",
       "extractor": {
@@ -1298,6 +1462,44 @@
       ]
     },
     {
+      "id": "p-0003",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
+      "subjects": [
+        "/entities/10",
+        "/entities/10/entity/apiVersion",
+        "/entities/10/entity/kind",
+        "/entities/10/entity/metadata",
+        "/entities/10/entity/metadata/description",
+        "/entities/10/entity/metadata/name",
+        "/entities/10/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0004",
+      "class": "declared",
+      "path": "agentdoc/resources.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
+      "subjects": [
+        "/entities/11",
+        "/entities/11/entity/apiVersion",
+        "/entities/11/entity/kind",
+        "/entities/11/entity/metadata",
+        "/entities/11/entity/metadata/description",
+        "/entities/11/entity/metadata/name",
+        "/entities/11/entity/spec"
+      ]
+    },
+    {
       "id": "p-0005",
       "class": "declared",
       "path": "agentdoc/resources.yaml",
@@ -1307,8 +1509,8 @@
       },
       "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
       "subjects": [
-        "/relations/11",
-        "/relations/20"
+        "/relations/13",
+        "/relations/24"
       ]
     },
     {
@@ -1321,8 +1523,8 @@
       },
       "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
       "subjects": [
-        "/relations/12",
-        "/relations/21"
+        "/relations/14",
+        "/relations/25"
       ]
     },
     {
@@ -1335,8 +1537,8 @@
       },
       "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
       "subjects": [
-        "/relations/13",
-        "/relations/22"
+        "/relations/15",
+        "/relations/26"
       ]
     },
     {
@@ -1349,7 +1551,7 @@
       },
       "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
       "subjects": [
-        "/assertions/20"
+        "/assertions/26"
       ]
     },
     {
@@ -1362,7 +1564,7 @@
       },
       "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
       "subjects": [
-        "/assertions/21"
+        "/assertions/27"
       ]
     },
     {
@@ -1375,7 +1577,7 @@
       },
       "contentHash": "sha256:6515526d94b943f1b405b3432660366cd249a442538ca7b845abca3dc7e46c30",
       "subjects": [
-        "/assertions/22"
+        "/assertions/28"
       ]
     },
     {
@@ -1388,13 +1590,13 @@
       },
       "contentHash": "sha256:df9e01db07dfc79ff653e43a10a70e61b0416573436fb93fd1272fcbdcbc778a",
       "subjects": [
-        "/entities/10",
-        "/entities/10/entity/apiVersion",
-        "/entities/10/entity/kind",
-        "/entities/10/entity/metadata",
-        "/entities/10/entity/metadata/description",
-        "/entities/10/entity/metadata/name",
-        "/entities/10/entity/spec"
+        "/entities/12",
+        "/entities/12/entity/apiVersion",
+        "/entities/12/entity/kind",
+        "/entities/12/entity/metadata",
+        "/entities/12/entity/metadata/description",
+        "/entities/12/entity/metadata/name",
+        "/entities/12/entity/spec"
       ]
     },
     {
@@ -1407,7 +1609,7 @@
       },
       "contentHash": "sha256:df9e01db07dfc79ff653e43a10a70e61b0416573436fb93fd1272fcbdcbc778a",
       "subjects": [
-        "/relations/23",
+        "/relations/27",
         "/relations/4"
       ]
     },
@@ -1421,7 +1623,7 @@
       },
       "contentHash": "sha256:df9e01db07dfc79ff653e43a10a70e61b0416573436fb93fd1272fcbdcbc778a",
       "subjects": [
-        "/assertions/23"
+        "/assertions/29"
       ]
     },
     {
@@ -1434,7 +1636,7 @@
       },
       "contentHash": "sha256:4e3417de7983e8e694a950bba35c20d44b1a078eef2cbb7ffc0c8c3d83183f90",
       "subjects": [
-        "/entities/3/derived/sourcePath"
+        "/entities/4/derived/sourcePath"
       ]
     },
     {
@@ -1447,13 +1649,13 @@
       },
       "contentHash": "sha256:4e3417de7983e8e694a950bba35c20d44b1a078eef2cbb7ffc0c8c3d83183f90",
       "subjects": [
-        "/entities/3",
-        "/entities/3/entity/apiVersion",
-        "/entities/3/entity/kind",
-        "/entities/3/entity/metadata",
-        "/entities/3/entity/metadata/description",
-        "/entities/3/entity/metadata/name",
-        "/entities/3/entity/spec"
+        "/entities/4",
+        "/entities/4/entity/apiVersion",
+        "/entities/4/entity/kind",
+        "/entities/4/entity/metadata",
+        "/entities/4/entity/metadata/description",
+        "/entities/4/entity/metadata/name",
+        "/entities/4/entity/spec"
       ]
     },
     {
@@ -1466,8 +1668,8 @@
       },
       "contentHash": "sha256:4e3417de7983e8e694a950bba35c20d44b1a078eef2cbb7ffc0c8c3d83183f90",
       "subjects": [
-        "/relations/17",
-        "/relations/8"
+        "/relations/20",
+        "/relations/9"
       ]
     },
     {
@@ -1480,7 +1682,7 @@
       },
       "contentHash": "sha256:4e3417de7983e8e694a950bba35c20d44b1a078eef2cbb7ffc0c8c3d83183f90",
       "subjects": [
-        "/assertions/14"
+        "/assertions/18"
       ]
     },
     {
@@ -1493,7 +1695,7 @@
       },
       "contentHash": "sha256:6d8729a1d0ac68149837001064cb1843870ef95ee0dc20b31274651b02bed62e",
       "subjects": [
-        "/entities/3/derived/bindings"
+        "/entities/4/derived/bindings"
       ]
     },
     {
@@ -1508,7 +1710,7 @@
       "subjects": [
         "/assertions/0",
         "/assertions/1",
-        "/entities/3/derived/artifact"
+        "/entities/4/derived/artifact"
       ]
     },
     {
@@ -1521,9 +1723,9 @@
       },
       "contentHash": "sha256:6d8729a1d0ac68149837001064cb1843870ef95ee0dc20b31274651b02bed62e",
       "subjects": [
-        "/entities/3/derived/languages",
-        "/entities/3/derived/requiresPython",
-        "/entities/3/derived/runtimes"
+        "/entities/4/derived/languages",
+        "/entities/4/derived/requiresPython",
+        "/entities/4/derived/runtimes"
       ]
     },
     {
@@ -1568,7 +1770,7 @@
       },
       "contentHash": "sha256:28f5bc1c15a6addfe1492690e81904f8f7077e2700cb731492238c72db9d8017",
       "subjects": [
-        "/relations/14",
+        "/relations/16",
         "/relations/5"
       ]
     },
@@ -1582,7 +1784,7 @@
       },
       "contentHash": "sha256:28f5bc1c15a6addfe1492690e81904f8f7077e2700cb731492238c72db9d8017",
       "subjects": [
-        "/assertions/15"
+        "/assertions/19"
       ]
     },
     {
@@ -1637,7 +1839,7 @@
       },
       "contentHash": "sha256:35dc1f89f2860af43144b83036444a0954c4d0511eed08443f774dd91b861aa5",
       "subjects": [
-        "/entities/2/derived/sourcePath"
+        "/entities/3/derived/sourcePath"
       ]
     },
     {
@@ -1650,13 +1852,13 @@
       },
       "contentHash": "sha256:35dc1f89f2860af43144b83036444a0954c4d0511eed08443f774dd91b861aa5",
       "subjects": [
-        "/entities/2",
-        "/entities/2/entity/apiVersion",
-        "/entities/2/entity/kind",
-        "/entities/2/entity/metadata",
-        "/entities/2/entity/metadata/description",
-        "/entities/2/entity/metadata/name",
-        "/entities/2/entity/spec"
+        "/entities/3",
+        "/entities/3/entity/apiVersion",
+        "/entities/3/entity/kind",
+        "/entities/3/entity/metadata",
+        "/entities/3/entity/metadata/description",
+        "/entities/3/entity/metadata/name",
+        "/entities/3/entity/spec"
       ]
     },
     {
@@ -1669,8 +1871,8 @@
       },
       "contentHash": "sha256:35dc1f89f2860af43144b83036444a0954c4d0511eed08443f774dd91b861aa5",
       "subjects": [
-        "/relations/16",
-        "/relations/7"
+        "/relations/19",
+        "/relations/8"
       ]
     },
     {
@@ -1683,7 +1885,7 @@
       },
       "contentHash": "sha256:35dc1f89f2860af43144b83036444a0954c4d0511eed08443f774dd91b861aa5",
       "subjects": [
-        "/assertions/16"
+        "/assertions/20"
       ]
     },
     {
@@ -1696,7 +1898,7 @@
       },
       "contentHash": "sha256:bb36db8b900a9484f1ad743f3e41e6999d056c81aa33aa6b7def62539b5cc19e",
       "subjects": [
-        "/entities/2/derived/bindings"
+        "/entities/3/derived/bindings"
       ]
     },
     {
@@ -1711,7 +1913,7 @@
       "subjects": [
         "/assertions/4",
         "/assertions/5",
-        "/entities/2/derived/artifact"
+        "/entities/3/derived/artifact"
       ]
     },
     {
@@ -1724,9 +1926,9 @@
       },
       "contentHash": "sha256:bb36db8b900a9484f1ad743f3e41e6999d056c81aa33aa6b7def62539b5cc19e",
       "subjects": [
-        "/entities/2/derived/languages",
-        "/entities/2/derived/requiresPython",
-        "/entities/2/derived/runtimes"
+        "/entities/3/derived/languages",
+        "/entities/3/derived/requiresPython",
+        "/entities/3/derived/runtimes"
       ]
     },
     {
@@ -1739,7 +1941,7 @@
       },
       "contentHash": "sha256:ebadca75d89bfaa744356b90e7547bb17286e1fe5534eb55a4cd09b381d62128",
       "subjects": [
-        "/entities/4/derived/sourcePath"
+        "/entities/5/derived/sourcePath"
       ]
     },
     {
@@ -1752,13 +1954,13 @@
       },
       "contentHash": "sha256:ebadca75d89bfaa744356b90e7547bb17286e1fe5534eb55a4cd09b381d62128",
       "subjects": [
-        "/entities/4",
-        "/entities/4/entity/apiVersion",
-        "/entities/4/entity/kind",
-        "/entities/4/entity/metadata",
-        "/entities/4/entity/metadata/description",
-        "/entities/4/entity/metadata/name",
-        "/entities/4/entity/spec"
+        "/entities/5",
+        "/entities/5/entity/apiVersion",
+        "/entities/5/entity/kind",
+        "/entities/5/entity/metadata",
+        "/entities/5/entity/metadata/description",
+        "/entities/5/entity/metadata/name",
+        "/entities/5/entity/spec"
       ]
     },
     {
@@ -1771,8 +1973,8 @@
       },
       "contentHash": "sha256:ebadca75d89bfaa744356b90e7547bb17286e1fe5534eb55a4cd09b381d62128",
       "subjects": [
-        "/relations/18",
-        "/relations/9"
+        "/relations/10",
+        "/relations/21"
       ]
     },
     {
@@ -1785,7 +1987,7 @@
       },
       "contentHash": "sha256:ebadca75d89bfaa744356b90e7547bb17286e1fe5534eb55a4cd09b381d62128",
       "subjects": [
-        "/assertions/17"
+        "/assertions/21"
       ]
     },
     {
@@ -1798,7 +2000,7 @@
       },
       "contentHash": "sha256:185caedfcb569f6d3c114fbb3a4b343b8c032917fed827c4eb2c69dc0e9cd954",
       "subjects": [
-        "/entities/4/derived/bindings"
+        "/entities/5/derived/bindings"
       ]
     },
     {
@@ -1813,7 +2015,7 @@
       "subjects": [
         "/assertions/6",
         "/assertions/7",
-        "/entities/4/derived/artifact"
+        "/entities/5/derived/artifact"
       ]
     },
     {
@@ -1826,9 +2028,9 @@
       },
       "contentHash": "sha256:185caedfcb569f6d3c114fbb3a4b343b8c032917fed827c4eb2c69dc0e9cd954",
       "subjects": [
-        "/entities/4/derived/languages",
-        "/entities/4/derived/requiresPython",
-        "/entities/4/derived/runtimes"
+        "/entities/5/derived/languages",
+        "/entities/5/derived/requiresPython",
+        "/entities/5/derived/runtimes"
       ]
     },
     {
@@ -1841,7 +2043,7 @@
       },
       "contentHash": "sha256:f527c3dda3d92e2dd0413990faf2520443c7db19f46885da268cc8c61753bba4",
       "subjects": [
-        "/entities/5/derived/sourcePath"
+        "/entities/6/derived/sourcePath"
       ]
     },
     {
@@ -1854,13 +2056,13 @@
       },
       "contentHash": "sha256:f527c3dda3d92e2dd0413990faf2520443c7db19f46885da268cc8c61753bba4",
       "subjects": [
-        "/entities/5",
-        "/entities/5/entity/apiVersion",
-        "/entities/5/entity/kind",
-        "/entities/5/entity/metadata",
-        "/entities/5/entity/metadata/description",
-        "/entities/5/entity/metadata/name",
-        "/entities/5/entity/spec"
+        "/entities/6",
+        "/entities/6/entity/apiVersion",
+        "/entities/6/entity/kind",
+        "/entities/6/entity/metadata",
+        "/entities/6/entity/metadata/description",
+        "/entities/6/entity/metadata/name",
+        "/entities/6/entity/spec"
       ]
     },
     {
@@ -1873,8 +2075,8 @@
       },
       "contentHash": "sha256:f527c3dda3d92e2dd0413990faf2520443c7db19f46885da268cc8c61753bba4",
       "subjects": [
-        "/relations/10",
-        "/relations/19"
+        "/relations/11",
+        "/relations/22"
       ]
     },
     {
@@ -1887,7 +2089,7 @@
       },
       "contentHash": "sha256:f527c3dda3d92e2dd0413990faf2520443c7db19f46885da268cc8c61753bba4",
       "subjects": [
-        "/assertions/18"
+        "/assertions/22"
       ]
     },
     {
@@ -1900,7 +2102,7 @@
       },
       "contentHash": "sha256:1a9624bbb5271b5a2b18721e11f4cf7e4e9b05ba001b36663c1548b20536f119",
       "subjects": [
-        "/entities/5/derived/bindings"
+        "/entities/6/derived/bindings"
       ]
     },
     {
@@ -1915,7 +2117,7 @@
       "subjects": [
         "/assertions/8",
         "/assertions/9",
-        "/entities/5/derived/artifact"
+        "/entities/6/derived/artifact"
       ]
     },
     {
@@ -1928,61 +2130,134 @@
       },
       "contentHash": "sha256:1a9624bbb5271b5a2b18721e11f4cf7e4e9b05ba001b36663c1548b20536f119",
       "subjects": [
-        "/entities/5/derived/languages",
-        "/entities/5/derived/requiresPython",
-        "/entities/5/derived/runtimes"
+        "/entities/6/derived/languages",
+        "/entities/6/derived/requiresPython",
+        "/entities/6/derived/runtimes"
       ]
     },
     {
       "id": "p-0049",
       "class": "observed",
-      "path": "services/ledger-api/Dockerfile",
-      "extractor": {
-        "name": "deploy-extractor",
-        "version": "1.0.0"
-      },
-      "contentHash": "sha256:c67b4955d170c4fe3fbe797ebb6da6bc4022b0b4ad9149a8608aaee679496bb6",
-      "subjects": [
-        "/entities/1/derived/artifact"
-      ]
-    },
-    {
-      "id": "p-0050",
-      "class": "observed",
-      "path": "services/ledger-api/Dockerfile",
-      "extractor": {
-        "name": "discovery-dockerfile",
-        "version": "1.0.0"
-      },
-      "contentHash": "sha256:c67b4955d170c4fe3fbe797ebb6da6bc4022b0b4ad9149a8608aaee679496bb6",
-      "subjects": [
-        "/assertions/10",
-        "/assertions/11",
-        "/entities/1/derived/artifact"
-      ]
-    },
-    {
-      "id": "p-0051",
-      "class": "observed",
-      "path": "services/ledger-api/agentdoc.yaml",
+      "path": "libs/utils-dist/agentdoc.yaml",
       "extractor": {
         "name": "descriptor-locator",
         "version": "1.0.0"
       },
-      "contentHash": "sha256:86289bbefe890808481397edd119461151a83465cf5b72295882cbb6fc57736e",
+      "contentHash": "sha256:e5b63d16fb09e8bcd0085ce27085757ea2bbb05f8d617320c08866e5373a8549",
       "subjects": [
-        "/entities/1/derived/sourcePath"
+        "/entities/7/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0050",
+      "class": "declared",
+      "path": "libs/utils-dist/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:e5b63d16fb09e8bcd0085ce27085757ea2bbb05f8d617320c08866e5373a8549",
+      "subjects": [
+        "/entities/7",
+        "/entities/7/entity/apiVersion",
+        "/entities/7/entity/kind",
+        "/entities/7/entity/metadata",
+        "/entities/7/entity/metadata/description",
+        "/entities/7/entity/metadata/name",
+        "/entities/7/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0051",
+      "class": "declared",
+      "path": "libs/utils-dist/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:e5b63d16fb09e8bcd0085ce27085757ea2bbb05f8d617320c08866e5373a8549",
+      "subjects": [
+        "/relations/12",
+        "/relations/23"
       ]
     },
     {
       "id": "p-0052",
       "class": "declared",
-      "path": "services/ledger-api/agentdoc.yaml",
+      "path": "libs/utils-dist/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:e5b63d16fb09e8bcd0085ce27085757ea2bbb05f8d617320c08866e5373a8549",
+      "subjects": [
+        "/assertions/23"
+      ]
+    },
+    {
+      "id": "p-0053",
+      "class": "observed",
+      "path": "libs/utils-dist/pyproject.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1dcce20c0296ed317434ca8a33558073f8a7f4deeaf5b44a8203abced2511fea",
+      "subjects": [
+        "/entities/7/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0054",
+      "class": "observed",
+      "path": "libs/utils-dist/pyproject.toml",
+      "extractor": {
+        "name": "discovery-python",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1dcce20c0296ed317434ca8a33558073f8a7f4deeaf5b44a8203abced2511fea",
+      "subjects": [
+        "/assertions/10",
+        "/assertions/11",
+        "/entities/7/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0055",
+      "class": "observed",
+      "path": "libs/utils-dist/pyproject.toml",
+      "extractor": {
+        "name": "python-manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:1dcce20c0296ed317434ca8a33558073f8a7f4deeaf5b44a8203abced2511fea",
+      "subjects": [
+        "/entities/7/derived/languages",
+        "/entities/7/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0056",
+      "class": "observed",
+      "path": "services/b-app/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6b70477d32e23fdf5924e90b083dd08841c67b64e2d43cd3ee013234ef74dfce",
+      "subjects": [
+        "/entities/1/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0057",
+      "class": "declared",
+      "path": "services/b-app/agentdoc.yaml",
       "extractor": {
         "name": "descriptor-reader",
         "version": "1.0.0"
       },
-      "contentHash": "sha256:86289bbefe890808481397edd119461151a83465cf5b72295882cbb6fc57736e",
+      "contentHash": "sha256:6b70477d32e23fdf5924e90b083dd08841c67b64e2d43cd3ee013234ef74dfce",
       "subjects": [
         "/entities/1",
         "/entities/1/entity/apiVersion",
@@ -1994,7 +2269,117 @@
       ]
     },
     {
-      "id": "p-0053",
+      "id": "p-0058",
+      "class": "declared",
+      "path": "services/b-app/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6b70477d32e23fdf5924e90b083dd08841c67b64e2d43cd3ee013234ef74dfce",
+      "subjects": [
+        "/relations/17",
+        "/relations/6"
+      ]
+    },
+    {
+      "id": "p-0059",
+      "class": "declared",
+      "path": "services/b-app/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6b70477d32e23fdf5924e90b083dd08841c67b64e2d43cd3ee013234ef74dfce",
+      "subjects": [
+        "/assertions/24"
+      ]
+    },
+    {
+      "id": "p-0060",
+      "class": "observed",
+      "path": "services/b-app/pyproject.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2ed1ab6db882c968277d779a661d41119838f122e156c1ed8e70d0314a696b87",
+      "subjects": [
+        "/entities/1/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0061",
+      "class": "observed",
+      "path": "services/b-app/pyproject.toml",
+      "extractor": {
+        "name": "discovery-python",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2ed1ab6db882c968277d779a661d41119838f122e156c1ed8e70d0314a696b87",
+      "subjects": [
+        "/assertions/12",
+        "/assertions/13",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0062",
+      "class": "observed",
+      "path": "services/b-app/pyproject.toml",
+      "extractor": {
+        "name": "python-manifest-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2ed1ab6db882c968277d779a661d41119838f122e156c1ed8e70d0314a696b87",
+      "subjects": [
+        "/entities/1/derived/languages",
+        "/entities/1/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0063",
+      "class": "observed",
+      "path": "services/ledger-api/Dockerfile",
+      "extractor": {
+        "name": "deploy-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c67b4955d170c4fe3fbe797ebb6da6bc4022b0b4ad9149a8608aaee679496bb6",
+      "subjects": [
+        "/entities/2/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0064",
+      "class": "observed",
+      "path": "services/ledger-api/Dockerfile",
+      "extractor": {
+        "name": "discovery-dockerfile",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:c67b4955d170c4fe3fbe797ebb6da6bc4022b0b4ad9149a8608aaee679496bb6",
+      "subjects": [
+        "/assertions/14",
+        "/assertions/15",
+        "/entities/2/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0065",
+      "class": "observed",
+      "path": "services/ledger-api/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:86289bbefe890808481397edd119461151a83465cf5b72295882cbb6fc57736e",
+      "subjects": [
+        "/entities/2/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0066",
       "class": "declared",
       "path": "services/ledger-api/agentdoc.yaml",
       "extractor": {
@@ -2003,12 +2388,31 @@
       },
       "contentHash": "sha256:86289bbefe890808481397edd119461151a83465cf5b72295882cbb6fc57736e",
       "subjects": [
-        "/relations/15",
-        "/relations/6"
+        "/entities/2",
+        "/entities/2/entity/apiVersion",
+        "/entities/2/entity/kind",
+        "/entities/2/entity/metadata",
+        "/entities/2/entity/metadata/description",
+        "/entities/2/entity/metadata/name",
+        "/entities/2/entity/spec"
       ]
     },
     {
-      "id": "p-0054",
+      "id": "p-0067",
+      "class": "declared",
+      "path": "services/ledger-api/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:86289bbefe890808481397edd119461151a83465cf5b72295882cbb6fc57736e",
+      "subjects": [
+        "/relations/18",
+        "/relations/7"
+      ]
+    },
+    {
+      "id": "p-0068",
       "class": "declared",
       "path": "services/ledger-api/agentdoc.yaml",
       "extractor": {
@@ -2017,11 +2421,11 @@
       },
       "contentHash": "sha256:86289bbefe890808481397edd119461151a83465cf5b72295882cbb6fc57736e",
       "subjects": [
-        "/assertions/19"
+        "/assertions/25"
       ]
     },
     {
-      "id": "p-0055",
+      "id": "p-0069",
       "class": "observed",
       "path": "services/ledger-api/alembic.ini",
       "extractor": {
@@ -2030,14 +2434,14 @@
       },
       "contentHash": "sha256:10d3668f5ccae398e3e1ca05ac98fe8d9cde35233d723ece3f1d0cedb712351e",
       "subjects": [
-        "/assertions/12",
-        "/entities/1/derived/bindings",
-        "/relations/24",
-        "/relations/29"
+        "/assertions/16",
+        "/entities/2/derived/bindings",
+        "/relations/28",
+        "/relations/33"
       ]
     },
     {
-      "id": "p-0056",
+      "id": "p-0070",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -2046,13 +2450,13 @@
       },
       "contentHash": "sha256:4a47a565b8cf17d38c5fe1d17d9cfbdd4a46bcdae814c7cd2bb032e5169787da",
       "subjects": [
-        "/entities/1/derived/bindings",
-        "/relations/25",
-        "/relations/30"
+        "/entities/2/derived/bindings",
+        "/relations/29",
+        "/relations/34"
       ]
     },
     {
-      "id": "p-0057",
+      "id": "p-0071",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -2061,14 +2465,14 @@
       },
       "contentHash": "sha256:4a47a565b8cf17d38c5fe1d17d9cfbdd4a46bcdae814c7cd2bb032e5169787da",
       "subjects": [
-        "/assertions/13",
-        "/entities/1/derived/bindings",
-        "/relations/24",
-        "/relations/29"
+        "/assertions/17",
+        "/entities/2/derived/bindings",
+        "/relations/28",
+        "/relations/33"
       ]
     },
     {
-      "id": "p-0058",
+      "id": "p-0072",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -2077,13 +2481,13 @@
       },
       "contentHash": "sha256:4a47a565b8cf17d38c5fe1d17d9cfbdd4a46bcdae814c7cd2bb032e5169787da",
       "subjects": [
-        "/assertions/10",
-        "/assertions/11",
-        "/entities/1/derived/artifact"
+        "/assertions/14",
+        "/assertions/15",
+        "/entities/2/derived/artifact"
       ]
     },
     {
-      "id": "p-0059",
+      "id": "p-0073",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -2092,17 +2496,17 @@
       },
       "contentHash": "sha256:4a47a565b8cf17d38c5fe1d17d9cfbdd4a46bcdae814c7cd2bb032e5169787da",
       "subjects": [
-        "/entities/1/derived/languages",
-        "/entities/1/derived/requiresPython",
-        "/entities/1/derived/runtimes",
+        "/entities/2/derived/languages",
+        "/entities/2/derived/requiresPython",
+        "/entities/2/derived/runtimes",
         "/relations/0",
         "/relations/2",
-        "/relations/27",
-        "/relations/28"
+        "/relations/31",
+        "/relations/32"
       ]
     },
     {
-      "id": "p-0060",
+      "id": "p-0074",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -2111,13 +2515,13 @@
       },
       "contentHash": "sha256:73d54f93f325bf2b7bcf4b4d1f2193da68769de242dce2f5029fb5001ed26bdd",
       "subjects": [
-        "/entities/1/derived/bindings",
-        "/relations/26",
-        "/relations/31"
+        "/entities/2/derived/bindings",
+        "/relations/30",
+        "/relations/35"
       ]
     },
     {
-      "id": "p-0061",
+      "id": "p-0075",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -2126,11 +2530,11 @@
       },
       "contentHash": "sha256:73d54f93f325bf2b7bcf4b4d1f2193da68769de242dce2f5029fb5001ed26bdd",
       "subjects": [
-        "/entities/1/derived/healthContracts"
+        "/entities/2/derived/healthContracts"
       ]
     },
     {
-      "id": "p-0062",
+      "id": "p-0076",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -2144,7 +2548,7 @@
       ]
     },
     {
-      "id": "p-0063",
+      "id": "p-0077",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -2170,6 +2574,19 @@
         "libs/ambiguous-dist/pyproject.toml"
       ],
       "message": "python unit 'libs/ambiguous-dist' has more than one import package and no explicit package list; the import name is left unresolved"
+    },
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_BINDING_AMBIGUOUS",
+      "subject": "component:default/b-app",
+      "refs": [
+        "component:default/b-app"
+      ],
+      "paths": [
+        "services/b-app/b_app/main.py",
+        "services/b-app/pyproject.toml"
+      ],
+      "message": "import utils is provided by unit 'services/b-app' and also by a sibling; no import edge was recorded"
     }
   ]
 }
