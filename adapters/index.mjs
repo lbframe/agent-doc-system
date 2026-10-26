@@ -8,6 +8,7 @@ import { PnpmAdapter } from "./pnpm.mjs";
 import { TurborepoAdapter } from "./turborepo.mjs";
 import { TypeScriptAdapter } from "./typescript.mjs";
 import { GoAdapter } from "./go.mjs";
+import { RustAdapter } from "./rust.mjs";
 import { OpenApiAdapter } from "./openapi.mjs";
 import { ProtobufAdapter } from "./protobuf.mjs";
 import { GraphQLAdapter } from "./graphql.mjs";
@@ -25,7 +26,7 @@ import { AnsibleAdapter } from "./ansible.mjs";
 const REGISTRY = new Map();
 for (const C of [
   GenericAdapter, NodeAdapter, PnpmAdapter, TurborepoAdapter, TypeScriptAdapter,
-  GoAdapter, OpenApiAdapter, ProtobufAdapter, GraphQLAdapter, OidcAdapter,
+  GoAdapter, RustAdapter, OpenApiAdapter, ProtobufAdapter, GraphQLAdapter, OidcAdapter,
   GitHubActionsAdapter, DockerfileAdapter, WranglerAdapter, DatabaseAdapter,
   EventsAdapter, DeployConfigAdapter, ObjectStoreAdapter, CacheAdapter, AnsibleAdapter,
 ]) {

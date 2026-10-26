@@ -1,0 +1,6 @@
+apiVersion: agentdoc.dev/v1
+kind: Domain
+metadata:
+  name: workspace
+  description: "Groups the crates of this Cargo workspace."
+spec: {}

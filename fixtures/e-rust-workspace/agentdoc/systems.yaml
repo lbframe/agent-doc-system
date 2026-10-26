@@ -1,0 +1,7 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: pipeline
+  description: "Builds and runs the workspace command from its member crates."
+spec:
+  domain: workspace

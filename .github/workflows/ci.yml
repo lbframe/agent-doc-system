@@ -44,7 +44,7 @@ jobs:
       - name: Corpora gates
         run: |
           set -e
-          for repo in fixtures/a-node-ts-postgres fixtures/b-go-multi-service fixtures/c-alt-monorepo examples/koda/repo; do
+          for repo in fixtures/a-node-ts-postgres fixtures/b-go-multi-service fixtures/c-alt-monorepo fixtures/e-rust-workspace examples/koda/repo; do
             echo "=== $repo ==="
             (cd "$repo" \
               && node "$GITHUB_WORKSPACE/bin/agentdoc.mjs" validate \

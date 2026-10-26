@@ -15,6 +15,9 @@ const ORM_CONFIG = [
   "prisma/schema.prisma", "schema.prisma",
   "knexfile.js", "knexfile.ts", "sequelize.config.js", "ormconfig.json",
 ];
+// Probed only for a Cargo package. Adding it to the list above would record
+// a new existence probe on every non-Rust unit and change those graphs.
+const RUST_ORM_CONFIG = ["diesel.toml"];
 
 export class DatabaseAdapter extends Adapter {
   static adapterName = "database";
@@ -25,7 +28,7 @@ export class DatabaseAdapter extends Adapter {
     const { repo, prov, compRef } = ctx;
     const root = unit.root;
     const migrationDirs = findMigrationDirs(repo, root);
-    const ormConfig = firstExistingFile(repo, root, ORM_CONFIG);
+    const ormConfig = firstExistingFile(repo, root, unit.cargoPackage ? ORM_CONFIG.concat(RUST_ORM_CONFIG) : ORM_CONFIG);
     if (!migrationDirs.length && !ormConfig) return {};
 
     let evidencePath = ormConfig;
@@ -93,7 +96,7 @@ export class DatabaseAdapter extends Adapter {
   }
 }
 
-const POOL_HINT = /(createPool|new Pool|pg\.Pool|psycopg2?\.connect|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN)/;
+const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|psycopg2?\.connect|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::)/;
 
 function hasConnectionEvidence(ctx, unit) {
   for (const f of ctx.repo.walk(unit.root)) {

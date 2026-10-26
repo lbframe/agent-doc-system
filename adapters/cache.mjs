@@ -10,7 +10,11 @@ export class CacheAdapter extends Adapter {
   }
   extract(ctx, unit) {
     const { repo, prov, compRef } = ctx;
-    const evFile = unit.goModule ? unit.root + "/go.mod" : unit.root + "/package.json";
+    const evFile = unit.goModule
+      ? unit.root + "/go.mod"
+      : repo.exists(unit.root + "/package.json")
+        ? unit.root + "/package.json"
+        : unit.root + "/Cargo.toml";
     if (!repo.exists(evFile)) return {};
     const text = repo.readText(evFile);
     if (!CACHE_HINT.test(text)) return {};

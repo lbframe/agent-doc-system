@@ -22,6 +22,7 @@ import {
   loadNormativeDocuments, verifyCitation, normativeCoverage, isNormative, isRequirementKey, NORMATIVE_SEMANTICS_PREFIX,
 } from "./normative.mjs";
 import { loadAdapters } from "../adapters/index.mjs";
+import { loadCargoUnit, analyzeCargoDeps, rustIdentsInSource } from "../adapters/rust.mjs";
 import {
   COMPILER_NAME, COMPILER_VERSION, GRAPH_SCHEMA_VERSION,
   assembleGraph, serializeGraph, finalizeSerialization, subjectResolver,
@@ -285,6 +286,13 @@ export function compile(root, opts = {}) {
   // ── manifest pre-pass: identify each unit's package / module namespace ────
   // Done before extraction so cross-unit resolution never depends on the order
   // in which units happen to be processed.
+  // Cargo.toml is read only when the rust adapter is on. An existence probe is
+  // part of the input hash, so probing it for every unit would change every
+  // graph that does not enable rust.
+  const rustOn = adapters.some((a) => a.name === "rust");
+  ctx.unitByCrateName = new Map();
+  ctx.ambiguousCrateNames = new Map();
+  ctx.rustAmbiguity = new Map();
   for (const unit of discovery.eligible) {
     const pkgPath = unit.root + "/package.json";
     if (repo.exists(pkgPath)) {
@@ -301,6 +309,7 @@ export function compile(root, opts = {}) {
       const m = /^module\s+(\S+)/m.exec(repo.readText(gomodPath));
       unit.goModule = m ? m[1] : null;
     }
+    if (rustOn) loadCargoUnit(repo, unit);
   }
   const unitByPkgName = new Map();
   const unitByGoModule = new Map();
@@ -310,6 +319,18 @@ export function compile(root, opts = {}) {
   }
   ctx.unitByPkgName = unitByPkgName;
   ctx.unitByGoModule = unitByGoModule;
+  if (rustOn) {
+    const owners = new Map();
+    for (const unit of discovery.eligible) {
+      if (!unit.crateName) continue;
+      if (!owners.has(unit.crateName)) owners.set(unit.crateName, []);
+      owners.get(unit.crateName).push(unit);
+    }
+    for (const [name, list] of [...owners.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+      if (list.length === 1) ctx.unitByCrateName.set(name, list[0]);
+      else ctx.ambiguousCrateNames.set(name, list.slice().sort((a, b) => (a.root < b.root ? -1 : 1)));
+    }
+  }
 
   // Manifest-declared unit dependencies, computed before any adapter runs so
   // that cross-unit reasoning never depends on adapter execution order.
@@ -317,6 +338,7 @@ export function compile(root, opts = {}) {
   // matches a dependency name rather than a blob of source.
   const productionDependencies = new Map();
   const dependencyMap = new Map();
+  const unitsByRoot = new Map(discovery.eligible.map((u) => [u.root, u]));
   for (const unit of discovery.eligible) {
     if (!unit.component) continue;
     const deps = new Set();
@@ -336,6 +358,17 @@ export function compile(root, opts = {}) {
       for (const m of gomod.matchAll(/^\s*(?:require\s+)?([a-z0-9.]+\.[a-z0-9./-]+)\s+v[0-9]/gm)) {
         const t = unitByGoModule.get(m[1]);
         if (t && t.component && t.component.ref !== unit.component.ref) deps.add(t.component.ref);
+      }
+    }
+    if (rustOn && unit.cargoPackage) {
+      const cargo = analyzeCargoDeps(unit, unitsByRoot);
+      productionDependencies.set(unit.component.ref, [
+        ...(productionDependencies.get(unit.component.ref) || []),
+        ...cargo.prodNames,
+      ]);
+      for (const hit of cargo.resolved) {
+        if (hit.ambiguous || !hit.target || !hit.target.component) continue;
+        if (hit.target.component.ref !== unit.component.ref) deps.add(hit.target.component.ref);
       }
     }
     dependencyMap.set(unit.component.ref, deps);
@@ -942,9 +975,11 @@ const GO_IMPORT_RE = /["`]([a-z0-9]+\.[a-z0-9.-]+\/[a-z0-9./_-]+|[a-z0-9]+\.[a-z
 function buildImportIndex(repo, discovery) {
   const byUnit = new Map();
   const goPathsByUnit = new Map();
+  const rustIdentsByUnit = new Map();
   for (const unit of discovery.eligible) {
     const map = new Map();
     const goPaths = new Set();
+    const rustIdents = new Map();
     for (const f of sourceFiles(repo, unit.root, { test: false })) {
       const specifiers = importSpecifiers(repo.readText(f));
       for (const s of specifiers) {
@@ -958,11 +993,19 @@ function buildImportIndex(repo, discovery) {
         // importing it, with no require line at all.
         for (const m of text.matchAll(GO_IMPORT_RE) ) goPaths.add(m[1]);
       }
+      if (unit.cargoPackage && f.endsWith(".rs")) {
+        const text = repo.readText(f);
+        for (const ident of rustIdentsInSource(text)) {
+          if (!rustIdents.has(ident)) rustIdents.set(ident, new Set());
+          rustIdents.get(ident).add(f);
+        }
+      }
     }
     byUnit.set(unit, map);
     goPathsByUnit.set(unit, goPaths);
+    rustIdentsByUnit.set(unit, rustIdents);
   }
-  return { byUnit, goPathsByUnit };
+  return { byUnit, goPathsByUnit, rustIdentsByUnit };
 }
 
 function mergeDerived(target, extra) {

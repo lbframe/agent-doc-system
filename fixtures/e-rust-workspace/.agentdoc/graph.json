@@ -1,0 +1,1645 @@
+{
+  "schemaVersion": "agentdoc.dev/graph/v1",
+  "source": {
+    "commit": "93a785291993be1fca1bc33c751b673303828b83",
+    "dirty": false,
+    "inputHash": "sha256:e1873f3edd88a742cc28380c370f9ed001489e2adf78f749f26c85e608f156f8"
+  },
+  "compiler": {
+    "name": "agentdoc-compiler",
+    "version": "1.1.0",
+    "adapters": [
+      {
+        "name": "generic",
+        "version": "1.0.0"
+      },
+      {
+        "name": "rust",
+        "version": "1.0.1"
+      }
+    ]
+  },
+  "entities": [
+    {
+      "ref": "component:default/cli",
+      "kind": "Component",
+      "name": "cli",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "cli",
+          "description": "Serves the workspace command line."
+        },
+        "spec": {
+          "type": "service",
+          "system": "pipeline"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "apps/cli/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "apps/cli",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "rust",
+            "path": "apps/cli/Cargo.toml"
+          }
+        ],
+        "healthContracts": [],
+        "languages": [
+          "rust"
+        ],
+        "runtimes": [
+          "rust"
+        ],
+        "crateName": "cli",
+        "hasTests": true
+      }
+    },
+    {
+      "ref": "component:default/engine",
+      "kind": "Component",
+      "name": "engine",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "engine",
+          "description": "Shares the types the command line builds on."
+        },
+        "spec": {
+          "type": "library",
+          "system": "pipeline"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "crates/engine/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "crates/engine",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "rust",
+            "path": "crates/engine/Cargo.toml"
+          }
+        ],
+        "healthContracts": [],
+        "languages": [
+          "rust"
+        ],
+        "runtimes": [
+          "rust"
+        ],
+        "crateName": "engine",
+        "hasTests": true
+      }
+    },
+    {
+      "ref": "component:default/foo-bar",
+      "kind": "Component",
+      "name": "foo-bar",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "foo-bar",
+          "description": "Exposes one function under the hyphenated crate name."
+        },
+        "spec": {
+          "type": "library",
+          "system": "pipeline"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "crates/foo-bar/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "crates/foo-bar",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "rust",
+            "path": "crates/foo-bar/Cargo.toml"
+          }
+        ],
+        "healthContracts": [],
+        "languages": [
+          "rust"
+        ],
+        "runtimes": [
+          "rust"
+        ],
+        "crateName": "foo-bar"
+      }
+    },
+    {
+      "ref": "component:default/foo-u-bar",
+      "kind": "Component",
+      "name": "foo-u-bar",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "foo-u-bar",
+          "description": "Exposes one function under the underscored crate name."
+        },
+        "spec": {
+          "type": "library",
+          "system": "pipeline"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "crates/foo_bar/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "crates/foo_bar",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "rust",
+            "path": "crates/foo_bar/Cargo.toml"
+          }
+        ],
+        "healthContracts": [],
+        "languages": [
+          "rust"
+        ],
+        "runtimes": [
+          "rust"
+        ],
+        "crateName": "foo_bar"
+      }
+    },
+    {
+      "ref": "component:default/logging",
+      "kind": "Component",
+      "name": "logging",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "logging",
+          "description": "Provides a logging entry point for crates that declare the dependency."
+        },
+        "spec": {
+          "type": "library",
+          "system": "pipeline"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "crates/logging/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "crates/logging",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "rust",
+            "path": "crates/logging/Cargo.toml"
+          }
+        ],
+        "healthContracts": [],
+        "languages": [
+          "rust"
+        ],
+        "runtimes": [
+          "rust"
+        ],
+        "crateName": "logging"
+      }
+    },
+    {
+      "ref": "component:default/testutil",
+      "kind": "Component",
+      "name": "testutil",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Component",
+        "metadata": {
+          "name": "testutil",
+          "description": "Provides helpers used only from crate tests."
+        },
+        "spec": {
+          "type": "library",
+          "system": "pipeline"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "crates/testutil/agentdoc.yaml"
+      ],
+      "derived": {
+        "sourcePath": "crates/testutil",
+        "docs": [],
+        "constraints": [],
+        "runbooks": [],
+        "markers": [
+          {
+            "adapter": "rust",
+            "path": "crates/testutil/Cargo.toml"
+          }
+        ],
+        "healthContracts": [],
+        "languages": [
+          "rust"
+        ],
+        "runtimes": [
+          "rust"
+        ],
+        "crateName": "testutil"
+      }
+    },
+    {
+      "ref": "domain:default/workspace",
+      "kind": "Domain",
+      "name": "workspace",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "Domain",
+        "metadata": {
+          "name": "workspace",
+          "description": "Groups the crates of this Cargo workspace."
+        },
+        "spec": {}
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/domains.yaml"
+      ]
+    },
+    {
+      "ref": "system:default/pipeline",
+      "kind": "System",
+      "name": "pipeline",
+      "entity": {
+        "apiVersion": "agentdoc.dev/v1",
+        "kind": "System",
+        "metadata": {
+          "name": "pipeline",
+          "description": "Builds and runs the workspace command from its member crates."
+        },
+        "spec": {
+          "domain": "workspace"
+        }
+      },
+      "source": "authored",
+      "sourcePaths": [
+        "agentdoc/systems.yaml"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "type": "buildDependencyOf",
+      "sourceRef": "component:default/engine",
+      "targetRef": "component:default/cli",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "cargo-manifest",
+          "source-import"
+        ],
+        "package": "engine"
+      },
+      "provenanceIds": [
+        "p-0005",
+        "p-0012"
+      ]
+    },
+    {
+      "type": "buildDependsOn",
+      "sourceRef": "component:default/cli",
+      "targetRef": "component:default/engine",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "cargo-manifest",
+          "source-import"
+        ],
+        "package": "engine"
+      },
+      "provenanceIds": [
+        "p-0005",
+        "p-0012"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "domain:default/workspace",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0003"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "component:default/cli",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0010"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "component:default/engine",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0018"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "component:default/foo-bar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0025"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "component:default/foo-u-bar",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0032"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "component:default/logging",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0039"
+      ]
+    },
+    {
+      "type": "hasPart",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "component:default/testutil",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0046"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/cli",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0010"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/engine",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0018"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/foo-bar",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0025"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/foo-u-bar",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0032"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/logging",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0039"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "component:default/testutil",
+      "targetRef": "system:default/pipeline",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0046"
+      ]
+    },
+    {
+      "type": "partOf",
+      "sourceRef": "system:default/pipeline",
+      "targetRef": "domain:default/workspace",
+      "evidenceClass": "AUTHORED",
+      "attributes": {},
+      "provenanceIds": [
+        "p-0003"
+      ]
+    },
+    {
+      "type": "testDependencyOf",
+      "sourceRef": "component:default/testutil",
+      "targetRef": "component:default/cli",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "cargo-manifest"
+        ],
+        "package": "testutil"
+      },
+      "provenanceIds": [
+        "p-0005"
+      ]
+    },
+    {
+      "type": "testDependsOn",
+      "sourceRef": "component:default/cli",
+      "targetRef": "component:default/testutil",
+      "evidenceClass": "DERIVED",
+      "attributes": {
+        "via": [
+          "cargo-manifest"
+        ],
+        "package": "testutil"
+      },
+      "provenanceIds": [
+        "p-0005"
+      ]
+    }
+  ],
+  "interfaces": {
+    "events": []
+  },
+  "externalDependencies": [
+    {
+      "componentRef": "component:default/cli",
+      "name": "serde",
+      "role": "Serialization library declared by the crate manifest.",
+      "mechanism": "sdk",
+      "evidenceClass": "DERIVED",
+      "provenanceIds": [
+        "p-0005"
+      ]
+    }
+  ],
+  "capabilities": [],
+  "verification": [
+    {
+      "id": "component:default/cli:cargo-clippy",
+      "componentRefs": [
+        "component:default/cli"
+      ],
+      "tier": "static",
+      "command": "cargo clippy -p cli",
+      "configPaths": [
+        "apps/cli/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0005"
+      ]
+    },
+    {
+      "id": "component:default/cli:cargo-test",
+      "componentRefs": [
+        "component:default/cli"
+      ],
+      "tier": "unit",
+      "command": "cargo test -p cli",
+      "configPaths": [
+        "apps/cli/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0005"
+      ]
+    },
+    {
+      "id": "component:default/engine:cargo-clippy",
+      "componentRefs": [
+        "component:default/engine"
+      ],
+      "tier": "static",
+      "command": "cargo clippy -p engine",
+      "configPaths": [
+        "crates/engine/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0013"
+      ]
+    },
+    {
+      "id": "component:default/engine:cargo-test",
+      "componentRefs": [
+        "component:default/engine"
+      ],
+      "tier": "unit",
+      "command": "cargo test -p engine",
+      "configPaths": [
+        "crates/engine/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0013"
+      ]
+    },
+    {
+      "id": "component:default/foo-bar:cargo-clippy",
+      "componentRefs": [
+        "component:default/foo-bar"
+      ],
+      "tier": "static",
+      "command": "cargo clippy -p foo-bar",
+      "configPaths": [
+        "crates/foo-bar/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0020"
+      ]
+    },
+    {
+      "id": "component:default/foo-bar:cargo-test",
+      "componentRefs": [
+        "component:default/foo-bar"
+      ],
+      "tier": "unit",
+      "command": "cargo test -p foo-bar",
+      "configPaths": [
+        "crates/foo-bar/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0020"
+      ]
+    },
+    {
+      "id": "component:default/foo-u-bar:cargo-clippy",
+      "componentRefs": [
+        "component:default/foo-u-bar"
+      ],
+      "tier": "static",
+      "command": "cargo clippy -p foo_bar",
+      "configPaths": [
+        "crates/foo_bar/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "id": "component:default/foo-u-bar:cargo-test",
+      "componentRefs": [
+        "component:default/foo-u-bar"
+      ],
+      "tier": "unit",
+      "command": "cargo test -p foo_bar",
+      "configPaths": [
+        "crates/foo_bar/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0027"
+      ]
+    },
+    {
+      "id": "component:default/logging:cargo-clippy",
+      "componentRefs": [
+        "component:default/logging"
+      ],
+      "tier": "static",
+      "command": "cargo clippy -p logging",
+      "configPaths": [
+        "crates/logging/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0034"
+      ]
+    },
+    {
+      "id": "component:default/logging:cargo-test",
+      "componentRefs": [
+        "component:default/logging"
+      ],
+      "tier": "unit",
+      "command": "cargo test -p logging",
+      "configPaths": [
+        "crates/logging/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0034"
+      ]
+    },
+    {
+      "id": "component:default/testutil:cargo-clippy",
+      "componentRefs": [
+        "component:default/testutil"
+      ],
+      "tier": "static",
+      "command": "cargo clippy -p testutil",
+      "configPaths": [
+        "crates/testutil/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0041"
+      ]
+    },
+    {
+      "id": "component:default/testutil:cargo-test",
+      "componentRefs": [
+        "component:default/testutil"
+      ],
+      "tier": "unit",
+      "command": "cargo test -p testutil",
+      "configPaths": [
+        "crates/testutil/Cargo.toml"
+      ],
+      "provenanceIds": [
+        "p-0041"
+      ]
+    }
+  ],
+  "journeys": [],
+  "gates": [],
+  "contracts": [],
+  "assertions": [
+    {
+      "id": "a-0001",
+      "subject": "component:default/cli",
+      "key": "component.deployable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "id": "a-0002",
+      "subject": "component:default/cli",
+      "key": "component.importable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0007"
+      ]
+    },
+    {
+      "id": "a-0003",
+      "subject": "component:default/engine",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ]
+    },
+    {
+      "id": "a-0004",
+      "subject": "component:default/engine",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0015"
+      ]
+    },
+    {
+      "id": "a-0005",
+      "subject": "component:default/foo-bar",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0022"
+      ]
+    },
+    {
+      "id": "a-0006",
+      "subject": "component:default/foo-bar",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0022"
+      ]
+    },
+    {
+      "id": "a-0007",
+      "subject": "component:default/foo-u-bar",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0029"
+      ]
+    },
+    {
+      "id": "a-0008",
+      "subject": "component:default/foo-u-bar",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0029"
+      ]
+    },
+    {
+      "id": "a-0009",
+      "subject": "component:default/logging",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0036"
+      ]
+    },
+    {
+      "id": "a-0010",
+      "subject": "component:default/logging",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0036"
+      ]
+    },
+    {
+      "id": "a-0011",
+      "subject": "component:default/testutil",
+      "key": "component.deployable",
+      "value": false,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0043"
+      ]
+    },
+    {
+      "id": "a-0012",
+      "subject": "component:default/testutil",
+      "key": "component.importable",
+      "value": true,
+      "evidenceClass": "DERIVED",
+      "confidence": "deterministic",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0043"
+      ]
+    },
+    {
+      "id": "a-0013",
+      "subject": "component:default/cli",
+      "key": "placement.system",
+      "value": "pipeline",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0011"
+      ]
+    },
+    {
+      "id": "a-0014",
+      "subject": "component:default/engine",
+      "key": "placement.system",
+      "value": "pipeline",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0019"
+      ]
+    },
+    {
+      "id": "a-0015",
+      "subject": "component:default/foo-bar",
+      "key": "placement.system",
+      "value": "pipeline",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0026"
+      ]
+    },
+    {
+      "id": "a-0016",
+      "subject": "component:default/foo-u-bar",
+      "key": "placement.system",
+      "value": "pipeline",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0033"
+      ]
+    },
+    {
+      "id": "a-0017",
+      "subject": "component:default/logging",
+      "key": "placement.system",
+      "value": "pipeline",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0040"
+      ]
+    },
+    {
+      "id": "a-0018",
+      "subject": "component:default/testutil",
+      "key": "placement.system",
+      "value": "pipeline",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0047"
+      ]
+    },
+    {
+      "id": "a-0019",
+      "subject": "system:default/pipeline",
+      "key": "placement.domain",
+      "value": "workspace",
+      "evidenceClass": "AUTHORED",
+      "confidence": "declared",
+      "status": "elected",
+      "provenanceIds": [
+        "p-0004"
+      ]
+    }
+  ],
+  "conflicts": [],
+  "observations": [],
+  "provenance": [
+    {
+      "id": "p-0001",
+      "class": "declared",
+      "path": "agentdoc/domains.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:413a03f45dd88fd2059b5062ebf6260fd0fdee75320c50af6dbc1df3e4ff1fec",
+      "subjects": [
+        "/entities/6",
+        "/entities/6/entity/apiVersion",
+        "/entities/6/entity/kind",
+        "/entities/6/entity/metadata",
+        "/entities/6/entity/metadata/description",
+        "/entities/6/entity/metadata/name",
+        "/entities/6/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0002",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ce9253b39f0a18786d800a613c34a3e34248636cc95b65daee25db55e8b58a5d",
+      "subjects": [
+        "/entities/7",
+        "/entities/7/entity/apiVersion",
+        "/entities/7/entity/kind",
+        "/entities/7/entity/metadata",
+        "/entities/7/entity/metadata/description",
+        "/entities/7/entity/metadata/name",
+        "/entities/7/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0003",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ce9253b39f0a18786d800a613c34a3e34248636cc95b65daee25db55e8b58a5d",
+      "subjects": [
+        "/relations/15",
+        "/relations/2"
+      ]
+    },
+    {
+      "id": "p-0004",
+      "class": "declared",
+      "path": "agentdoc/systems.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:ce9253b39f0a18786d800a613c34a3e34248636cc95b65daee25db55e8b58a5d",
+      "subjects": [
+        "/assertions/18"
+      ]
+    },
+    {
+      "id": "p-0005",
+      "class": "observed",
+      "path": "apps/cli/Cargo.toml",
+      "extractor": {
+        "name": "cargo-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:766d6ef80c23224496d10edb84cb2e2314893b69f16ee867d4080a9d8813cefc",
+      "subjects": [
+        "/entities/0/derived/languages",
+        "/entities/0/derived/runtimes",
+        "/relations/0",
+        "/relations/1",
+        "/relations/16",
+        "/relations/17"
+      ]
+    },
+    {
+      "id": "p-0006",
+      "class": "observed",
+      "path": "apps/cli/Cargo.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:766d6ef80c23224496d10edb84cb2e2314893b69f16ee867d4080a9d8813cefc",
+      "subjects": [
+        "/entities/0/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0007",
+      "class": "observed",
+      "path": "apps/cli/Cargo.toml",
+      "extractor": {
+        "name": "discovery-rust",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:766d6ef80c23224496d10edb84cb2e2314893b69f16ee867d4080a9d8813cefc",
+      "subjects": [
+        "/assertions/0",
+        "/assertions/1",
+        "/entities/0/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0008",
+      "class": "observed",
+      "path": "apps/cli/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2b2ce8c011ab5e7a948fcaca4a7b84154196d250cdfe0497aa86691974640723",
+      "subjects": [
+        "/entities/0/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0009",
+      "class": "declared",
+      "path": "apps/cli/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2b2ce8c011ab5e7a948fcaca4a7b84154196d250cdfe0497aa86691974640723",
+      "subjects": [
+        "/entities/0",
+        "/entities/0/entity/apiVersion",
+        "/entities/0/entity/kind",
+        "/entities/0/entity/metadata",
+        "/entities/0/entity/metadata/description",
+        "/entities/0/entity/metadata/name",
+        "/entities/0/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0010",
+      "class": "declared",
+      "path": "apps/cli/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2b2ce8c011ab5e7a948fcaca4a7b84154196d250cdfe0497aa86691974640723",
+      "subjects": [
+        "/relations/3",
+        "/relations/9"
+      ]
+    },
+    {
+      "id": "p-0011",
+      "class": "declared",
+      "path": "apps/cli/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2b2ce8c011ab5e7a948fcaca4a7b84154196d250cdfe0497aa86691974640723",
+      "subjects": [
+        "/assertions/12"
+      ]
+    },
+    {
+      "id": "p-0012",
+      "class": "observed",
+      "path": "apps/cli/src/main.rs",
+      "extractor": {
+        "name": "cargo-import-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:233abddab911aae502b37396c47ffdeaaf84e94bb3603b6954a7d2b3a05f1953",
+      "subjects": [
+        "/relations/0",
+        "/relations/1"
+      ]
+    },
+    {
+      "id": "p-0013",
+      "class": "observed",
+      "path": "crates/engine/Cargo.toml",
+      "extractor": {
+        "name": "cargo-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:38f7720b0d4aa45a2041a305727fa010229b6dc7a3679f66788f359049c4cff2",
+      "subjects": [
+        "/entities/1/derived/languages",
+        "/entities/1/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0014",
+      "class": "observed",
+      "path": "crates/engine/Cargo.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:38f7720b0d4aa45a2041a305727fa010229b6dc7a3679f66788f359049c4cff2",
+      "subjects": [
+        "/entities/1/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0015",
+      "class": "observed",
+      "path": "crates/engine/Cargo.toml",
+      "extractor": {
+        "name": "discovery-rust",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:38f7720b0d4aa45a2041a305727fa010229b6dc7a3679f66788f359049c4cff2",
+      "subjects": [
+        "/assertions/2",
+        "/assertions/3",
+        "/entities/1/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0016",
+      "class": "observed",
+      "path": "crates/engine/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2a0d380075c720162155d1142e7a1963956c6059134955e000162b38025195fb",
+      "subjects": [
+        "/entities/1/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0017",
+      "class": "declared",
+      "path": "crates/engine/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2a0d380075c720162155d1142e7a1963956c6059134955e000162b38025195fb",
+      "subjects": [
+        "/entities/1",
+        "/entities/1/entity/apiVersion",
+        "/entities/1/entity/kind",
+        "/entities/1/entity/metadata",
+        "/entities/1/entity/metadata/description",
+        "/entities/1/entity/metadata/name",
+        "/entities/1/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0018",
+      "class": "declared",
+      "path": "crates/engine/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2a0d380075c720162155d1142e7a1963956c6059134955e000162b38025195fb",
+      "subjects": [
+        "/relations/10",
+        "/relations/4"
+      ]
+    },
+    {
+      "id": "p-0019",
+      "class": "declared",
+      "path": "crates/engine/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:2a0d380075c720162155d1142e7a1963956c6059134955e000162b38025195fb",
+      "subjects": [
+        "/assertions/13"
+      ]
+    },
+    {
+      "id": "p-0020",
+      "class": "observed",
+      "path": "crates/foo-bar/Cargo.toml",
+      "extractor": {
+        "name": "cargo-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5251b10aeb91f85a3f56f6fc06c1b7738aaef28ef7ba4d6853e71c02243aebca",
+      "subjects": [
+        "/entities/2/derived/languages",
+        "/entities/2/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0021",
+      "class": "observed",
+      "path": "crates/foo-bar/Cargo.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5251b10aeb91f85a3f56f6fc06c1b7738aaef28ef7ba4d6853e71c02243aebca",
+      "subjects": [
+        "/entities/2/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0022",
+      "class": "observed",
+      "path": "crates/foo-bar/Cargo.toml",
+      "extractor": {
+        "name": "discovery-rust",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:5251b10aeb91f85a3f56f6fc06c1b7738aaef28ef7ba4d6853e71c02243aebca",
+      "subjects": [
+        "/assertions/4",
+        "/assertions/5",
+        "/entities/2/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0023",
+      "class": "observed",
+      "path": "crates/foo-bar/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:85ab140322660610951b4ea970e2e44b516dda11abe9bf2495fb89f2721d180c",
+      "subjects": [
+        "/entities/2/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0024",
+      "class": "declared",
+      "path": "crates/foo-bar/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:85ab140322660610951b4ea970e2e44b516dda11abe9bf2495fb89f2721d180c",
+      "subjects": [
+        "/entities/2",
+        "/entities/2/entity/apiVersion",
+        "/entities/2/entity/kind",
+        "/entities/2/entity/metadata",
+        "/entities/2/entity/metadata/description",
+        "/entities/2/entity/metadata/name",
+        "/entities/2/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0025",
+      "class": "declared",
+      "path": "crates/foo-bar/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:85ab140322660610951b4ea970e2e44b516dda11abe9bf2495fb89f2721d180c",
+      "subjects": [
+        "/relations/11",
+        "/relations/5"
+      ]
+    },
+    {
+      "id": "p-0026",
+      "class": "declared",
+      "path": "crates/foo-bar/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:85ab140322660610951b4ea970e2e44b516dda11abe9bf2495fb89f2721d180c",
+      "subjects": [
+        "/assertions/14"
+      ]
+    },
+    {
+      "id": "p-0027",
+      "class": "observed",
+      "path": "crates/foo_bar/Cargo.toml",
+      "extractor": {
+        "name": "cargo-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:59961f86a72caaa6a717faf50c4f6fe62a50dd3fffc6f46a8d32c153329be56b",
+      "subjects": [
+        "/entities/3/derived/languages",
+        "/entities/3/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0028",
+      "class": "observed",
+      "path": "crates/foo_bar/Cargo.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:59961f86a72caaa6a717faf50c4f6fe62a50dd3fffc6f46a8d32c153329be56b",
+      "subjects": [
+        "/entities/3/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0029",
+      "class": "observed",
+      "path": "crates/foo_bar/Cargo.toml",
+      "extractor": {
+        "name": "discovery-rust",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:59961f86a72caaa6a717faf50c4f6fe62a50dd3fffc6f46a8d32c153329be56b",
+      "subjects": [
+        "/assertions/6",
+        "/assertions/7",
+        "/entities/3/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0030",
+      "class": "observed",
+      "path": "crates/foo_bar/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:355eba9e00da062ed8c857f77465221fd40c8d966bf8a47712a557ac55a0109a",
+      "subjects": [
+        "/entities/3/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0031",
+      "class": "declared",
+      "path": "crates/foo_bar/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:355eba9e00da062ed8c857f77465221fd40c8d966bf8a47712a557ac55a0109a",
+      "subjects": [
+        "/entities/3",
+        "/entities/3/entity/apiVersion",
+        "/entities/3/entity/kind",
+        "/entities/3/entity/metadata",
+        "/entities/3/entity/metadata/description",
+        "/entities/3/entity/metadata/name",
+        "/entities/3/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0032",
+      "class": "declared",
+      "path": "crates/foo_bar/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:355eba9e00da062ed8c857f77465221fd40c8d966bf8a47712a557ac55a0109a",
+      "subjects": [
+        "/relations/12",
+        "/relations/6"
+      ]
+    },
+    {
+      "id": "p-0033",
+      "class": "declared",
+      "path": "crates/foo_bar/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:355eba9e00da062ed8c857f77465221fd40c8d966bf8a47712a557ac55a0109a",
+      "subjects": [
+        "/assertions/15"
+      ]
+    },
+    {
+      "id": "p-0034",
+      "class": "observed",
+      "path": "crates/logging/Cargo.toml",
+      "extractor": {
+        "name": "cargo-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e8eeb28f1781c8837ff2335d738031f5b0c88fa5e037ad037b3fd3534840a8e",
+      "subjects": [
+        "/entities/4/derived/languages",
+        "/entities/4/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0035",
+      "class": "observed",
+      "path": "crates/logging/Cargo.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e8eeb28f1781c8837ff2335d738031f5b0c88fa5e037ad037b3fd3534840a8e",
+      "subjects": [
+        "/entities/4/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0036",
+      "class": "observed",
+      "path": "crates/logging/Cargo.toml",
+      "extractor": {
+        "name": "discovery-rust",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:4e8eeb28f1781c8837ff2335d738031f5b0c88fa5e037ad037b3fd3534840a8e",
+      "subjects": [
+        "/assertions/8",
+        "/assertions/9",
+        "/entities/4/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0037",
+      "class": "observed",
+      "path": "crates/logging/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:0eb192c39db89f977cccdcd28a30e42ccad5351a4b814c2e4be9d2afe88348b8",
+      "subjects": [
+        "/entities/4/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0038",
+      "class": "declared",
+      "path": "crates/logging/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:0eb192c39db89f977cccdcd28a30e42ccad5351a4b814c2e4be9d2afe88348b8",
+      "subjects": [
+        "/entities/4",
+        "/entities/4/entity/apiVersion",
+        "/entities/4/entity/kind",
+        "/entities/4/entity/metadata",
+        "/entities/4/entity/metadata/description",
+        "/entities/4/entity/metadata/name",
+        "/entities/4/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0039",
+      "class": "declared",
+      "path": "crates/logging/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:0eb192c39db89f977cccdcd28a30e42ccad5351a4b814c2e4be9d2afe88348b8",
+      "subjects": [
+        "/relations/13",
+        "/relations/7"
+      ]
+    },
+    {
+      "id": "p-0040",
+      "class": "declared",
+      "path": "crates/logging/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:0eb192c39db89f977cccdcd28a30e42ccad5351a4b814c2e4be9d2afe88348b8",
+      "subjects": [
+        "/assertions/16"
+      ]
+    },
+    {
+      "id": "p-0041",
+      "class": "observed",
+      "path": "crates/testutil/Cargo.toml",
+      "extractor": {
+        "name": "cargo-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6121bef7297d3612ed57480cff7d2205cd423f99bbdb4ac4b7ff58b6eaa74f1c",
+      "subjects": [
+        "/entities/5/derived/languages",
+        "/entities/5/derived/runtimes"
+      ]
+    },
+    {
+      "id": "p-0042",
+      "class": "observed",
+      "path": "crates/testutil/Cargo.toml",
+      "extractor": {
+        "name": "client-resolver",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6121bef7297d3612ed57480cff7d2205cd423f99bbdb4ac4b7ff58b6eaa74f1c",
+      "subjects": [
+        "/entities/5/derived/bindings"
+      ]
+    },
+    {
+      "id": "p-0043",
+      "class": "observed",
+      "path": "crates/testutil/Cargo.toml",
+      "extractor": {
+        "name": "discovery-rust",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:6121bef7297d3612ed57480cff7d2205cd423f99bbdb4ac4b7ff58b6eaa74f1c",
+      "subjects": [
+        "/assertions/10",
+        "/assertions/11",
+        "/entities/5/derived/artifact"
+      ]
+    },
+    {
+      "id": "p-0044",
+      "class": "observed",
+      "path": "crates/testutil/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-locator",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8b650a4889789cd949f245f1b11e20ff2c387b0343e3a3dcab5b1a79f433c12c",
+      "subjects": [
+        "/entities/5/derived/sourcePath"
+      ]
+    },
+    {
+      "id": "p-0045",
+      "class": "declared",
+      "path": "crates/testutil/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8b650a4889789cd949f245f1b11e20ff2c387b0343e3a3dcab5b1a79f433c12c",
+      "subjects": [
+        "/entities/5",
+        "/entities/5/entity/apiVersion",
+        "/entities/5/entity/kind",
+        "/entities/5/entity/metadata",
+        "/entities/5/entity/metadata/description",
+        "/entities/5/entity/metadata/name",
+        "/entities/5/entity/spec"
+      ]
+    },
+    {
+      "id": "p-0046",
+      "class": "declared",
+      "path": "crates/testutil/agentdoc.yaml",
+      "extractor": {
+        "name": "descriptor-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8b650a4889789cd949f245f1b11e20ff2c387b0343e3a3dcab5b1a79f433c12c",
+      "subjects": [
+        "/relations/14",
+        "/relations/8"
+      ]
+    },
+    {
+      "id": "p-0047",
+      "class": "declared",
+      "path": "crates/testutil/agentdoc.yaml",
+      "extractor": {
+        "name": "placement-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:8b650a4889789cd949f245f1b11e20ff2c387b0343e3a3dcab5b1a79f433c12c",
+      "subjects": [
+        "/assertions/17"
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "AGENTDOC_BINDING_AMBIGUOUS",
+      "message": "crate import 'foo_bar' matches 2 crates (foo-bar, foo_bar); no dependency edge was created",
+      "paths": [
+        "apps/cli/src/main.rs",
+        "crates/foo-bar/Cargo.toml",
+        "crates/foo_bar/Cargo.toml"
+      ],
+      "refs": [
+        "component:default/cli",
+        "component:default/foo-bar",
+        "component:default/foo-u-bar"
+      ]
+    }
+  ]
+}
