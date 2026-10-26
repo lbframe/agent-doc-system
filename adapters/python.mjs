@@ -15,8 +15,9 @@
 //     the single package directory present. Two or more, and no list, is
 //     ambiguous: the unit is still importable, and the import name is not
 //     recorded.
-//   present — a Python manifest with neither of the above. It corroborates a
-//     descriptor; it does not invent a service or a library.
+//   present — a Python manifest with neither of the above. A declared
+//     workspace member in this shape is still a unit. It does not invent a
+//     service or a library.
 //
 // Nothing here executes Python, resolves a lockfile, or reads the network.
 // A PEP 508 marker is recognised and then ignored: evaluating it would be a
@@ -369,6 +370,8 @@ function readPyproject(repo, root, loc) {
   info.mypyInManifest = Boolean(doc.tool && doc.tool.mypy);
   const scripts = nonEmpty(project && project.scripts) || nonEmpty(project && project["gui-scripts"]) || nonEmpty(poetry && poetry.scripts);
   info.deployable = scripts || hasEntrypointFile(repo, root);
+  const ws = doc.tool && doc.tool.uv && doc.tool.uv.workspace;
+  info.virtualWorkspace = Boolean(ws && typeof ws === "object" && !Array.isArray(ws) && !info.dist);
   return finish(repo, root, info, explicitImportNames(doc));
 }
 
@@ -677,7 +680,7 @@ function addCommand(ctx, compRef, prov, id, tier, command, configPaths) {
 export class PythonAdapter extends Adapter {
   static adapterName = "python";
   constructor() {
-    super({ name: "python", version: "1.1.0", kind: "unit-marker" });
+    super({ name: "python", version: "1.2.0", kind: "unit-marker" });
   }
 
   roots(ctx) {
@@ -690,7 +693,17 @@ export class PythonAdapter extends Adapter {
       const excluded = new Set(expandMembers(ctx.repo, ws.dir, ws.table.exclude || []));
       for (const dir of members) {
         if (excluded.has(dir) || skippedRoot(ctx, dir)) continue;
-        if (hasMarker(ctx.repo, dir)) out.set(dir, { root: dir });
+        if (!hasMarker(ctx.repo, dir)) continue;
+        const info = readPythonUnit(ctx.repo, dir);
+        // A member that only declares a workspace has no distribution and no
+        // shape. It is the workspace file, not a unit. Every other manifest
+        // is a unit; shape stays whatever the manifest and tree show.
+        if (!info.manifest || workspaceWithoutDistribution(info)) continue;
+        out.set(dir, {
+          root: dir,
+          deployable: Boolean(info.deployable),
+          importable: Boolean(info.importable),
+        });
       }
     }
     for (const dir of out.keys()) hop.add(dir);
@@ -712,7 +725,7 @@ export class PythonAdapter extends Adapter {
 
   detect(ctx, root) {
     const info = readPythonUnit(ctx.repo, root);
-    if (!info.manifest) return null;
+    if (!info.manifest || workspaceWithoutDistribution(info)) return null;
     const shape = info.deployable && info.importable ? "both" : info.deployable ? "deployable" : info.importable ? "importable" : "present";
     return { path: info.manifest, shape };
   }
@@ -867,6 +880,10 @@ export class PythonAdapter extends Adapter {
 }
 
 function locSetupCfg(unit) { return join(unit.root, "setup.cfg"); }
+
+function workspaceWithoutDistribution(info) {
+  return Boolean(info && info.virtualWorkspace && !info.dist && !info.deployable && !info.importable && !info.error);
+}
 
 function hasMarker(repo, dir) {
   return repo.exists(dir + "/pyproject.toml") || repo.exists(dir + "/setup.cfg") || repo.exists(dir + "/setup.py")

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: api-svc
+  description: "Reads the nested core library without declaring a build backend."
+spec:
+  type: other
+  system: ledger

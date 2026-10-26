@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: root
+  description: "Owns the nested uv workspace and does not re-export its members."
+spec:
+  type: other
+  system: ledger

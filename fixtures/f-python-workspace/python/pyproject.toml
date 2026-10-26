@@ -1,0 +1,7 @@
+[project]
+name = "root"
+version = "0.1.0"
+description = "Workspace root that also publishes a distribution."
+
+[tool.uv.workspace]
+members = ["packages/*"]

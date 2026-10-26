@@ -6,6 +6,7 @@ discovery:
     - "services/**/agentdoc.yaml"
     - "libs/**/agentdoc.yaml"
     - "jobs/**/agentdoc.yaml"
+    - "python/**/agentdoc.yaml"
   centralDescriptors:
     - agentdoc/domains.yaml
     - agentdoc/systems.yaml

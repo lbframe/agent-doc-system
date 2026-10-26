@@ -195,9 +195,8 @@ matches two sibling crates (`foo-bar` and `foo_bar` are both `foo_bar`) is
 with a sibling; a workspace member outside the repository; a workspace
 manifest deeper than the search bound; a `#[cfg(test)]` or `#[test]` item,
 which is not a production import; a duplicate package name, which is not
-elected either. A `Cargo.toml` this TOML reader rejects (multi-line strings
-and anything else it refuses) yields `AGENTDOC_YAML_PARSE` and no dependency
-edges. The unit is still recognised when a `[package]` header is present, so
+elected either. A `Cargo.toml` this TOML reader rejects yields
+`AGENTDOC_YAML_PARSE` and no dependency edges. The unit is still recognised when a `[package]` header is present, so
 a parse failure is not an empty unit and not a crash. Char literals and
 lifetimes are not strings: a lifetime does not hide the imports after it, and
 a `"` string that spans lines does not leak the idents inside it.
@@ -235,8 +234,15 @@ A uv workspace manifest is read at the repository root and below it, to a
 fixed depth, in path order, staying inside the repository. `notUnitRoots` and
 generated directories are not searched. `workspace = true` names the member of
 the nearest enclosing workspace whose distribution name matches; another unit
-with the same name is not substituted. A manifest that only declares the
-workspace, with no distribution of its own, is not a unit.
+with the same name is not substituted. Every declared member that has a Python
+manifest is a unit, including one with no build backend and no entrypoint.
+Its shape is still only the evidence, so scaffold writes `other` when the
+manifest is neither deployable nor importable. A manifest that only declares
+the workspace, with no distribution of its own, is not a unit.
+
+A `.py` file is indexed for the deepest eligible unit that contains it. A
+parent unit does not gain an import edge from a file that lives in a nested
+member.
 
 An import is not evidence of a sibling when the importing unit itself provides
 that top-level module or package — at the unit root, under `src/`, or in the

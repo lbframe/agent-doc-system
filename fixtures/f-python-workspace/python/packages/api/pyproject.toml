@@ -1,0 +1,10 @@
+[project]
+name = "api-svc"
+version = "0.1.0"
+description = "Workspace member with a manifest and no build backend."
+dependencies = [
+  "core-lib",
+]
+
+[tool.uv.sources]
+core-lib = { workspace = true }

@@ -201,7 +201,15 @@ test("PYTHON: the workspace fixture derives edges, commands and the refused impo
   assert.deepEqual(res.errors.map((e) => e.code), []);
   const g = res.graph;
   const names = g.entities.filter((e) => e.kind === "Component").map((e) => e.name).sort();
-  assert.deepEqual(names, ["ambiguous-dist", "b-app", "ledger-api", "ledger-core", "ledger-jobs", "ledger-proto", "ledger-testing", "utils"]);
+  assert.deepEqual(names, ["ambiguous-dist", "api-svc", "b-app", "core-lib", "ledger-api", "ledger-core", "ledger-jobs", "ledger-proto", "ledger-testing", "root", "utils"]);
+  const nested = edge(g, "buildDependsOn", "api-svc", "core-lib");
+  assert.deepEqual(nested.attributes.via, ["python-import", "python-manifest"]);
+  assert.equal(nested.attributes.package, "core-lib");
+  assert.equal(edge(g, "buildDependsOn", "root", "core-lib"), undefined);
+  assert.equal(edge(g, "testDependsOn", "root", "core-lib"), undefined);
+  assert.equal(componentOf(g, "api-svc").entity.spec.type, "other");
+  assert.equal(componentOf(g, "root").entity.spec.type, "other");
+  assert.equal(componentOf(g, "core-lib").entity.spec.type, "library");
 
   const api = componentOf(g, "ledger-api");
   assert.equal(api.entity.spec.type, "service");
@@ -571,6 +579,68 @@ test("PYTHON: a uv workspace below the repository root is a unit, and workspace 
   assert.ok(rel.attributes.via.includes("python-manifest"));
   assert.equal(edge(res.graph, "buildDependsOn", "app", "decoy-helper"), undefined);
   assert.equal(edge(res.graph, "buildDependsOn", "app", "skip-me"), undefined);
+});
+
+test("PYTHON: a nested member's import is not the parent's, and a member without a build backend is a unit", (t) => {
+  const dir = pyRepo(t, {
+    "python/pyproject.toml": [
+      "[project]",
+      'name = "root"',
+      'version = "0.1.0"',
+      "",
+      "[tool.uv.workspace]",
+      'members = ["packages/*"]',
+      "",
+    ].join("\n"),
+    "python/packages/core/pyproject.toml": [
+      "[project]",
+      'name = "core-lib"',
+      'version = "0.1.0"',
+      "",
+      "[build-system]",
+      'requires = ["hatchling"]',
+      'build-backend = "hatchling.build"',
+      "",
+    ].join("\n"),
+    "python/packages/core/src/core_lib/__init__.py": "",
+    "python/packages/api/pyproject.toml": [
+      "[project]",
+      'name = "api-svc"',
+      'version = "0.1.0"',
+      "dependencies = [",
+      '  "core-lib",',
+      "]",
+      "",
+      "[tool.uv.sources]",
+      "core-lib = { workspace = true }",
+      "",
+    ].join("\n"),
+    "python/packages/api/src/api_svc/__init__.py": "",
+    "python/packages/api/src/api_svc/main.py": "import core_lib\n",
+  });
+  const before = JSON.parse(cli(dir, ["audit"]));
+  const recognised = (before.compileErrors || []).filter((e) => e.code === "AGENTDOC_COVERAGE_ZERO").map((e) => e.message);
+  assert.ok(recognised.some((m) => m.includes("python/packages/core")), recognised.join("\n"));
+  assert.ok(recognised.some((m) => m.includes("python/packages/api")), recognised.join("\n"));
+  assert.equal(recognised.some((m) => m.includes("unit 'python'")), false);
+
+  const written = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  assert.ok(written.written.includes("python/packages/api/agentdoc.yaml"), written.written.join(","));
+  const typeOf = (rel) => fs.readFileSync(path.join(dir, rel), "utf8");
+  assert.match(typeOf("python/agentdoc.yaml"), /name: root[\s\S]*type: other/);
+  assert.match(typeOf("python/packages/api/agentdoc.yaml"), /name: api-svc[\s\S]*type: other/);
+  assert.match(typeOf("python/packages/core/agentdoc.yaml"), /name: core-lib[\s\S]*type: library/);
+  for (const rel of ["python/agentdoc.yaml", "python/packages/api/agentdoc.yaml", "python/packages/core/agentdoc.yaml"]) {
+    write(dir, rel, typeOf(rel).replace("  # placementRationale:", "  placementRationale:"));
+  }
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.message).join("\n"));
+  const rel = edge(res.graph, "buildDependsOn", "api-svc", "core-lib");
+  assert.ok(rel, "the member dependency was not recorded");
+  assert.ok(rel.attributes.via.includes("python-import"));
+  assert.ok(rel.attributes.via.includes("python-manifest"));
+  assert.equal(edge(res.graph, "buildDependsOn", "root", "core-lib"), undefined);
+  assert.equal(edge(res.graph, "testDependsOn", "root", "core-lib"), undefined);
 });
 
 test("PYTHON: scaffold then validate accepts a present unit and keeps a real library", (t) => {
