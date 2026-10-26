@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ledger-proto
+  description: "Holds the ledger message types reached only by import."
+spec:
+  type: library
+  system: ledger

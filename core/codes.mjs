@@ -77,6 +77,9 @@ export const CODES = {
   WARNING_ACCEPTANCE: "AGENTDOC_WARNING_ACCEPTANCE",
   OVERRIDE_STALE: "AGENTDOC_OVERRIDE_STALE",
   JOURNEY: "AGENTDOC_JOURNEY",
+
+  // language manifests
+  PYTHON_SPECIFIER: "AGENTDOC_PYTHON_SPECIFIER",
 };
 
 // Warning codes that a reviewer may explicitly accept. Anything outside this
@@ -94,6 +97,7 @@ export const ACCEPTABLE_WARNING_CODES = Object.freeze([
   "AGENTDOC_VERIFICATION_UNTIERED",
   "AGENTDOC_NORMATIVE_UNCOVERED",
   "AGENTDOC_REQUIREMENT_UNVERIFIED",
+  "AGENTDOC_PYTHON_SPECIFIER",
 ]);
 
 export class AgentDocError extends Error {

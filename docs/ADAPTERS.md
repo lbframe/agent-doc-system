@@ -45,6 +45,7 @@ Available on `ctx`:
 | `deferSecondPass(fn)` | run after every unit is known |
 | `requirements` | declared normative requirements (`subject`, `key`, `value`, `source`, `satisfiedBy`, `expects`) an adapter may derive the implementation side of |
 | `unitByPkgName`, `unitByGoModule`, `unitByCrateName` | cross-unit resolution built before extraction |
+| `unitByPythonDist`, `unitByPythonImport` | Python distribution names (PEP 503) and import names, built before extraction |
 | `errors.push({ code, message })` | a hard error, collected rather than thrown |
 
 ## The three rules
@@ -91,6 +92,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | `typescript` | `tsconfig.json` | language, project references, file-router routes |
 | `go` | `go.mod`, `go.work` | module roots, module graph, `go test`/`go vet` |
 | `rust` | `Cargo.toml` (`[package]`), workspace `members` (including a workspace below the repository root) | crate roots, path, workspace, and `[patch]`/`[replace]` dependency edges, `cargo test`/`cargo clippy` |
+| `python` | `pyproject.toml`, `setup.py`, `setup.cfg`, `requirements*.txt` | distribution graph, import edges, evidence-backed test and static commands |
 | `openapi` | `*.openapi.y[a]ml` | operation inventory, deterministic consumers |
 | `protobuf` / `graphql` | contract files | method/type inventory, consumers |
 | `oidc` | discovery-path literals | OIDC client consumers |
@@ -200,6 +202,35 @@ a parse failure is not an empty unit and not a crash. Char literals and
 lifetimes are not strings: a lifetime does not hide the imports after it, and
 a `"` string that spans lines does not leak the idents inside it.
 
+### `python`
+
+Reads a unit's Python manifest and its `import` / `from` statements. It does
+not run Python, resolve a lockfile, or inspect a virtualenv.
+
+| it derives | from |
+|---|---|
+| deployable | `[project.scripts]`, `[project.gui-scripts]`, `[tool.poetry.scripts]`, a `console_scripts` entry point, `__main__.py`, `manage.py`, or an ASGI/WSGI app object (`app` / `application` assigned from `FastAPI`, `Flask`, `Starlette`, `Litestar`, `Sanic` or `Quart`, or a call to `get_asgi_application` / `get_wsgi_application`) |
+| importable | a build backend (`[build-system] build-backend`, or `setup.py` / `setup.cfg`) and a package |
+| the import name | an explicit package list (`[tool.setuptools] packages`, `[tool.poetry] packages`, `[tool.hatch.build.targets.wheel] packages`); otherwise the distribution name with `-` turned into `_` when that directory exists; otherwise the only package directory |
+| `buildDependsOn` | `[project] dependencies`, `[tool.uv.sources]` (`workspace = true` or `path`), Poetry `path`, `-e <dir>` in a production `requirements*.txt`, or a production `import` / `from` of a sibling's import name |
+| `testDependsOn` | `[dependency-groups]`, `[project.optional-dependencies]` groups named dev/test/lint/type, `[tool.poetry.group.*]`, or a requirements file whose name contains `dev` or `test` |
+| `languages` / `runtimes` | the manifest. `requiresPython` only when `requires-python`, `python_requires`, or Poetry's `python` dependency is written down |
+| `pytest` | a pytest dependency or group, `[tool.pytest.ini_options]`, `pytest.ini`, or `conftest.py` |
+| `python -m unittest discover` | test modules that import `unittest`, and only when nothing above proves pytest |
+| `ruff check` / `mypy` | the tool declared as a dependency or configured (`[tool.ruff]`, `ruff.toml`, `[tool.mypy]`, `mypy.ini`) |
+
+`uv run` or `poetry run` is prefixed only when that lockfile contains a
+`name = "<tool>"` entry. Both lockfiles proving the same tool is ambiguous:
+the command is left unprefixed. PEP 508 extras, versions and markers are
+parsed and not evaluated. Two import packages and no explicit list, or two
+units publishing the same distribution or import name, produce
+`AGENTDOC_BINDING_AMBIGUOUS` and no cross-unit link.
+
+**What it cannot see:** a namespace package with no `__init__.py`; a
+`setup.py` dependency that is not a list of string literals; a `requirements`
+file pulled in with `-r` / `-c`; a lockfile's resolved versions; a PDM
+workspace; a workspace that is not the repository-root `pyproject.toml`.
+
 `asyncapi` is a contract **type** (declared on an API descriptor, validated by
 the contract layer), not an adapter — there is no `asyncapi` entry in
 `adapters: [...]`.
@@ -253,6 +284,11 @@ places, and those are the honest exceptions worth naming:
   execution order. Cargo is probed only when `rust` is enabled: an existence
   probe is part of the input hash, and probing `Cargo.toml` in every unit
   would change every graph that does not ask for it.
+- The same pre-pass reads a Python manifest (`pyproject.toml`, otherwise
+  `setup.cfg` / `setup.py` / `requirements*.txt`) into `unitByPythonDist` and
+  `unitByPythonImport`, and feeds those siblings into `dependencyMap` and
+  `productionDependencies`. Each unit root is listed so `requirements*.txt`
+  is visible; that listing is part of the input hash.
 - `core/impact.mjs` classifies a changed file by consulting the compiled graph —
   its contracts, its provenance paths, its extractor identities — rather than a
   hand-written list of technology filenames. A list would silently under-report

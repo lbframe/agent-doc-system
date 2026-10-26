@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ledger-jobs
+  description: "Runs ledger maintenance jobs on a schedule."
+spec:
+  type: job
+  system: ledger

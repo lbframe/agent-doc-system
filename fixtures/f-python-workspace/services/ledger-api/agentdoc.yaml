@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ledger-api
+  description: "Serves the ledger read API over HTTP."
+spec:
+  type: service
+  system: ledger

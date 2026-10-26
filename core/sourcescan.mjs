@@ -68,6 +68,13 @@ export function findMigrationDirs(repo, root, maxDepth = 5) {
         out.push(path.relative(repo.root, abs).split(path.sep).join("/"));
         continue;
       }
+      // Alembic keeps revisions in versions/ under a directory named alembic.
+      // The directory is the migration root; the adapter still reads alembic.ini
+      // (or [tool.alembic]) before treating it as ownership evidence.
+      if (e.name === "versions" && path.basename(dirAbs) === "alembic") {
+        out.push(path.relative(repo.root, abs).split(path.sep).join("/"));
+        continue;
+      }
       walk(abs, depth + 1);
     }
   };

@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ledger-testing
+  description: "Holds helpers the ledger API uses from its dev group."
+spec:
+  type: library
+  system: ledger

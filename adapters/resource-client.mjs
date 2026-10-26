@@ -10,7 +10,7 @@
 // the package. When more than one Resource of the type exists the fact is left
 // unresolved: an ambiguous match must never become an edge.
 
-const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|pgxpool|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|redis|minio|Client\(|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::)/;
+const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|pgxpool|psycopg2?\.connect|asyncpg\.(?:connect|create_pool)|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|redis\.Redis|redis|minio|Client\(|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::|create_engine\s*\(|\bDATABASES\s*=)/;
 
 export function resolveClientResources(ctx, unit, compRef, provRec) {
   const declared = ctx.externalMatchers().filter((x) => x.resourceType);

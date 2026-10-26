@@ -1,0 +1,26 @@
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: ledger-api-postgres
+  description: "Logical database owned by the ledger API."
+spec:
+  type: logical-database
+  system: ledger
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: ledger-cache
+  description: "Cache the ledger API reads through."
+spec:
+  type: cache
+  system: ledger
+---
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: uploads
+  description: "Object store the ledger API writes documents to."
+spec:
+  type: logical-dataset
+  system: ledger

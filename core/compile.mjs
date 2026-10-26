@@ -17,6 +17,7 @@ import { redactCommand } from "./secrets.mjs";
 import { formatErrors } from "./jsonschema.mjs";
 import { validateContractFile } from "./contracts.mjs";
 import { sourceFiles, importSpecifiers } from "./sourcescan.mjs";
+import { readPythonUnit, pythonImportNames } from "../adapters/python.mjs";
 import { applyWarningAcceptances } from "./acceptances.mjs";
 import {
   loadNormativeDocuments, verifyCitation, normativeCoverage, isNormative, isRequirementKey, NORMATIVE_SEMANTICS_PREFIX,
@@ -310,12 +311,48 @@ export function compile(root, opts = {}) {
       unit.goModule = m ? m[1] : null;
     }
     if (rustOn) loadCargoUnit(repo, unit);
+    const py = readPythonUnit(repo, unit.root);
+    if (py.manifest) {
+      unit.pythonMarker = py.manifest;
+      unit.pythonManifest = py.manifest;
+      unit.pythonDist = py.dist;
+      unit.pythonImports = py.ambiguousImports ? null : py.importNames;
+      unit.pythonProdDeps = [...new Set([
+        ...py.prodDeps,
+        ...py.sourceDeps.filter((n) => !py.devDeps.includes(n) && !py.prodDeps.includes(n)),
+      ])].sort();
+      unit.pythonDevDeps = py.devDeps;
+      unit.pythonPathDeps = py.pathDeps;
+      if (py.error) res.errors.push(py.error);
+    }
   }
   const unitByPkgName = new Map();
   const unitByGoModule = new Map();
+  const unitByPythonDist = new Map();
+  const unitByPythonImport = new Map();
+  const distOwners = new Map();
+  const importOwners = new Map();
   for (const unit of discovery.eligible) {
     if (unit.pkgName && !unitByPkgName.has(unit.pkgName)) unitByPkgName.set(unit.pkgName, unit);
     if (unit.goModule && !unitByGoModule.has(unit.goModule)) unitByGoModule.set(unit.goModule, unit);
+    if (unit.pythonDist) {
+      if (!distOwners.has(unit.pythonDist)) distOwners.set(unit.pythonDist, []);
+      distOwners.get(unit.pythonDist).push(unit);
+    }
+    if (Array.isArray(unit.pythonImports)) {
+      for (const name of unit.pythonImports) {
+        if (!importOwners.has(name)) importOwners.set(name, []);
+        importOwners.get(name).push(unit);
+      }
+    }
+  }
+  for (const [name, owners] of distOwners) {
+    if (owners.length === 1) unitByPythonDist.set(name, owners[0]);
+    else for (const u of owners) u.pythonDistConflict = true;
+  }
+  for (const [name, owners] of importOwners) {
+    if (owners.length === 1) unitByPythonImport.set(name, owners[0]);
+    else for (const u of owners) u.pythonImportConflict = true;
   }
   ctx.unitByPkgName = unitByPkgName;
   ctx.unitByGoModule = unitByGoModule;
@@ -331,6 +368,8 @@ export function compile(root, opts = {}) {
       else ctx.ambiguousCrateNames.set(name, list.slice().sort((a, b) => (a.root < b.root ? -1 : 1)));
     }
   }
+  ctx.unitByPythonDist = unitByPythonDist;
+  ctx.unitByPythonImport = unitByPythonImport;
 
   // Manifest-declared unit dependencies, computed before any adapter runs so
   // that cross-unit reasoning never depends on adapter execution order.
@@ -369,6 +408,21 @@ export function compile(root, opts = {}) {
       for (const hit of cargo.resolved) {
         if (hit.ambiguous || !hit.target || !hit.target.component) continue;
         if (hit.target.component.ref !== unit.component.ref) deps.add(hit.target.component.ref);
+      }
+    }
+    if (unit.pythonMarker) {
+      const pyNames = [...new Set([...(unit.pythonProdDeps || []), ...(unit.pythonDevDeps || [])])];
+      productionDependencies.set(unit.component.ref, [
+        ...(productionDependencies.get(unit.component.ref) || []),
+        ...(unit.pythonProdDeps || []),
+      ]);
+      for (const name of pyNames) {
+        const t = unitByPythonDist.get(name);
+        if (t && t.component && t.component.ref !== unit.component.ref) deps.add(t.component.ref);
+      }
+      for (const p of unit.pythonPathDeps || []) {
+        const t = discovery.eligible.find((u) => u.root === p.dir);
+        if (t && t.component && t.component.ref !== unit.component.ref) deps.add(t.component.ref);
       }
     }
     dependencyMap.set(unit.component.ref, deps);
@@ -976,10 +1030,12 @@ function buildImportIndex(repo, discovery) {
   const byUnit = new Map();
   const goPathsByUnit = new Map();
   const rustIdentsByUnit = new Map();
+  const pythonImportsByUnit = new Map();
   for (const unit of discovery.eligible) {
     const map = new Map();
     const goPaths = new Set();
     const rustIdents = new Map();
+    const pyImports = new Map();
     for (const f of sourceFiles(repo, unit.root, { test: false })) {
       const specifiers = importSpecifiers(repo.readText(f));
       for (const s of specifiers) {
@@ -1000,12 +1056,19 @@ function buildImportIndex(repo, discovery) {
           rustIdents.get(ident).add(f);
         }
       }
+      if (unit.pythonMarker && f.endsWith(".py")) {
+        for (const name of pythonImportNames(repo.readText(f))) {
+          if (!pyImports.has(name)) pyImports.set(name, new Set());
+          pyImports.get(name).add(f);
+        }
+      }
     }
     byUnit.set(unit, map);
     goPathsByUnit.set(unit, goPaths);
     rustIdentsByUnit.set(unit, rustIdents);
+    pythonImportsByUnit.set(unit, pyImports);
   }
-  return { byUnit, goPathsByUnit, rustIdentsByUnit };
+  return { byUnit, goPathsByUnit, rustIdentsByUnit, pythonImportsByUnit };
 }
 
 function mergeDerived(target, extra) {

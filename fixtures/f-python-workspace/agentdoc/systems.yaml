@@ -1,0 +1,7 @@
+apiVersion: agentdoc.dev/v1
+kind: System
+metadata:
+  name: ledger
+  description: "Records and reads ledger entries through one write path and one read path."
+spec:
+  domain: finance

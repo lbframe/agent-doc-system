@@ -1,0 +1,8 @@
+apiVersion: agentdoc.dev/v1
+kind: Component
+metadata:
+  name: ledger-core
+  description: "Holds the ledger models every service shares."
+spec:
+  type: library
+  system: ledger

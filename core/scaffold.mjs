@@ -117,6 +117,8 @@ function scanLayout(repo) {
       if (e.name === "package.json") note(parent(), "node");
       if (e.name === "go.mod") note(parent(), "go");
       if (e.name === "Cargo.toml" && cargoUnitShape(repo, parent()) && !isExcludedWorkspaceMember(repo, parent())) note(parent(), "rust");
+      if (e.name === "pyproject.toml" || e.name === "setup.py" || e.name === "setup.cfg") note(parent(), "python");
+      if (/^requirements.*\.txt$/.test(e.name)) note(parent(), "python");
       if (e.name === "Dockerfile") note(parent(), "docker");
       if (/^wrangler\.(toml|json|jsonc)$/.test(e.name)) note(parent(), "platform");
       if (e.name === "go.mod") note(rel.slice(0, -"/go.mod".length), "go");
@@ -150,6 +152,22 @@ function discoverUnitNames(repo, cfg, eligible = null) {
         // the same component name as `foo-bar`.
         if (n) return kebab(n.replace(/_/g, "-u-"));
       } catch { /* a manifest that does not parse is not a name */ }
+    }
+    const pyproject = root + "/pyproject.toml";
+    if (repo.exists(pyproject)) {
+      try {
+        const doc = parseToml(repo.readText(pyproject), pyproject);
+        const projectName = doc.project && doc.project.name;
+        const poetryName = doc.tool && doc.tool.poetry && doc.tool.poetry.name;
+        const name = typeof projectName === "string" ? projectName : typeof poetryName === "string" ? poetryName : "";
+        if (name) return kebab(name);
+      } catch { /* fall through */ }
+    }
+    const setupCfg = root + "/setup.cfg";
+    if (repo.exists(setupCfg)) {
+      const meta = /\[metadata\]([^[]*)/.exec(repo.readText(setupCfg));
+      const n = meta && /^name\s*=\s*(\S+)/m.exec(meta[1]);
+      if (n) return kebab(n[1]);
     }
     return kebab(path.basename(root));
   };
@@ -198,7 +216,7 @@ function componentDescriptor(u) {
   // Rust is not in this list. A crate's type comes from cargoUnitShape above:
   // deployable-only → service, importable → library, both → service because
   // deployable is decided first (the rule every other marker already follows).
-  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
+  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go" || k === "python");
   // "library" and "service" both have to be corroborated by artifact evidence
   // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
   // shows neither, so claiming a concrete type would manufacture an error.
@@ -225,6 +243,7 @@ const ADAPTER_FOR_MARKER = {
   node: "node",
   go: "go",
   rust: "rust",
+  python: "python",
   docker: "dockerfile",
   platform: "wrangler",
 };

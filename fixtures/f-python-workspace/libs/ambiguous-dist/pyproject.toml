@@ -1,0 +1,8 @@
+[project]
+name = "ambiguous-dist"
+version = "0.1.0"
+description = "A distribution whose import name is not determined."
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
