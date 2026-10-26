@@ -42,6 +42,7 @@
     "schemas",
     "skills",
     "templates",
+    "CHANGELOG.md",
     "INSTALL_FOR_AGENTS.md"
   ],
   "license": "MIT"
