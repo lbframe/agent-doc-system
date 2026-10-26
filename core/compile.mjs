@@ -1063,10 +1063,7 @@ function buildImportIndex(repo, discovery) {
           rustIdents.get(ident).add(f);
         }
       }
-      // A source file belongs to the deepest eligible unit that contains it.
-      // The generic sourceFiles walk still lists nested files for other
-      // adapters; only the Python import index refuses the parent's claim.
-      if (unit.pythonMarker && f.endsWith(".py") && deepestEligibleUnit(f, discovery.eligible) === unit) {
+      if (unit.pythonMarker && f.endsWith(".py")) {
         for (const name of pythonImportNames(repo.readText(f))) {
           if (!pyImports.has(name)) pyImports.set(name, new Set());
           pyImports.get(name).add(f);
@@ -1079,20 +1076,6 @@ function buildImportIndex(repo, discovery) {
     pythonImportsByUnit.set(unit, pyImports);
   }
   return { byUnit, goPathsByUnit, rustIdentsByUnit, pythonImportsByUnit };
-}
-
-function deepestEligibleUnit(file, eligible) {
-  let best = null;
-  let bestLen = -1;
-  for (const unit of eligible) {
-    const root = !unit.root || unit.root === "." ? "" : unit.root;
-    if (root && file !== root && !file.startsWith(root + "/")) continue;
-    if (root.length > bestLen) {
-      best = unit;
-      bestLen = root.length;
-    }
-  }
-  return best;
 }
 
 function mergeDerived(target, extra) {

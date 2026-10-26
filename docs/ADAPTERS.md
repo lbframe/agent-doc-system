@@ -247,7 +247,9 @@ Its shape is still only the evidence, so scaffold writes `other` when the
 manifest is neither deployable nor importable. A manifest that only declares
 the workspace, with no distribution of its own, is not a unit.
 
-A `.py` file is indexed for the deepest eligible unit that contains it. A
+A `.py` file uses the shared source inventory and is indexed for the deepest
+eligible unit that contains it. Package, entrypoint and test discovery use the
+same ownership boundaries; workspace-member discovery remains repository-wide. A
 parent unit does not gain an import edge from a file that lives in a nested
 member.
 

@@ -10,7 +10,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parse as parseToml } from "../core/toml.mjs";
-import { parsePep508 } from "../adapters/python.mjs";
+import { parsePep508, readPythonUnit } from "../adapters/python.mjs";
 import { SYSTEM_ROOT, write, git, commitAll, cli, cliFails, compile, baseFixture } from "./helpers.mjs";
 
 const FIXTURE = path.join(SYSTEM_ROOT, "fixtures", "f-python-workspace");
@@ -641,6 +641,55 @@ test("PYTHON: a nested member's import is not the parent's, and a member without
   assert.ok(rel.attributes.via.includes("python-manifest"));
   assert.equal(edge(res.graph, "buildDependsOn", "root", "core-lib"), undefined);
   assert.equal(edge(res.graph, "testDependsOn", "root", "core-lib"), undefined);
+});
+
+for (const runner of ["unittest", "pytest"]) {
+  test("PYTHON: nested packages, entrypoints and " + runner + " files belong only to their unit", (t) => {
+    const manifest = (name) => '[project]\nname = "' + name + '"\nversion = "0.1.0"\n[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n';
+    const dir = pyRepo(t, {
+      "outer/pyproject.toml": manifest("outer"),
+      "outer/agentdoc.yaml": component("outer", "other"),
+      "outer/run.py": "import inner\n",
+      "outer/src/inner/pyproject.toml": manifest("inner-lib"),
+      "outer/src/inner/agentdoc.yaml": component("inner-lib"),
+      "outer/src/inner/__init__.py": "",
+      "outer/src/inner/src/inner/__init__.py": "",
+      ["outer/src/inner/" + (runner === "unittest" ? "__main__.py" : "web.py")]: runner === "unittest"
+        ? "print('main')\n" : "app = FastAPI()\n",
+      "outer/src/inner/tests/test_inner.py": "import unittest\n",
+      ...(runner === "pytest" ? { "outer/src/inner/tests/conftest.py": "" } : {}),
+    });
+    const res = compile(dir);
+    assert.equal(res.errors.length, 0, res.errors.map((e) => e.message).join("\n"));
+    const outer = readPythonUnit(res.repo, "outer");
+    assert.equal(outer.deployable, false, "a nested entrypoint cannot deploy the parent");
+    assert.equal(outer.importable, false, "a nested package cannot make the parent importable");
+    assert.deepEqual(outer.importNames, []);
+    assert.deepEqual(componentOf(res.graph, "inner-lib").derived.pythonImportNames, ["inner"]);
+    assert.equal(componentOf(res.graph, "outer").derived.hasTests, undefined);
+    assert.equal(componentOf(res.graph, "inner-lib").derived.hasTests, true);
+    assert.deepEqual(res.graph.verification.map((v) => v.id), ["component:default/inner-lib:" + runner]);
+    assert.ok(edge(res.graph, "buildDependsOn", "outer", "inner-lib"), "a nested module is a dependency, not a local shadow");
+    assert.equal(res.serialized, compile(dir).serialized, "two compiles must be byte-identical");
+  });
+}
+
+test("PYTHON: nested conftest does not replace the parent's own unittest command", (t) => {
+  const dir = pyRepo(t, {
+    "outer/pyproject.toml": '[project]\nname = "outer"\nversion = "0.1.0"\n',
+    "outer/agentdoc.yaml": component("outer", "other"),
+    "outer/tests/test_outer.py": "import unittest\n",
+    "outer/inner/pyproject.toml": '[project]\nname = "inner"\nversion = "0.1.0"\n',
+    "outer/inner/agentdoc.yaml": component("inner", "other"),
+    "outer/inner/tests/conftest.py": "",
+  });
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.message).join("\n"));
+  const commands = Object.fromEntries(res.graph.verification.map((v) => [v.id, v.command]));
+  assert.deepEqual(commands, {
+    "component:default/inner:pytest": "pytest",
+    "component:default/outer:unittest": "python -m unittest discover",
+  });
 });
 
 test("PYTHON: scaffold then validate accepts a present unit and keeps a real library", (t) => {
