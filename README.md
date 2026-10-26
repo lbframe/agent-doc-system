@@ -69,6 +69,26 @@ AgentDoc turns scattered repository knowledge into task-specific context your co
 
 ![How AgentDoc works](docs/assets/readme/how-agentdoc-works.webp)
 
+## What it understands
+
+AgentDoc reads manifests, contracts and configuration. It never runs your toolchain. Each technology is an opt-in adapter. `agentdoc init` enables the language and deployment adapters whose manifests it finds; you add the others in `agentdoc/agentdoc.config.yaml`.
+
+| area | supported |
+|---|---|
+| languages & packages | Node (npm, pnpm workspaces, Turborepo), TypeScript, Go (modules, `go.work`), Rust (Cargo packages and workspaces), Python (`pyproject.toml` with PEP 621 or Poetry, uv workspaces, `setup.cfg` / `setup.py`, `requirements*.txt`) |
+| contracts | OpenAPI, protobuf, GraphQL, AsyncAPI, OIDC discovery |
+| deployment & CI | Dockerfile / Containerfile, `fly.toml`, `Procfile` and similar deploy configs, Cloudflare Wrangler, Ansible playbooks, GitHub Actions |
+| resources | databases (migrations, ORM config, connection evidence), caches, object stores, event subjects |
+
+For each language, AgentDoc derives:
+
+- the units;
+- whether each one is deployable or importable;
+- dependency edges between sibling units;
+- verification commands taken from the repository's own evidence (`go test`, `cargo test -p`, `pytest`, `python -m unittest`, npm scripts, …).
+
+What every adapter derives, and what it deliberately cannot see, is in [docs/ADAPTERS.md](docs/ADAPTERS.md).
+
 ## Install manually
 
 Requires Node.js 22+.
@@ -92,7 +112,9 @@ AgentDoc also ships with an Agent Skill at [`skills/agent-doc-system/`](skills/a
 - [Authority & conflicts](docs/AUTHORITY.md)
 - [CI & verification](docs/CI.md)
 - [Specification](docs/SPEC.md)
+- [Adapters](docs/ADAPTERS.md)
 - [Agent Skill](skills/agent-doc-system/SKILL.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
