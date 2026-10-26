@@ -44,7 +44,7 @@ Available on `ctx`:
 | `productionDependencies(ref)` | production dependency names, for client-of-resource rules |
 | `deferSecondPass(fn)` | run after every unit is known |
 | `requirements` | declared normative requirements (`subject`, `key`, `value`, `source`, `satisfiedBy`, `expects`) an adapter may derive the implementation side of |
-| `unitByPkgName`, `unitByGoModule` | cross-unit resolution built before extraction |
+| `unitByPkgName`, `unitByGoModule`, `unitByCrateName` | cross-unit resolution built before extraction |
 | `errors.push({ code, message })` | a hard error, collected rather than thrown |
 
 ## The three rules
@@ -90,6 +90,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | `turborepo` | `turbo.json` (nearest ancestor) | per-package task commands |
 | `typescript` | `tsconfig.json` | language, project references, file-router routes |
 | `go` | `go.mod`, `go.work` | module roots, module graph, `go test`/`go vet` |
+| `rust` | `Cargo.toml` (`[package]`), workspace `members` | crate roots, path and workspace dependency edges, `cargo test`/`cargo clippy` |
 | `openapi` | `*.openapi.y[a]ml` | operation inventory, deterministic consumers |
 | `protobuf` / `graphql` | contract files | method/type inventory, consumers |
 | `oidc` | discovery-path literals | OIDC client consumers |
@@ -139,6 +140,45 @@ candidate, which is never elected — the requirement stays
 `AGENTDOC_REQUIREMENT_UNVERIFIED` and the diagnostic names what was opaque.
 Inventory files, `group_vars`/`host_vars` and variables are not read.
 
+### `rust`
+
+Reads `Cargo.toml`. A `[package]` is a unit. A virtual workspace manifest (only
+`[workspace]`) is not. Nothing is executed, and `Cargo.lock` is not read.
+
+| it derives | from |
+|---|---|
+| `languages: rust`, `runtimes: rust` | the package manifest |
+| deployable | `[[bin]]`, `src/main.rs`, or a `src/bin/` directory |
+| importable | `[lib]` or `src/lib.rs`; both shapes when both are present |
+| `buildDependsOn` | `[dependencies]`, `[build-dependencies]`, and `[target.<cfg>.dependencies]` / `[target.<cfg>.build-dependencies]`, when the entry is a `path` or `workspace = true` resolved through `[workspace.dependencies]`; also a production `use`, `extern crate`, or `<crate>::` path that names exactly one sibling crate (`-` and `_` are the same ident) |
+| `testDependsOn` | `[dev-dependencies]` and target-specific dev-dependencies, resolved the same way |
+| `hasTests` | a `tests/` directory, or `#[test]` / `#[cfg(test)]` in a `.rs` file |
+| verification | `cargo test -p <name>` (unit) and `cargo clippy -p <name>` (static) |
+
+`-p <name>` is the whole scope of the recorded command. Cargo, run at a virtual
+workspace root, has no current package; `-p` is what makes the command mean
+this crate rather than every member. `configPaths` is that crate's
+`Cargo.toml`.
+
+Workspace roots come from the repository-root `Cargo.toml` `[workspace]
+members`, minus `exclude`. Patterns are relative to that file, `*` matches one
+path segment, and a member that leaves the repository is ignored. The manifest
+route and the import route share the target crate's package name as their
+edge key, so one dependency is one edge. A rename (`package = "…"`) is the
+crates.io name; the `use` path is the table key, and both still name the
+target crate.
+
+**What it cannot see, and therefore never invents:** a `Cargo.lock` resolution
+or any version requirement that merely shares a name with a sibling; a
+workspace member outside the repository; a `#[cfg(test)]` or `#[test]` item,
+which is not a production import; a rust ident that matches two crates
+(`foo-bar` and `foo_bar` are both `foo_bar`) — that import is
+`AGENTDOC_BINDING_AMBIGUOUS` and no edge is created; a duplicate package name,
+which is not elected either. A `Cargo.toml` this TOML reader rejects
+(multi-line strings and anything else it refuses) yields `AGENTDOC_YAML_PARSE`
+and no dependency edges. The unit is still recognised when a `[package]`
+header is present, so a parse failure is not an empty unit and not a crash.
+
 `asyncapi` is a contract **type** (declared on an API descriptor, validated by
 the contract layer), not an adapter — there is no `asyncapi` entry in
 `adapters: [...]`.
@@ -186,9 +226,12 @@ vocabulary. It does, however, know the shape of a manifest filename in three
 places, and those are the honest exceptions worth naming:
 
 - `core/compile.mjs` builds a manifest pre-pass over `package.json`, `go.mod`
-  and `go.work`, so `unitByPkgName`, `unitByGoModule` and
+  and `go.work`, and, when the `rust` adapter is enabled, over `Cargo.toml`.
+  `unitByPkgName`, `unitByGoModule`, `unitByCrateName` and
   `transitiveDependencies` are available to every adapter regardless of
-  execution order.
+  execution order. Cargo is probed only when `rust` is enabled: an existence
+  probe is part of the input hash, and probing `Cargo.toml` in every unit
+  would change every graph that does not ask for it.
 - `core/impact.mjs` classifies a changed file by consulting the compiled graph —
   its contracts, its provenance paths, its extractor identities — rather than a
   hand-written list of technology filenames. A list would silently under-report
