@@ -8,7 +8,7 @@ import { parseYamlDocuments } from "../core/yaml.mjs";
 export class GitHubActionsAdapter extends Adapter {
   static adapterName = "github-actions";
   constructor() {
-    super({ name: "github-actions", version: "1.1.0", kind: "ci" });
+    super({ name: "github-actions", version: "1.2.0", kind: "ci" });
   }
   // GitHub runs only repository-root workflows. A workflow directory is not a
   // unit marker, and nested workflows (vendored code, subtrees) are inert.
@@ -39,7 +39,7 @@ export class GitHubActionsAdapter extends Adapter {
               continue;
             }
             if (!action && ["pushd", "popd", "source", ".", "eval", "export"].includes(words[0])) break;
-            const invocations = action ? actionInvocations(command) : ciInvocations(words);
+            const invocations = action ? actionInvocations(command) : ciInvocations(words, cwd, ctx.repo);
             if (command.length > 600) continue;
             for (const [task, invocation] of invocations.entries()) {
               const { tier, args, directory: invocationDirectory } = invocation;
@@ -120,7 +120,7 @@ function taskTier(task) {
 }
 
 const VALUE_OPTIONS = new Set(["--filter", "-F", "--prefix", "--dir", "--cwd", "-C", "--workspace", "-w"]);
-function ciInvocations(words) {
+function ciInvocations(words, cwd, repo) {
   let [exe, ...args] = words;
   if (exe === "env") [exe, ...args] = args;
   while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(exe || "")) [exe, ...args] = args;
@@ -135,16 +135,19 @@ function ciInvocations(words) {
       if (VALUE_OPTIONS.has(option) && args.length) selectors.push(args.shift());
     }
     if (["exec", "dlx"].includes(args[0])) {
-      return ciInvocations(args.slice(1)).map((inner) => ({ ...inner, args: [...selectors, ...inner.args] }));
+      return ciInvocations(args.slice(1), cwd, repo).map((inner) => ({ ...inner, args: [...selectors, ...inner.args] }));
     }
     if (["turbo", "nx"].includes(args[0])) {
-      return ciInvocations(args).map((inner) => ({ ...inner, args: [...selectors, ...inner.args] }));
+      return ciInvocations(args, cwd, repo).map((inner) => ({ ...inner, args: [...selectors, ...inner.args] }));
     }
     if (args[0] === "run") args.shift();
     return result(taskTier(args[0]), [...selectors, ...args.slice(1)]);
   }
-  if (exe === "node") return result(args.includes("--test") ? "unit" : null);
-  if (/^python(?:3(?:\.\d+)?)?$/.test(exe) && args[0] === "-m") return ciInvocations(args.slice(1));
+  if (exe === "node" && args.includes("--test")) return result("unit");
+  if (/^python(?:3(?:\.\d+)?)?$/.test(exe) && args[0] === "-m") return ciInvocations(args.slice(1), cwd, repo);
+  if (["bash", "sh", "node"].includes(exe) || /^python(?:3(?:\.\d+)?)?$/.test(exe)) {
+    return scriptInvocation(args[0], args.slice(1), cwd, repo);
+  }
   if (["pytest", "unittest", "vitest", "jest", "mocha", "ava"].includes(exe)) return result("unit");
   if (["playwright", "cypress"].includes(exe) && ["test", "run"].includes(args[0])) return result("e2e", args.slice(1));
   if (["eslint", "mypy", "golangci-lint"].includes(exe)) return result("static");
@@ -153,7 +156,18 @@ function ciInvocations(words) {
   if (["go", "cargo", "dotnet"].includes(exe)) return result(({ test: "unit", vet: "static", clippy: "static", build: "build" })[args[0]], args.slice(1));
   if (["turbo", "nx", "make", "just"].includes(exe)) return taskInvocations(exe, args);
   if (exe === "agentdoc" && args[0] === "compile") return result("build", args.slice(1));
+  if (exe?.includes("/")) return scriptInvocation(exe, args, cwd, repo);
   return [];
+}
+
+function scriptInvocation(script, args, cwd, repo) {
+  if (typeof script !== "string") return [];
+  const tier = taskTier(path.posix.basename(script, path.posix.extname(script)));
+  const file = tier && resolveDirectory(cwd, script);
+  // A check-like basename alone does not prove a repository script. Resolve
+  // from the step directory and keep only literal files inside the checkout.
+  if (!file || !repo.exists(file) || repo.isDir(file)) return [];
+  return [{ tier, args: [script, ...args] }];
 }
 
 // Task names determine tiers; option values are never mistaken for tasks or

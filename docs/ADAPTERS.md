@@ -123,6 +123,15 @@ checks. The executable and task determine the tier; a shell `test`, a step
 name or text printed by `echo` does not. Turbo (including package-manager
 wrappers), Nx (`run`, `run-many`, `affected`), Make and Just tasks are resolved
 by task name. Multi-task commands contribute a check for each distinct tier.
+Repository scripts invoked directly (`./scripts/test.sh`) or through `bash`,
+`sh`, `node`, `python` or `python3` also contribute checks when their basename,
+without its extension, matches the task vocabulary (`test`, `lint`, `check`,
+`typecheck`, `build`, `e2e`, `integration`, `contract`, etc.). The script must
+resolve to a literal file inside the repository, relative to the current
+step directory. Its path and arguments use the same scope rules as other
+invocations; without component scope it is a repository gate. Scripts with
+other names, such as `deploy.sh`, are ignored. Script contents are not executed
+or interpreted.
 Simple scripts are split into individual commands, never copied wholesale or
 truncated. A literal `cd` updates the directory for following commands in the
 same step, including across lines. Shell control flow, pipelines,
