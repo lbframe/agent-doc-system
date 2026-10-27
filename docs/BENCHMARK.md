@@ -9,13 +9,11 @@ The routing evaluation is described in [EVALS.md](EVALS.md). It has 30 scenarios
 on six repositories (Node, TypeScript, Go, Rust and Python), with thresholds
 registered on 2026-09-28 and not moved since. For each scenario, it compares
 the context `agentdoc query` + `agentdoc impact` returns with what an agent
-gets by reading only the component it is changing.
+gets without routing.
 
-| | reading the touched component | AgentDoc |
+| | without routing | AgentDoc |
 |---|---|---|
-| facts the change needs, retrieved | 58% | **100%** |
-| retrieved facts that are unrelated (noise) | 40% | **8.7%** |
-| share of the repository's checks returned (selectivity) | 100% | **46%** (29% on the golden corpus) |
+| share of the repository's checks returned (selectivity) | 100% (runs everything) | **46%** (29% on the golden corpus) |
 | context size vs. reading the whole catalog | — | **−70%** |
 
 Every check a scenario requires is in AgentDoc's answer (verification recall
@@ -28,6 +26,26 @@ one-component corpus scores 100% because there is nothing to narrow.
 The size reduction is measured on the golden corpus (`examples/koda`). The
 smaller fixtures hold fewer than 100 facts, so the harness reports their
 reduction but does not aggregate it.
+
+### Correction: the fact-recall comparison is withdrawn
+
+Until 2026-10-27 this page, the README and the 1.2.0 release notes reported
+that AgentDoc retrieves 100% of the facts a change needs, against 58% for a
+baseline that reads only the touched component, with noise under 9% against
+40%. That comparison does not hold, and it is withdrawn.
+
+- The targeted baseline already holds almost every expected fact, under a
+  different label from the ground truth. It records `usesResource:<ref>` where
+  the truth says `uses:<ref>`, and `buildDependencyOf:<ref>` where the truth
+  names the component `<ref>`. Relabelled, it retrieves about 99% of the
+  expected facts.
+- The baseline also takes those relations from the compiled graph, which an
+  agent without AgentDoc does not have. A fair baseline has to find them with
+  search over the repository's files.
+
+The comparison against a baseline that is allowed to search is not measured
+yet. It will be published here, whatever it shows. Check selectivity and the
+size reduction above do not depend on the targeted baseline's labels.
 
 ## Fresh setup on public repositories: `node scripts/bench/run.mjs`
 

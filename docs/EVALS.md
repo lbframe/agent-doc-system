@@ -191,6 +191,12 @@ Each was fixed in the engine, not by relaxing a threshold.
 - The baseline is a model of unassisted exploration, not a record of a real
   agent session. It is generous to the baseline by construction (baseline-full
   is everything), which makes the reduction claim conservative.
+- baseline-targeted is scored with labels that differ from the ground truth's
+  (`usesResource:<ref>` against `uses:<ref>`, a relation against the bare
+  component ref), and it reads relations from the compiled graph. Its recall
+  therefore says nothing about an agent that searches the repository, and the
+  recall comparison against it is not published. See
+  [BENCHMARK.md](BENCHMARK.md#correction-the-fact-recall-comparison-is-withdrawn).
 - `retrievalReduction` is a fact-count proxy, not a token count. It does not
   weight a long constraint file against a short ref.
 - Scenarios touch one or two files. A change spanning twenty files is not
