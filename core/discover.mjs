@@ -12,8 +12,14 @@ import { expandGlob, globToRegExp, assertGlob } from "../core/fsx.mjs";
 // may be a legitimate unit in another project.
 export const DEFAULT_NOT_UNIT_ROOTS = ["agentdoc", "docs", "scripts", "node_modules", ".github"];
 
+// Exclusions cover a whole repository-relative subtree, not similarly named
+// siblings. Share this policy with CREATE mode's filesystem layout scan.
+export function isNotUnitRoot(root, cfg) {
+  return (cfg?.discovery.notUnitRoots || DEFAULT_NOT_UNIT_ROOTS)
+    .some((excluded) => root === excluded || root.startsWith(excluded + "/"));
+}
+
 export function discoverUnits(repo, cfg, adapters) {
-  const notUnit = new Set(cfg.discovery.notUnitRoots || DEFAULT_NOT_UNIT_ROOTS);
   const extraDeployable = new Set();
   const extraImportable = new Set();
   const units = new Map();
@@ -35,7 +41,7 @@ export function discoverUnits(repo, cfg, adapters) {
     assertGlob(g, "agentdoc config");
     for (const f of expandGlob(repo, g)) {
       const dir = path.posix.dirname(f);
-      if (!notUnit.has(dir) && repo.isDir(dir)) {
+      if (!isNotUnitRoot(dir, cfg) && repo.isDir(dir)) {
         candidates.add(dir);
         descriptorRoots.add(dir);
       }
@@ -59,7 +65,7 @@ export function discoverUnits(repo, cfg, adapters) {
   }
 
   for (const root of [...candidates].sort()) {
-    if (notUnit.has(root)) continue;
+    if (isNotUnitRoot(root, cfg)) continue;
     if (!repo.isDir(root)) continue;
     const u = get(root);
     u.explicit = (cfg.discovery.supplementalRoots || []).includes(root) || descriptorRoots.has(root);

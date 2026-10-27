@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { baseFixture, cli, cliFails, commitAll, git, read, write, DEFAULT_CONFIG, graphOf } from "./helpers.mjs";
+import { baseFixture, cli, cliFails, commitAll, compile, git, read, write, DEFAULT_CONFIG, graphOf } from "./helpers.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -88,6 +88,93 @@ test("scaffold on a repository with no configuration fails, not silently no-ops"
   assert.ok(res, "scaffold must exit nonzero when there is nothing to scaffold against");
   assert.equal(res.status, 1);
   assert.ok(JSON.parse(res.stdout).blocked.length > 0);
+});
+
+const scaffoldManifests = {
+  "package.json": (name) => JSON.stringify({ name, main: "index.js" }),
+  "go.mod": (name) => "module example.com/" + name + "\n\ngo 1.22\n",
+  "Cargo.toml": (name) => '[package]\nname = "' + name + '"\nversion = "0.1.0"\n',
+  "pyproject.toml": (name) => '[project]\nname = "' + name + '"\nversion = "0.1.0"\n',
+};
+
+function assertScaffoldExclusions(dir, excluded, expectedRoots) {
+  const dry = JSON.parse(cli(dir, ["scaffold"]));
+  const proposed = dry.written.map((f) => f.replace(/ \(dry run\)$/, ""));
+  const descriptors = proposed.filter((f) => f.endsWith("/agentdoc.yaml"));
+  for (const root of excluded) {
+    assert.equal(descriptors.includes(root + "/agentdoc.yaml"), false, descriptors.join(","));
+    assert.equal(fs.existsSync(path.join(dir, root, "agentdoc.yaml")), false, "dry run wrote a descriptor");
+  }
+  assert.deepEqual(descriptors.sort(), expectedRoots.map((r) => r + "/agentdoc.yaml").sort());
+  const before = compile(dir);
+  assert.deepEqual(before.discovery.eligible.map((u) => u.root).sort(), ["service", ...expectedRoots].sort());
+
+  const written = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  assert.deepEqual(written.written, proposed, "dry run and --write must agree");
+  for (const root of excluded) {
+    assert.equal(fs.existsSync(path.join(dir, root, "agentdoc.yaml")), false, "wrote an excluded descriptor: " + root);
+  }
+  for (const rel of descriptors) {
+    write(dir, rel, read(dir, rel).replace("  # placementRationale:", "  placementRationale:"));
+  }
+  const a = compile(dir);
+  const b = compile(dir);
+  assert.equal(a.errors.length, 0, a.errors.map((e) => e.message).join("\n"));
+  assert.deepEqual(a.discovery.eligible.map((u) => u.root).sort(), ["service", ...expectedRoots].sort());
+  assert.equal(a.serialized, b.serialized, "two compiles must be byte-identical");
+}
+
+for (const [manifest, content] of Object.entries(scaffoldManifests)) {
+  test("CREATE: scaffold excludes configured roots and descendants with " + manifest, (t) => {
+    const roots = ["packages/contracts", "packages/contracts/child", "packages/contracts-extra"];
+    const extra = {};
+    for (const [i, root] of roots.entries()) {
+      extra[root + "/" + manifest] = content("unit-" + i);
+      if (manifest === "Cargo.toml") extra[root + "/src/lib.rs"] = "pub fn hello() {}\n";
+    }
+    const config = DEFAULT_CONFIG
+      .replace("    - service/**/agentdoc.yaml", '    - "**/agentdoc.yaml"')
+      .replace("  componentDescriptorName: agentdoc.yaml", [
+        "  componentDescriptorName: agentdoc.yaml",
+        "  notUnitRoots: [packages/contracts]",
+        "  supplementalRoots:",
+        "    - packages/contracts/child",
+        "    - packages/contracts-extra",
+      ].join("\n"))
+      .replace("adapters:", "adapters:\n  - go\n  - rust\n  - python");
+    const dir = baseFixture(t, { config, extra });
+    // The excluded root comes from the layout scan; its child also reaches
+    // discovery through supplementalRoots. Neither source may bypass policy.
+    assertScaffoldExclusions(dir, roots.slice(0, 2), [roots[2]]);
+  });
+}
+
+test("CREATE: scaffold excludes default roots and descendants contributed by an adapter", (t) => {
+  const defaults = ["agentdoc", "docs", "scripts", ".github", "node_modules"];
+  const excluded = defaults.flatMap((r) => [r, r + "/child"]);
+  const roots = [...excluded, "docs-extra"];
+  const extra = {
+    "go.work": "go 1.22\n\nuse (\n" + roots.map((r) => "  ./" + r).join("\n") + "\n)\n",
+  };
+  for (const [i, root] of roots.entries()) extra[root + "/go.mod"] = scaffoldManifests["go.mod"]("unit-" + i);
+  const config = DEFAULT_CONFIG
+    .replace("    - service/**/agentdoc.yaml", '    - "**/agentdoc.yaml"')
+    .replace("adapters:", "adapters:\n  - go");
+  assertScaffoldExclusions(baseFixture(t, { config, extra }), excluded, ["docs-extra"]);
+});
+
+test("CREATE: an empty notUnitRoots overrides the default scaffold exclusions", (t) => {
+  const config = DEFAULT_CONFIG
+    .replace("    - service/**/agentdoc.yaml", '    - "**/agentdoc.yaml"')
+    .replace("  componentDescriptorName: agentdoc.yaml", "  componentDescriptorName: agentdoc.yaml\n  notUnitRoots: []");
+  const dir = baseFixture(t, { config, extra: {
+    "scripts/package.json": scaffoldManifests["package.json"]("tools"),
+    "scripts/worker/package.json": scaffoldManifests["package.json"]("worker"),
+  } });
+  const proposed = JSON.parse(cli(dir, ["scaffold"])).written.map((f) => f.replace(/ \(dry run\)$/, ""));
+  assert.ok(proposed.includes("scripts/agentdoc.yaml"), proposed.join(","));
+  assert.ok(proposed.includes("scripts/worker/agentdoc.yaml"), proposed.join(","));
+  assert.deepEqual(JSON.parse(cli(dir, ["scaffold", "--write"])).written, proposed);
 });
 
 // ── MIGRATE ────────────────────────────────────────────────────────────

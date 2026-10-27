@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
+import { isNotUnitRoot } from "./discover.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 import { parse as parseToml } from "./toml.mjs";
 import { cargoUnitShape, isExcludedWorkspaceMember, isVirtualWorkspaceManifest } from "../adapters/rust.mjs";
@@ -59,7 +60,7 @@ export function installTemplates(repo, cfg, { write, root, force = false, eligib
   };
 
   // ── configuration ───────────────────────────────────────────────────────
-  const config = buildConfig(scanLayout(r));
+  const config = buildConfig(scanLayout(r, cfg));
   put("agentdoc/agentdoc.config.yaml", config);
   put("agentdoc/journeys.yaml", "schemaVersion: agentdoc.dev/journeys/v1\njourneys: []\n");
   for (const f of ["domains.yaml", "systems.yaml", "apis.yaml", "resources.yaml"]) {
@@ -91,16 +92,16 @@ export function installTemplates(repo, cfg, { write, root, force = false, eligib
 
 // Layout inference for CREATE mode: which directories look like unit roots.
 // Uses only file-presence heuristics that any repository can answer.
-function scanLayout(repo) {
+function scanLayout(repo, cfg) {
   const candidates = new Map();
   const note = (root, kind) => {
     if (!candidates.has(root)) candidates.set(root, { root, kinds: new Set(), evidence: [] });
     candidates.get(root).kinds.add(kind);
     candidates.get(root).evidence.push(kind);
   };
-  const skip = new Set(["node_modules", ".git", "dist", "build", "vendor", "target", "agentdoc", "docs", "scripts", ".github", "test", "tests", "examples", "example"]);
+  const skip = new Set(["node_modules", ".git", "dist", "build", "vendor", "target", "test", "tests", "examples", "example"]);
   const walk = (dir, depth) => {
-    if (depth > 3) return;
+    if (depth > 3 || isNotUnitRoot(dir, cfg)) return;
     let entries;
     try { entries = fs.readdirSync(path.join(repo.root, dir), { withFileTypes: true }); } catch { return; }
     for (const e of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
@@ -207,7 +208,7 @@ function discoverUnitNames(repo, cfg, eligible = null) {
       deployable: Boolean(u.deployable),
       importable: Boolean(u.importable),
     })),
-    ...scanLayout(repo).map((u) => ({
+    ...scanLayout(repo, cfg).map((u) => ({
       root: u.root,
       kinds: [...u.kinds].sort(),
       deployable: Boolean(u.deployable),
@@ -216,6 +217,7 @@ function discoverUnitNames(repo, cfg, eligible = null) {
   ];
   for (const found of units) {
     if (found.root === "." || !found.root || seenRoots.has(found.root)) continue;
+    if (isNotUnitRoot(found.root, cfg)) continue;
     if (isVirtualWorkspaceManifest(repo, found.root)) continue;
     let u = found;
     if (u.kinds.includes("rust")) {
@@ -236,7 +238,6 @@ function discoverUnitNames(repo, cfg, eligible = null) {
     seen.add(name);
     out.push({ ...u, name });
   }
-  void cfg;
   return out;
 }
 
