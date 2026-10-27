@@ -8,12 +8,22 @@ import path from "node:path";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { expandGlob, globToRegExp, assertGlob } from "../core/fsx.mjs";
 
-// Directories that are never units. Overridable, because "infra" or "tools"
-// may be a legitimate unit in another project.
+// Roots excluded from inference and scaffolding. Authored descriptors strictly
+// below them can still claim units; descriptors at these exact roots cannot.
 export const DEFAULT_NOT_UNIT_ROOTS = ["agentdoc", "docs", "scripts", "node_modules", ".github"];
 
+function notUnitRoots(cfg) {
+  return cfg?.discovery.notUnitRoots || DEFAULT_NOT_UNIT_ROOTS;
+}
+
+// Inference excludes the whole subtree, not similarly named siblings. CREATE
+// mode shares this policy even for units with an existing authored descriptor.
+export function isNotUnitRoot(root, cfg) {
+  return notUnitRoots(cfg)
+    .some((excluded) => root === excluded || root.startsWith(excluded + "/"));
+}
+
 export function discoverUnits(repo, cfg, adapters) {
-  const notUnit = new Set(cfg.discovery.notUnitRoots || DEFAULT_NOT_UNIT_ROOTS);
   const extraDeployable = new Set();
   const extraImportable = new Set();
   const units = new Map();
@@ -35,13 +45,17 @@ export function discoverUnits(repo, cfg, adapters) {
     assertGlob(g, "agentdoc config");
     for (const f of expandGlob(repo, g)) {
       const dir = path.posix.dirname(f);
-      if (!notUnit.has(dir) && repo.isDir(dir)) {
+      if (repo.isDir(dir)) {
         candidates.add(dir);
         descriptorRoots.add(dir);
       }
     }
   }
-  for (const r of cfg.discovery.supplementalRoots || []) candidates.add(r);
+  for (const r of cfg.discovery.supplementalRoots || []) {
+    candidates.add(r);
+    // The descriptor loader also reads these fixed paths outside the globs.
+    if (repo.exists(r + "/" + cfg.discovery.componentDescriptorName)) descriptorRoots.add(r);
+  }
 
   // Adapters may contribute roots the descriptor globs cannot know about: a
   // Go workspace member, a workspace file member with no descriptor yet. The
@@ -59,7 +73,10 @@ export function discoverUnits(repo, cfg, adapters) {
   }
 
   for (const root of [...candidates].sort()) {
-    if (notUnit.has(root)) continue;
+    // Preserve explicit human claims below an exclusion, while keeping inferred
+    // roots out of the subtree and refusing descriptors at the exact root.
+    if (notUnitRoots(cfg).includes(root)) continue;
+    if (isNotUnitRoot(root, cfg) && !descriptorRoots.has(root)) continue;
     if (!repo.isDir(root)) continue;
     const u = get(root);
     u.explicit = (cfg.discovery.supplementalRoots || []).includes(root) || descriptorRoots.has(root);
@@ -118,7 +135,7 @@ export function descriptorDir(file) {
 }
 
 // Exactly one descriptor per eligible unit, and no descriptor outside one.
-export function matchComponents(eligible, componentEntities) {
+export function matchComponents(eligible, componentEntities, cfg) {
   const errors = [];
   const byDir = new Map();
   for (const e of componentEntities) {
@@ -149,6 +166,15 @@ export function matchComponents(eligible, componentEntities) {
   for (const e of componentEntities) {
     const dir = descriptorDir(e.file);
     if (unitRoots.has(dir)) continue;
+    if (notUnitRoots(cfg).includes(dir)) {
+      errors.push(new AgentDocError(
+        CODES.COMPONENT_UNCORROBORATED,
+        "component descriptor at '" + dir + "' is in discovery.notUnitRoots (or a default not-unit root); " +
+          "remove it from notUnitRoots or move the descriptor",
+        { path: e.file, ref: e.ref }
+      ));
+      continue;
+    }
     // A descriptor is a human claim that a component exists. When no adapter
     // can corroborate a deployable or importable artifact in that source root,
     // the claim is unsupported. This is reported rather than ignored: it is

@@ -237,6 +237,19 @@ The core has no knowledge of folder names. A directory is a unit when it holds
 a component descriptor, when an adapter recognises it from a workspace file, or
 when it is listed in `discovery.supplementalRoots`.
 
+`discovery.notUnitRoots` excludes each listed root and its whole subtree from
+inferred units (adapter markers, adapter `roots()`, and supplemental roots) and
+from scaffold layout scans and descriptor proposals, in both dry run and
+`--write`. The defaults are `agentdoc`, `docs`, `scripts`, `node_modules`, and
+`.github`; a configured list replaces them, and `[]` disables these exclusions.
+An existing authored component descriptor strictly below an excluded root still
+claims that directory as a unit. Its own root must supply the usual adapter
+evidence for its artifact type; the exclusion does not waive corroboration.
+Scaffold preserves that descriptor and never proposes or writes one there.
+A descriptor exactly at an excluded root is refused with
+`AGENTDOC_COMPONENT_UNCORROBORATED` naming the exclusion: remove that root from
+`notUnitRoots` or move the descriptor.
+
 - Every discovered unit must have exactly one descriptor at its root, or
   `AGENTDOC_COVERAGE_ZERO`.
 - Two descriptors at one root, or a descriptor no adapter can corroborate, is an

@@ -158,7 +158,7 @@ export function compile(root, opts = {}) {
     return earlyOut(res, { entities: sources.entities.length });
   }
 
-  const match = matchComponents(discovery.eligible, sources.entities.filter((e) => e.kind === "Component"));
+  const match = matchComponents(discovery.eligible, sources.entities.filter((e) => e.kind === "Component"), cfg);
   res.errors.push(...match.errors);
 
   if (res.errors.length) {

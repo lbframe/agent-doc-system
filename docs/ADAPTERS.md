@@ -171,7 +171,8 @@ this crate rather than every member. `configPaths` is that crate's
 
 Workspace roots come from every `Cargo.toml` that has `[workspace]`, not only
 the one at the repository root. The search is bounded to five directories
-down, stays inside the repository, and does not enter `discovery.notUnitRoots`,
+down, stays inside the repository, and does not enter `discovery.notUnitRoots`
+or their descendants (the authored-descriptor exception is described below),
 `discovery.generatedDirs`, dot-directories, or `test` / `tests` / `examples` /
 `example`. `members` minus `exclude` are still relative to the manifest that
 declares them; `*` matches one path segment, and a member that leaves the
@@ -238,8 +239,9 @@ evaluate control flow, so the name is classified like any other import:
 manifest puts that distribution in a dev group. It is not a separate edge.
 
 A uv workspace manifest is read at the repository root and below it, to a
-fixed depth, in path order, staying inside the repository. `notUnitRoots` and
-generated directories are not searched. `workspace = true` names the member of
+fixed depth, in path order, staying inside the repository. `notUnitRoots`, their
+descendants, and generated directories are not searched; the authored-descriptor
+exception is described below. `workspace = true` names the member of
 the nearest enclosing workspace whose distribution name matches; another unit
 with the same name is not substituted. Every declared member that has a Python
 manifest is a unit, including one with no build backend and no entrypoint.
@@ -327,9 +329,16 @@ places, and those are the honest exceptions worth naming:
   its contracts, its provenance paths, its extractor identities — rather than a
   hand-written list of technology filenames. A list would silently under-report
   for every repository that is not Node-and-Go.
-- `core/discover.mjs` has a default list of directories that are never units
-  (`agentdoc`, `docs`, `scripts`, `.github`), overridable through
-  `discovery.notUnitRoots`.
+- `core/discover.mjs` excludes `agentdoc`, `docs`, `scripts`, `node_modules`, and
+  `.github` by default. `discovery.notUnitRoots` replaces that list (`[]`
+  disables it). These roots and their descendants cannot be inferred from
+  adapter markers, adapter `roots()`, or supplemental roots, and scaffold never
+  proposes or writes descriptors there in dry run or `--write`. An existing
+  authored descriptor strictly below an excluded root still claims a unit and
+  is preserved; the adapter must corroborate its artifact type at that unit's
+  own root as usual. A descriptor exactly at an excluded root is refused with
+  `AGENTDOC_COMPONENT_UNCORROBORATED` naming `notUnitRoots` and asking the author
+  to remove the exclusion or move the descriptor.
 
 Each is a place a future change should push outward, not a licence to add more.
 
