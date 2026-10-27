@@ -15,11 +15,15 @@ gets by reading only the component it is changing.
 |---|---|---|
 | facts the change needs, retrieved | 58% | **100%** |
 | retrieved facts that are unrelated (noise) | 40% | **8.7%** |
+| share of the repository's checks returned (selectivity) | 100% | **46%** (29% on the golden corpus) |
 | context size vs. reading the whole catalog | — | **−70%** |
 
 Every check a scenario requires is in AgentDoc's answer (verification recall
-1.0). The baseline cannot be compared on that axis: it runs every check in the
-repository, so it never misses one, at full cost.
+1.0). The baseline never misses one either, because it runs every check in the
+repository. Selectivity is therefore the meaningful comparison: the share of
+the repository's checks the answer contains, counting everything the agent is
+shown. It is reported, not gated; small corpora inflate it, and a
+one-component corpus scores 100% because there is nothing to narrow.
 
 The size reduction is measured on the golden corpus (`examples/koda`). The
 smaller fixtures hold fewer than 100 facts, so the harness reports their

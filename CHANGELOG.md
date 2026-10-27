@@ -67,6 +67,10 @@ recommend those dependents' checks.
   `init` → `scaffold` → `compile`, counts every hand edit the setup still
   needs (zero for all four), checks that the graph is byte-identical across
   compiles, and measures `query` answers.
+- The routing evaluation reports **check selectivity**: the share of the
+  repository's checks that the answer for a change contains ([#43]). The
+  baseline's verification recall is now scored with the same rule as the
+  catalog's. It is 1.0 by construction, because the baseline runs every check.
 - Rust and Python sample repositories (`fixtures/e-rust-workspace`,
   `fixtures/f-python-workspace`), checked in CI and used to test context
   routing ([#23]).
@@ -255,3 +259,4 @@ First public release.
 [#31]: https://github.com/lbframe/agent-doc-system/issues/31
 [#37]: https://github.com/lbframe/agent-doc-system/issues/37
 [#38]: https://github.com/lbframe/agent-doc-system/issues/38
+[#43]: https://github.com/lbframe/agent-doc-system/issues/43
