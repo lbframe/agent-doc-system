@@ -43,14 +43,14 @@ following:
 5. For one production source file per component, measures the `agentdoc query`
    answer (about 4 characters per token) and the `agentdoc impact` result.
 
-Measured with AgentDoc 1.2.0 on Node 24, on a 2019 Intel Core i9 laptop:
+Measured with AgentDoc 1.2.0 on Node 24, on a 2019 Intel Core i9 laptop (load average about 4):
 
 | repository | files | setup ok | components | dependency edges | checks | setup + first compile | compile | deterministic | `query` answer, median / max |
 |---|---|---|---|---|---|---|---|---|---|
-| [tokio-rs/axum](https://github.com/tokio-rs/axum) @ 86aa615 (Rust) | 505 | yes | 4 | 11 | 9 | 1.1 s | 0.5 s | yes | ~151 / 153 tokens |
-| [pydantic/pydantic-ai](https://github.com/pydantic/pydantic-ai) @ 5a4d576 (Python, TS) | 5,142 | yes | 8 | 9 | 4 | 4.9 s | 2.1 s | yes | ~91 / 126 tokens |
-| [fastapi/full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) @ f4bcfab (Python, TS) | 252 | yes | 3 | 0 | 8 | 0.9 s | 0.4 s | yes | ~100 / 103 tokens |
-| [t3-oss/create-t3-turbo](https://github.com/t3-oss/create-t3-turbo) @ 8f945b7 (TypeScript) | 141 | yes | 13 | 47 | 25 | 0.7 s | 0.3 s | yes | ~158 / 263 tokens |
+| [tokio-rs/axum](https://github.com/tokio-rs/axum) @ 86aa615 (Rust) | 505 | yes | 4 | 11 | 9 | 1.0 s | 0.5 s | yes | ~151 / 153 tokens |
+| [pydantic/pydantic-ai](https://github.com/pydantic/pydantic-ai) @ 5a4d576 (Python, TS) | 5,142 | yes | 8 | 9 | 5 | 4.6 s | 1.9 s | yes | ~112 / 144 tokens |
+| [fastapi/full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template) @ f4bcfab (Python, TS) | 252 | yes | 3 | 0 | 9 | 1.0 s | 0.4 s | yes | ~100 / 126 tokens |
+| [t3-oss/create-t3-turbo](https://github.com/t3-oss/create-t3-turbo) @ 8f945b7 (TypeScript) | 141 | yes | 13 | 47 | 25 | 1.0 s | 0.4 s | yes | ~158 / 263 tokens |
 
 Timings depend on the machine and its load, so run the script yourself. The
 other columns are deterministic for a given AgentDoc version and commit.
