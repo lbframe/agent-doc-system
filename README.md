@@ -94,6 +94,16 @@ For each language, AgentDoc derives:
 
 What every adapter derives, and what it deliberately cannot see, is in [docs/ADAPTERS.md](docs/ADAPTERS.md).
 
+## By the numbers
+
+Measured, reproducible, and with no model in the loop. Method and caveats are in [docs/BENCHMARK.md](docs/BENCHMARK.md).
+
+- **The right context: 100% vs. 58%.** Across 30 routing scenarios (Node, Go, Rust, Python), `query` + `impact` retrieves every fact the change needs. Reading only the touched component retrieves 58%. Noise stays under 9%, against 40%, and every required check is found (100% vs. 90%). The thresholds were fixed before the first run and have not moved since.
+- **Seconds to map a real repository.** A fresh `init` → `scaffold` → `compile` takes 0.7–4.9 s on four public repositories, from 141 to 5,142 files (axum, pydantic-ai, full-stack-fastapi-template, create-t3-turbo). No edit was needed beyond choosing each component's placement.
+- **A briefing, not a dump.** A `query` answer is about 90–260 tokens: what the change reaches, what to read, and which checks to run.
+- **The same graph every time.** Compiles are byte-identical, and CI can verify it.
+- **Small and strict.** Zero runtime dependencies, a 280 kB package, 21 adapters, and 709/709 cases on the official TOML 1.0 conformance suite.
+
 ## Install manually
 
 Requires Node.js 22+.
@@ -118,6 +128,7 @@ AgentDoc also ships with an Agent Skill at [`skills/agent-doc-system/`](skills/a
 - [CI & verification](docs/CI.md)
 - [Specification](docs/SPEC.md)
 - [Adapters](docs/ADAPTERS.md)
+- [Benchmark](docs/BENCHMARK.md)
 - [Agent Skill](skills/agent-doc-system/SKILL.md)
 - [Changelog](CHANGELOG.md)
 

@@ -62,6 +62,11 @@ recommend those dependents' checks.
   `agentdoc scaffold` names crates and distributions from their manifests and
   types them from their artifact shape: `service`, `library`, or `other` when
   neither is proven. A virtual Cargo or uv workspace manifest is not scaffolded.
+- A reproducible benchmark, `scripts/bench/run.mjs` ([docs/BENCHMARK.md]).
+  It clones four public repositories at pinned commits, runs a fresh
+  `init` → `scaffold` → `compile`, counts every hand edit the setup still
+  needs (zero for all four), checks that the graph is byte-identical across
+  compiles, and measures `query` answers.
 - Rust and Python sample repositories (`fixtures/e-rust-workspace`,
   `fixtures/f-python-workspace`), checked in CI and used to test context
   routing ([#23]).
@@ -232,6 +237,7 @@ First public release.
 [1.2.0]: https://github.com/lbframe/agent-doc-system/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lbframe/agent-doc-system/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lbframe/agent-doc-system/releases/tag/v1.0.0
+[docs/BENCHMARK.md]: docs/BENCHMARK.md
 [#5]: https://github.com/lbframe/agent-doc-system/issues/5
 [#6]: https://github.com/lbframe/agent-doc-system/issues/6
 [#7]: https://github.com/lbframe/agent-doc-system/issues/7
