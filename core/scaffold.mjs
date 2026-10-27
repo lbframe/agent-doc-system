@@ -200,22 +200,8 @@ function discoverUnitNames(repo, cfg, eligible = null) {
         if (n) return kebab(n.replace(/_/g, "-u-"));
       } catch { /* a manifest that does not parse is not a name */ }
     }
-    const pyproject = root + "/pyproject.toml";
-    if (repo.exists(pyproject)) {
-      try {
-        const doc = parseToml(repo.readText(pyproject), pyproject);
-        const projectName = doc.project && doc.project.name;
-        const poetryName = doc.tool && doc.tool.poetry && doc.tool.poetry.name;
-        const name = typeof projectName === "string" ? projectName : typeof poetryName === "string" ? poetryName : "";
-        if (name) return kebab(name);
-      } catch { /* fall through */ }
-    }
-    const setupCfg = root + "/setup.cfg";
-    if (repo.exists(setupCfg)) {
-      const meta = /\[metadata\]([^[]*)/.exec(repo.readText(setupCfg));
-      const n = meta && /^name\s*=\s*(\S+)/m.exec(meta[1]);
-      if (n) return kebab(n[1]);
-    }
+    const python = readPythonUnit(repo, root);
+    if (python.dist) return kebab(python.dist);
     return kebab(path.basename(root));
   };
   const seen = new Set();

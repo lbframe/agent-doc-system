@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Repo } from "../core/fsx.mjs";
+import { readPythonUnit } from "../adapters/python.mjs";
 import { cli, commitAll, compile, git, read, write } from "./helpers.mjs";
 
 function freshRepo(t, files) {
@@ -21,6 +23,23 @@ function choosePlacements(dir, descriptors) {
     write(dir, file, read(dir, file).replace("  # placementRationale:", "  placementRationale:"));
   }
 }
+
+test("CREATE: setup.py-only scaffold uses the Python adapter distribution name", (t) => {
+  const dir = freshRepo(t, {
+    "legacy/setup.py": 'from setuptools import setup\nsetup(\n    name="published-name",\n    version="0.1.0",\n    packages=["published_name"],\n)\n',
+    "legacy/published_name/__init__.py": "",
+  });
+  const dist = readPythonUnit(new Repo(dir), "legacy").dist;
+  assert.equal(dist, "published-name");
+  cli(dir, ["init"]);
+  const result = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  assert.ok(result.written.includes("legacy/agentdoc.yaml"));
+  assert.match(read(dir, "legacy/agentdoc.yaml"), new RegExp("^  name: " + dist + "$", "m"));
+  choosePlacements(dir, ["legacy/agentdoc.yaml"]);
+  assert.match(cli(dir, ["validate"]), /validate: PASS/);
+  assert.match(cli(dir, ["compile"]), /compile: PASS/);
+  assert.ok(compile(dir).graph.entities.some((e) => e.ref === "component:default/" + dist));
+});
 
 for (const [label, files, type, shape] of [
   ["Node app without exports or main", { "app/package.json": '{"name":"app"}' }, "service", [true, false]],
