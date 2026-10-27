@@ -14,9 +14,12 @@ gets by reading only the component it is changing.
 | | reading the touched component | AgentDoc |
 |---|---|---|
 | facts the change needs, retrieved | 58% | **100%** |
-| checks that must run, retrieved | 90% | **100%** |
 | retrieved facts that are unrelated (noise) | 40% | **8.7%** |
 | context size vs. reading the whole catalog | — | **−70%** |
+
+Every check a scenario requires is in AgentDoc's answer (verification recall
+1.0). The baseline cannot be compared on that axis: it runs every check in the
+repository, so it never misses one, at full cost.
 
 The size reduction is measured on the golden corpus (`examples/koda`). The
 smaller fixtures hold fewer than 100 facts, so the harness reports their

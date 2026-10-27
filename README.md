@@ -98,7 +98,7 @@ What every adapter derives, and what it deliberately cannot see, is in [docs/ADA
 
 Measured, reproducible, and with no model in the loop. Method and caveats are in [docs/BENCHMARK.md](docs/BENCHMARK.md).
 
-- **The right context: 100% vs. 58%.** Across 30 routing scenarios (Node, Go, Rust, Python), `query` + `impact` retrieves every fact the change needs. Reading only the touched component retrieves 58%. Noise stays under 9%, against 40%, and every required check is found (100% vs. 90%). The thresholds were fixed before the first run and have not moved since.
+- **The right context: 100% vs. 58%.** Across 30 routing scenarios (Node, Go, Rust, Python), `query` + `impact` retrieves every fact the change needs. Reading only the touched component retrieves 58%. Noise stays under 9%, against 40%, and every check the change requires is in the answer. The thresholds were fixed before the first run and have not moved since.
 - **Seconds to map a real repository.** A fresh `init` → `scaffold` → `compile` takes 0.7–4.9 s on four public repositories, from 141 to 5,142 files (axum, pydantic-ai, full-stack-fastapi-template, create-t3-turbo). No edit was needed beyond choosing each component's placement.
 - **A briefing, not a dump.** A `query` answer is about 90–260 tokens: what the change reaches, what to read, and which checks to run.
 - **The same graph every time.** Compiles are byte-identical, and CI can verify it.
