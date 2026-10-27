@@ -40,9 +40,19 @@ never copies the agentdoc implementation into the repository.
 In `agentdoc.config.yaml`:
 
 - Set `namespace`, fix `discovery.componentDescriptors` to match the real
-  layout, and enable the adapters for the technologies present. `adapters: []`
-  is a valid but useless starting point: with no adapter, a component
-  descriptor is an unsupported claim and compilation fails on purpose.
+  layout, and enable the adapters for the technologies present. `init`
+  pre-selects the language and deployment adapters whose manifests it finds:
+  `node`, `go`, `rust` and `python`, plus `dockerfile` and `wrangler`. It also
+  adds `database`, `openapi`, `events` and `github-actions`. Add the rest
+  (`pnpm`, `turborepo`, `typescript`, `protobuf`, `graphql`, `ansible`, …) when
+  the repository uses them. `adapters: []` is a valid but useless starting
+  point: with no adapter, a component descriptor is an unsupported claim and
+  compilation fails on purpose.
+- An existing catalog does not gain new adapters on upgrade. After upgrading
+  the CLI, compare `adapters:` with the technologies present, for example a
+  repository with `Cargo.toml` or `pyproject.toml` units and no `rust` /
+  `python` entry. Then run `agentdoc audit`: newly visible units appear as
+  `AGENTDOC_COVERAGE_ZERO` until they have a descriptor.
 - Three example authority rules are written **commented out**. Uncomment only
   the ones you can justify, with the rationale in your own words. An authority
   rule is a governance decision; the scaffolder does not make it for you.
