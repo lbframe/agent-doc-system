@@ -158,7 +158,20 @@ export function fullRepositoryContext(graph) {
 // Baseline verification: without routing, an agent runs the union of every
 // check in the repository, because nothing narrows it.
 function baselineVerification(graph) {
-  return new Set(graph.verification.flatMap((v) => ["verify:" + v.command, "verify-id:" + v.id]));
+  return new Set([...graph.verification, ...graph.gates].flatMap((v) => ["verify:" + v.command, "verify-id:" + v.id]));
+}
+
+export function verificationRecall(retrieved, expected) {
+  const { hit, total } = score(retrieved, expected);
+  return total ? hit / total : 1;
+}
+
+// Count scoped check IDs, not commands: identical commands in different
+// components are separate checks. Gates are repository-scoped checks too.
+export function checkSelectivity(graph, recommendedIds) {
+  const all = new Set([...graph.verification, ...graph.gates].map((v) => v.id));
+  const recommended = [...all].filter((id) => recommendedIds.has(id)).length;
+  return all.size ? recommended / all.size : 1;
 }
 
 function score(retrieved, truth) {
@@ -275,6 +288,10 @@ export function runRoutingEval(root, { json = false } = {}) {
     const retrieved = new Set();
     const critical = new Set();
     const verif = new Set();
+    const recommendedIds = new Set();
+    const collectChecks = (ctx) => {
+      for (const v of [...ctx.verification.items, ...ctx.globalGates]) recommendedIds.add(v.id);
+    };
     let unresolved = 0;
     for (const t of s.touch) {
       let ctx;
@@ -289,13 +306,16 @@ export function runRoutingEval(root, { json = false } = {}) {
       for (const x of factsFromContext(ctx)) retrieved.add(x);
       for (const x of criticalFromContext(ctx)) critical.add(x);
       for (const x of verificationFromContext(ctx)) verif.add(x);
+      collectChecks(ctx);
     }
     // Change impact is part of routing: it is what tells the agent which other
     // components a change reaches. Its output is legitimately part of context.
     const im = impact(graph, s.touch);
+    for (const v of im.recommendedVerification) recommendedIds.add(v.id);
     for (const c of im.affectedComponents) {
       const ctx = queryContext(graph, c.ref, {});
       for (const x of factsFromContext(ctx)) retrieved.add(x);
+      collectChecks(ctx);
     }
 
     const base = baselineContext(graph, s.touch);
@@ -307,8 +327,6 @@ export function runRoutingEval(root, { json = false } = {}) {
     const all = score(retrieved, new Set(s.truth));
     const baseAll = score(base, new Set(s.truth));
     const crit = score(critical, new Set(s.critical));
-    const vf = score(verif, new Set(s.verification));
-    const baseVf = score(baseV, new Set(s.verification));
     const noise = irrelevanceRatio(retrieved, closure);
     const baseNoise = irrelevanceRatio(base, baseClosure);
 
@@ -318,12 +336,14 @@ export function runRoutingEval(root, { json = false } = {}) {
       recall: all.hit / (all.total || 1),
       precision: 1 - noise,
       criticalRecall: crit.total ? crit.hit / crit.total : 1,
-      verificationRecall: vf.total ? vf.hit / vf.total : 1,
+      verificationRecall: verificationRecall(verif, new Set(s.verification)),
+      checkSelectivity: checkSelectivity(graph, recommendedIds),
       noise,
       baseline: {
         recall: baseAll.hit / (baseAll.total || 1),
         noise: baseNoise,
-        verificationRecall: baseVf.hit / (baseVf.total || 1),
+        verificationRecall: verificationRecall(baseV, new Set(s.verification)),
+        checkSelectivity: 1, // The baseline runs every verification entry and gate.
       },
       missed: all.missed.slice(0, 8),
       offClosure: [...retrieved].filter((r) => !closure.has(r)).slice(0, 8),
@@ -344,12 +364,14 @@ export function runRoutingEval(root, { json = false } = {}) {
     precision: round(mean("precision")),
     criticalRecall: round(mean("criticalRecall")),
     verificationRecall: round(mean("verificationRecall")),
+    checkSelectivity: round(mean("checkSelectivity")),
     noise: round(mean("noise")),
     retrievalReduction: 0,
     baseline: {
       recall: round(meanB("recall")),
       noise: round(meanB("noise")),
       verificationRecall: round(meanB("verificationRecall")),
+      checkSelectivity: round(meanB("checkSelectivity")),
     },
   };
   // Size proxy: retrieved fact count versus the whole-repository baseline.
