@@ -44,3 +44,56 @@ for (const [label, files, type, shape] of [
     assert.deepEqual([unit.deployable, unit.importable], shape);
   });
 }
+
+for (const [technology, files] of [
+  ["uv", {
+    "pyproject.toml": '[tool.uv.workspace]\nmembers = ["examples", "test", "deep/one/two/tests/member"]\n',
+    "examples/pyproject.toml": '[project]\nname = "example-unit"\nversion = "0.1.0"\n',
+    "test/pyproject.toml": '[project]\nname = "test-unit"\nversion = "0.1.0"\n',
+    "deep/one/two/tests/member/pyproject.toml": '[project]\nname = "nested-unit"\nversion = "0.1.0"\n',
+    "example/pyproject.toml": '[project]\nname = "unclaimed"\nversion = "0.1.0"\n',
+  }],
+  ["Cargo", {
+    "Cargo.toml": '[workspace]\nmembers = ["examples", "test", "deep/one/two/tests/member"]\nresolver = "2"\n',
+    "examples/Cargo.toml": '[package]\nname = "example-unit"\nversion = "0.1.0"\n',
+    "examples/src/lib.rs": "pub fn example() {}\n",
+    "test/Cargo.toml": '[package]\nname = "test-unit"\nversion = "0.1.0"\n',
+    "test/src/lib.rs": "pub fn example() {}\n",
+    "deep/one/two/tests/member/Cargo.toml": '[package]\nname = "nested-unit"\nversion = "0.1.0"\n',
+    "deep/one/two/tests/member/src/lib.rs": "pub fn example() {}\n",
+    "example/Cargo.toml": '[package]\nname = "unclaimed"\nversion = "0.1.0"\n',
+    "example/src/lib.rs": "pub fn example() {}\n",
+  }],
+]) {
+  test("CREATE: fresh " + technology + " setup discovers declared members under skipped names", (t) => {
+    const dir = freshRepo(t, files);
+    cli(dir, ["init"]);
+    const cfg = read(dir, "agentdoc/agentdoc.config.yaml");
+    const before = compile(dir);
+    const roots = ["examples", "test", "deep/one/two/tests/member"];
+    assert.deepEqual(before.discovery.eligible.map((u) => u.root).sort(), roots.slice().sort(),
+      "init must enable the adapter even when only skipped/deep members supply units");
+    const dry = JSON.parse(cli(dir, ["scaffold"]));
+    const proposed = dry.written.map((f) => f.replace(/ \(dry run\)$/, ""));
+    const descriptors = roots.map((root) => root + "/agentdoc.yaml");
+    assert.deepEqual(proposed.filter((f) => f.endsWith("/agentdoc.yaml")).sort(), descriptors.slice().sort());
+    for (const file of descriptors) assert.equal(fs.existsSync(path.join(dir, file)), false);
+    assert.deepEqual(JSON.parse(cli(dir, ["scaffold", "--write"])).written, proposed);
+    assert.equal(fs.existsSync(path.join(dir, "example/agentdoc.yaml")), false, "an unclaimed skipped directory stays excluded");
+    choosePlacements(dir, descriptors);
+    assert.equal(read(dir, "agentdoc/agentdoc.config.yaml"), cfg, "setup must not require configuration edits");
+    assert.match(cli(dir, ["validate"]), /validate: PASS/);
+    assert.match(cli(dir, ["compile"]), /compile: PASS/);
+    assert.deepEqual(compile(dir).discovery.eligible.map((u) => u.root).sort(), roots.slice().sort());
+    // The recursive descriptor glob also covers a new layout marker after init.
+    // Use this workspace's technology so no adapter selection changes are needed.
+    for (const [file, content] of Object.entries(files)) {
+      if (file.startsWith("examples/")) write(dir, file.replace("examples/", "later/unit/"), content.replaceAll("example-unit", "later-unit"));
+    }
+    const later = JSON.parse(cli(dir, ["scaffold", "--write"]));
+    assert.ok(later.written.includes("later/unit/agentdoc.yaml"));
+    choosePlacements(dir, ["later/unit/agentdoc.yaml"]);
+    assert.equal(read(dir, "agentdoc/agentdoc.config.yaml"), cfg);
+    assert.match(cli(dir, ["compile"]), /compile: PASS/);
+  });
+}

@@ -237,6 +237,15 @@ The core has no knowledge of folder names. A directory is a unit when it holds
 a component descriptor, when an adapter recognises it from a workspace file, or
 when it is listed in `discovery.supplementalRoots`.
 
+`init` configures the recursive component descriptor glob `*/**/agentdoc.yaml`,
+so descriptors for adapter-discovered units and units added later are loaded
+without regenerating a path list. The scaffold layout scan supplements its
+shallow marker heuristics with adapter discovery: declared workspace members
+under `examples`, `example`, `test`, or `tests`, or beyond the scan depth, remain
+units. Those names alone do not create units. Scaffold selects artifact types
+from adapter shape: deployable (including both shapes) → `service`, importable
+only → `library`, neither → `other`. Placement remains a human choice.
+
 `discovery.notUnitRoots` excludes each listed root and its whole subtree from
 inferred units (adapter markers, adapter `roots()`, and supplemental roots) and
 from scaffold layout scans and descriptor proposals, in both dry run and

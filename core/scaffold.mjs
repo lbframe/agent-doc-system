@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
-import { isNotUnitRoot } from "./discover.mjs";
+import { discoverUnits, isNotUnitRoot } from "./discover.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 import { parse as parseToml } from "./toml.mjs";
 import { cargoUnitShape, isExcludedWorkspaceMember, isVirtualWorkspaceManifest } from "../adapters/rust.mjs";
@@ -92,7 +92,7 @@ export function installTemplates(repo, cfg, { write, root, force = false, eligib
 }
 
 // Layout inference for CREATE mode: which directories look like unit roots.
-// Uses only file-presence heuristics that any repository can answer.
+// Combines shallow marker heuristics with the compiler's adapter discovery.
 function scanLayout(repo, cfg) {
   const candidates = new Map();
   const note = (root, kind) => {
@@ -128,6 +128,18 @@ function scanLayout(repo, cfg) {
     }
   };
   walk("", 0);
+  // Directory-name/depth heuristics must not hide units declared by adapters
+  // (for example a uv or Cargo member under examples/). During init there is
+  // no config yet: probe supported marker adapters so those members can also
+  // select their adapter in the generated configuration.
+  const discoveryCfg = cfg || { discovery: { componentDescriptors: [] } };
+  const adapters = loadAdapters(cfg ? cfg.adapters : Object.values(ADAPTER_FOR_MARKER));
+  for (const unit of discoverUnits(repo, discoveryCfg, adapters).eligible) {
+    if (!unit.root || unit.root === "." || isNotUnitRoot(unit.root, cfg)) continue;
+    for (const [kind, adapter] of Object.entries(ADAPTER_FOR_MARKER)) {
+      if (unit.markers.some((marker) => marker.adapter === adapter)) note(unit.root, kind);
+    }
+  }
   for (const u of [...candidates.values()]) {
     // Layout-only candidates need the same artifact evidence as units already
     // discovered by the compiler. A technology name alone proves no shape.
@@ -279,13 +291,6 @@ function buildConfig(layout) {
     if (!groups.has(head)) groups.set(head, []);
     groups.get(head).push(r);
   }
-  // A manifest at the repository root yields an empty head; emitting
-  // "/agentdoc.yaml" would be an absolute glob, which the loader rejects.
-  const componentGlobs = [...groups.entries()]
-    .filter(([head]) => head.length > 0)
-    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-    .map(([head, list]) => (list.length === 1 && list[0] === head ? head + "/agentdoc.yaml" : head + "/**/agentdoc.yaml"));
-  if (!componentGlobs.length) componentGlobs.push("*/**/agentdoc.yaml");
 
   const adapters = new Set(["generic"]);
   for (const l of layout) {
@@ -312,9 +317,10 @@ function buildConfig(layout) {
     "discovery:",
     "  componentDescriptorName: agentdoc.yaml",
     "  componentDescriptors:",
-    // Globs are quoted: an unquoted leading "*" is an alias in strict YAML,
-    // and a configuration the compiler cannot parse is worse than none.
-    ...componentGlobs.map((g) => "    - " + yamlStr(g)),
+    // Discover every scaffolded descriptor, including adapter roots outside
+    // the shallow layout and units added after init. Keep the leading glob
+    // quoted because an unquoted "*" is an alias in strict YAML.
+    '    - "*/**/agentdoc.yaml"',
     "  centralDescriptors:",
     "    - agentdoc/domains.yaml",
     "    - agentdoc/systems.yaml",
