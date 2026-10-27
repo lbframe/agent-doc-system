@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "83d646c6191046b491b019673e0ca6bc8718a9b1",
+    "commit": "98cf1343a694bbcfb7bd36a15483ede89a0a8213",
     "dirty": false,
-    "inputHash": "sha256:6e087c671c8c78bb299c71b81ef8418b25be4d2dc07f7bcfc5b9d71936246972"
+    "inputHash": "sha256:f46de54d62b0192556b1a6769e902eef0406dbd89368a017b3a83c5d88197db1"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -31,7 +31,7 @@
       },
       {
         "name": "github-actions",
-        "version": "1.1.0"
+        "version": "1.2.0"
       },
       {
         "name": "go",

@@ -91,6 +91,89 @@ function workflow(steps, header = "on: push\n", defaults = "") {
   return "name: regression\n" + header + defaults + "jobs:\n  checks:\n    steps:\n" + steps;
 }
 
+test("github-actions: repository script repro retains component checks and gates", (t) => {
+  const file = ".github/workflows/scripts.yml";
+  const dir = baseFixture(t, { extra: {
+    "scripts/test.sh": "exit 0\n",
+    "scripts/lint.sh": "exit 0\n",
+    [file]: workflow('      - run: ./scripts/test.sh service/\n      - run: bash scripts/lint.sh\n      - run: npm test\n'),
+  } });
+  cli(dir, ["compile"]);
+  assert.deepEqual(ciChecks(graphOf(dir), file).map((v) => [v.command, v.tier, v.componentRefs || []]), [
+    ["./scripts/test.sh service/", "unit", ["component:default/svc"]],
+    ["bash scripts/lint.sh", "static", []],
+    ["npm test", "unit", []],
+  ]);
+});
+
+for (const [command, script, tier] of [
+  ["./scripts/test.sh service/", "scripts/test.sh", "unit"],
+  ["bash scripts/lint.sh service/", "scripts/lint.sh", "static"],
+  ["sh scripts/check.sh service/", "scripts/check.sh", "unit"],
+  ["node scripts/typecheck.mjs service/", "scripts/typecheck.mjs", "static"],
+  ["python scripts/build.py service/", "scripts/build.py", "build"],
+  ["python3 scripts/e2e.py service/", "scripts/e2e.py", "e2e"],
+  ["./scripts/integration-test service/", "scripts/integration-test", "integration"],
+  ["node scripts/contract-check.mjs service/", "scripts/contract-check.mjs", "contract"],
+]) {
+  test("github-actions: repository script launcher " + command, (t) => {
+    const file = ".github/workflows/launcher.yml";
+    const dir = baseFixture(t, { extra: {
+      [script]: "# repository check\n",
+      [file]: workflow("      - run: " + command + "\n"),
+    } });
+    cli(dir, ["compile"]);
+    assert.deepEqual(ciChecks(graphOf(dir), file).map((v) => [v.command, v.tier, v.componentRefs]), [
+      [command, tier, ["component:default/svc"]],
+    ]);
+  });
+}
+
+test("github-actions: repository scripts reuse directory, path and trigger scope", (t) => {
+  const file = ".github/workflows/script-scope.yml";
+  const filtered = ".github/workflows/script-paths.yml";
+  const dir = baseFixture(t, { extra: {
+    "scripts/test.sh": "exit 0\n",
+    "service/check.py": "pass\n",
+    [file]: workflow([
+      "      - run: bash ../scripts/test.sh",
+      "        working-directory: service",
+      "      - run: cd service && sh ../scripts/test.sh",
+      "      - run: python3 service/check.py",
+      "      - run: ./scripts/test.sh service-other/",
+    ].join("\n") + "\n"),
+    [filtered]: workflow("      - run: ./scripts/test.sh\n", 'on:\n  pull_request:\n    paths: ["service/**"]\n'),
+  } });
+  cli(dir, ["compile"]);
+  const g = graphOf(dir);
+  assert.deepEqual(ciChecks(g, file).map((v) => [v.command, v.componentRefs || []]), [
+    ["cd service && bash ../scripts/test.sh", ["component:default/svc"]],
+    ["cd service && sh ../scripts/test.sh", ["component:default/svc"]],
+    ["python3 service/check.py", ["component:default/svc"]],
+    ["./scripts/test.sh service-other/", []],
+  ]);
+  assert.deepEqual(ciChecks(g, filtered).map((v) => v.componentRefs), [["component:default/svc"]]);
+});
+
+test("github-actions: non-check names and scripts outside the repository stay dropped", (t) => {
+  const file = ".github/workflows/non-check-scripts.yml";
+  const dir = baseFixture(t, { extra: {
+    "scripts/deploy.sh": "exit 0\n",
+    "scripts/contest.py": "pass\n",
+    "scripts/test-dir/README": "not a script\n",
+    [file]: workflow([
+      "./scripts/deploy.sh service/", "bash scripts/deploy.sh service/",
+      "sh scripts/deploy.sh service/", "node scripts/deploy.sh service/",
+      "python scripts/contest.py service/", "python3 scripts/contest.py service/",
+      "./scripts/test-missing.sh service/", "./scripts/test-dir service/",
+      "bash /tmp/test.sh service/", "sh ../test.sh service/",
+      'python3 "$SCRIPT" service/', "test -n service/",
+    ].map((command) => "      - run: " + command).join("\n") + "\n"),
+  } });
+  cli(dir, ["compile"]);
+  assert.deepEqual(ciChecks(graphOf(dir), file), []);
+});
+
 test("github-actions: shell conditions and mentions of checks are not invocations", (t) => {
   const file = ".github/workflows/conditions.yml";
   const dir = baseFixture(t, { extra: { [file]: workflow([
