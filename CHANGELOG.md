@@ -77,7 +77,7 @@ recommend those dependents' checks.
   - A change to a component reaches the components that depend on it,
     transitively, through reverse `buildDependsOn` / `testDependsOn` edges.
     Before, `impact` also listed the components it depends on as affected,
-    and stopped after two hops.
+    and did not follow transitive dependents.
   - Dependencies stay visible as typed relations in `query`. They are no
     longer reported as affected components.
   - `query` and `impact` recommend the dependents' checks after the changed
