@@ -116,6 +116,26 @@ cannot name the file a fact came from, you cannot add the fact.
 `generic` is always on. Everything else is opt-in through `adapters: [...]`, and
 an unknown name is `AGENTDOC_CONFIG`, not a silent no-op.
 
+### `github-actions`
+
+Only recognizable test, lint and build invocations in `run` steps contribute
+checks. The executable and task determine the tier; a shell `test`, a step
+name, an action name or text printed by `echo` does not. Simple scripts are
+split into individual commands, never copied wholesale or truncated. Shell
+control flow, pipelines, substitutions and heredocs are not interpreted;
+commands after a directory or environment change are not extracted.
+
+Scope comes from the step's `working-directory` (including job and workflow
+defaults), a component path argument, an explicit package selector, or a
+workflow trigger's `paths` filter with a literal directory prefix. Paths match
+whole segments; a mention in another step cannot scope a check. Unscoped
+checks are repository gates. A working directory is retained in the recorded
+command so the check can be run from the repository root.
+
+`impact` on a workflow follows its recorded check configuration paths to the
+covered components. Repository gates from that file appear in `affectedGates`
+and `recommendedVerification`.
+
 ### `ansible`
 
 Reads playbooks under a unit root and follows what they reach — plays,

@@ -56,6 +56,7 @@ export function impact(graph, changedPaths) {
   const dependencyPaths = new Set();
   const catalogPaths = new Set();
   const unmatched = [];
+  const matchedVerification = new Set();
 
   for (const raw of changedPaths) {
     const p = raw.replace(/^\.\//, "");
@@ -84,6 +85,18 @@ export function impact(graph, changedPaths) {
     if (kind === "input") dependencyPaths.add(p);
     if (p.startsWith("agentdoc/")) catalogPaths.add(p);
   }
+
+  // A check's configuration is evidence of the components it covers, even
+  // when the file lives outside every component root (for example CI).
+  for (const v of graph.verification) {
+    for (const p of verificationPaths) {
+      if (!v.configPaths?.includes(p)) continue;
+      matchedVerification.add(p);
+      for (const ref of v.componentRefs) add(ref, "verification configuration " + p + " changed");
+    }
+  }
+  const gates = graph.gates.filter((g) => g.configPaths?.some((p) => verificationPaths.has(p)));
+  for (const g of gates) for (const p of g.configPaths) if (verificationPaths.has(p)) matchedVerification.add(p);
 
   // A contract change reaches its provider and every consumer.
   for (const c of contracts) {
@@ -143,21 +156,22 @@ export function impact(graph, changedPaths) {
 
   return {
     changedFiles: changedPaths.slice().sort(),
-    unmatchedFiles: unmatched.sort(),
+    unmatchedFiles: unmatched.filter((p) => !matchedVerification.has(p)).sort(),
     affectedComponents: refs.map((ref) => ({ ref, reasons: [...affectedComponents.get(ref)].sort() })),
     affectedContracts: [...contracts].sort(),
     affectedDocs: [...docs].sort(),
     affectedResources: [...resources].sort(),
     affectedInputs: [...dependencyPaths].sort(),
     affectedVerification: [...verificationPaths].sort(),
+    affectedGates: gates.map((v) => ({ id: v.id, tier: v.tier, command: v.command })),
     affectedCatalog: [...catalogPaths].sort(),
     catalogSourceChanged: catalogPaths.size > 0,
     // Any file the compiler read is a graph input: changing it invalidates the
     // committed graph even when no descriptor changed.
     graphWillBeStale: graphAffected(graph, changedPaths),
-    recommendedVerification: verification.map((v) => ({ id: v.id, tier: v.tier, command: v.command })).slice(0, 25),
-    recommendedVerificationTotal: verification.length,
-    recommendedVerificationTruncated: verification.length > 25,
+    recommendedVerification: [...verification, ...gates].map((v) => ({ id: v.id, tier: v.tier, command: v.command })).slice(0, 25),
+    recommendedVerificationTotal: verification.length + gates.length,
+    recommendedVerificationTruncated: verification.length + gates.length > 25,
     openConflicts: conflicts.map((c) => ({ id: c.id, subject: c.subject, key: c.key, status: c.status, kind: c.kind })),
     relatedJourneys: journeys.map((j) => ({ id: j.id, description: j.description })),
   };

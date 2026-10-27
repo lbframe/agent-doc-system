@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "253e3fbfe2fcab0970746461a03633fb6e34b1b4",
+    "commit": "83d646c6191046b491b019673e0ca6bc8718a9b1",
     "dirty": false,
-    "inputHash": "sha256:e668eb2675884e17467368b762906e99f95d3b5b794d79686146c44f1610a0c0"
+    "inputHash": "sha256:6e087c671c8c78bb299c71b81ef8418b25be4d2dc07f7bcfc5b9d71936246972"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -31,7 +31,7 @@
       },
       {
         "name": "github-actions",
-        "version": "1.0.0"
+        "version": "1.1.0"
       },
       {
         "name": "go",
@@ -1930,7 +1930,6 @@
     {
       "id": "ci:-github-workflows-ci-yml:checks:2",
       "componentRefs": [
-        "component:default/calendar",
         "component:default/teacher"
       ],
       "tier": "unit",
@@ -1945,8 +1944,7 @@
     {
       "id": "ci:-github-workflows-ci-yml:checks:3",
       "componentRefs": [
-        "component:default/calendar",
-        "component:default/teacher"
+        "component:default/calendar"
       ],
       "tier": "unit",
       "command": "pnpm --filter @koda/calendar test",
