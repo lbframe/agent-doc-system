@@ -3,7 +3,8 @@
 // Values follow TOML 1.0: tables, arrays of tables, dotted keys, strings,
 // integers (decimal, hex, octal, binary, with `_` separators), floats
 // (including inf and nan), booleans, dates and times, arrays and inline
-// tables. Strings are basic, literal, and both multi-line forms. Literal
+// tables. Safe integers are Numbers; larger integers are exact BigInts.
+// Strings are basic, literal, and both multi-line forms. Literal
 // strings are raw — a backslash is a backslash. Dates and times are returned
 // as the exact lexeme; nothing in the compiler derives a fact from them.
 // Only a form the spec rejects is a diagnostic. A mis-parsed manifest is
@@ -11,8 +12,22 @@
 import { AgentDocError, CODES } from "./codes.mjs";
 
 export function parse(src, path = "") {
-  const text = String(src).replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const p = new Parser(text, path);
+  // Byte input must be decoded without replacing malformed UTF-8. String
+  // callers already own decoding; still reject unpaired UTF-16 surrogates.
+  let text;
+  try {
+    text = src instanceof Uint8Array
+      ? new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(src)
+      : String(src);
+  } catch {
+    throw new AgentDocError(CODES.YAML_PARSE, "invalid UTF-8 in TOML", { path, line: 1 });
+  }
+  const p = new Parser(text.replace(/\r\n/g, "\n"), path);
+  const invalid = /[\uD800-\uDFFF]/u.exec(p.s);
+  if (invalid) {
+    p.line = p.s.slice(0, invalid.index).split("\n").length;
+    p.die("invalid unicode scalar");
+  }
   return p.parseDocument();
 }
 
@@ -23,6 +38,10 @@ class Parser {
     this.i = 0;
     this.line = 1;
     this.path = path;
+    // Metadata stays outside returned values. Only implicit header parents can
+    // later be declared with [table]; inline tables can never be extended.
+    this.tables = new WeakMap();
+    this.tableArrays = new WeakSet();
   }
 
   parseDocument() {
@@ -51,7 +70,6 @@ class Parser {
 
   parseTableHeader() {
     this.expect("[");
-    this.skipSpaces();
     let isArray = false;
     if (this.peek() === "[") {
       isArray = true;
@@ -61,48 +79,63 @@ class Parser {
     const keys = this.parseKey();
     this.skipSpaces();
     this.expect("]");
-    if (isArray) {
-      this.skipSpaces();
-      this.expect("]");
-    }
+    if (isArray) this.expect("]");
     this.endLine();
     return { keys, isArray };
   }
 
+  table(kind) {
+    const out = {};
+    this.tables.set(out, kind);
+    return out;
+  }
+
+  has(table, key) { return Object.prototype.hasOwnProperty.call(table, key); }
+
+  put(table, key, value) {
+    // __proto__, constructor and toString are ordinary TOML keys.
+    Object.defineProperty(table, key, { value, enumerable: true, writable: true, configurable: true });
+  }
+
   openTable(root, keys, isArray) {
     let cur = root;
-    for (let k = 0; k < keys.length - 1; k++) {
-      cur = this.descend(cur, keys[k]);
-    }
-    const key = keys[keys.length - 1];
+    for (const key of keys.slice(0, -1)) cur = this.descend(cur, key, true);
+    const key = keys.at(-1);
     if (isArray) {
-      if (cur[key] === undefined) cur[key] = [];
-      if (!Array.isArray(cur[key])) this.die("key '" + key + "' is not an array of tables");
-      const obj = {};
+      if (!this.has(cur, key)) {
+        const array = [];
+        this.tableArrays.add(array);
+        this.put(cur, key, array);
+      }
+      if (!this.tableArrays.has(cur[key])) this.die("key '" + key + "' is not an array of tables");
+      const obj = this.table("explicit");
       cur[key].push(obj);
       return obj;
     }
-    if (cur[key] === undefined) cur[key] = {};
-    if (cur[key] === null || typeof cur[key] !== "object" || Array.isArray(cur[key])) {
-      this.die("key '" + key + "' cannot be a table");
-    }
+    if (!this.has(cur, key)) this.put(cur, key, this.table("implicit"));
+    if (this.tables.get(cur[key]) !== "implicit") this.die("duplicate or conflicting table '" + key + "'");
+    this.tables.set(cur[key], "explicit");
     return cur[key];
   }
 
-  descend(cur, key) {
-    if (cur[key] === undefined) cur[key] = {};
-    if (cur[key] === null || typeof cur[key] !== "object" || Array.isArray(cur[key])) {
+  descend(cur, key, header = false) {
+    if (!this.has(cur, key)) this.put(cur, key, this.table(header ? "implicit" : "dotted"));
+    let value = cur[key];
+    // A header below an array of tables belongs to its most recent element.
+    if (header && this.tableArrays.has(value)) value = value.at(-1);
+    const kind = this.tables.get(value);
+    if (!kind || kind === "inline" || (!header && kind === "explicit")) {
       this.die("key '" + key + "' cannot contain a nested key");
     }
-    return cur[key];
+    return value;
   }
 
   assign(table, keys, value) {
     let cur = table;
-    for (let k = 0; k < keys.length - 1; k++) cur = this.descend(cur, keys[k]);
-    const key = keys[keys.length - 1];
-    if (Object.prototype.hasOwnProperty.call(cur, key)) this.die("duplicate key '" + key + "'");
-    cur[key] = value;
+    for (const key of keys.slice(0, -1)) cur = this.descend(cur, key);
+    const key = keys.at(-1);
+    if (this.has(cur, key)) this.die("duplicate key '" + key + "'");
+    this.put(cur, key, value);
   }
 
   parseKey() {
@@ -165,10 +198,11 @@ class Parser {
   // we: accepting the break would hide a file this reader does not fully model.
   parseInlineTable() {
     this.expect("{");
-    const out = {};
+    const out = this.table("inline");
+    this.skipSpaces();
+    if (this.peek() === "}") { this.i++; return out; }
     for (;;) {
       this.skipSpaces();
-      if (this.peek() === "}") { this.i++; return out; }
       if (this.peek() === "\n") this.die("newline in an inline table is not supported");
       const keys = this.parseKey();
       this.skipSpaces();
@@ -193,40 +227,13 @@ class Parser {
     while (!this.eof()) {
       if (!multi && this.peek() === "\n") this.die("unterminated basic string");
       if (this.s.startsWith(delim, this.i)) {
-        // A multi-line string may contain one or two quotes. Three close it,
-        // unless a longer run leaves a quote that still belongs to the content
-        // — TOML keeps the extra quotes and closes on the final three.
-        if (!multi) { this.i += delim.length; return out; }
-        let q = 0;
+        if (!multi) { this.i++; return out; }
+        // One or two quotes may precede the closing three, but never three.
+        let q = 3;
         while (this.s[this.i + q] === '"') q++;
-        if (q >= 3) {
-          const keep = q === 3 ? 0 : q - 3;
-          // Six or more quotes: the closing delimiter is the last three only
-          // when at least one of the earlier quotes is content. A count of
-          // exactly three always closes. More than five in a row is content
-          // plus a closer: `q - 3` quotes stay, except we must not treat a
-          // closer that is the entire remainder wrongly. TOML: the first
-          // three quotes that can close, do close, and 1–2 quotes before a
-          // closer are content. So from a run of q>=3, content gets q-3 and
-          // the last three close — but only when those last three are the
-          // delimiter. A run of 4 is one content quote + closer. A run of 5
-          // is two + closer. A run of 6 closes immediately if we greedily
-          // take the first three... The spec says three quotes end the
-          // string, so the FIRST three close. Extra quotes after the closer
-          // are trailing content for the caller to reject. That matches
-          // `"""hello""""` being `hello"` + a leftover quote only if we keep
-          // one and close on the next three: i.e. when q>3, we could either
-          // close at the first three (content gets 0, leftover quotes remain)
-          // or keep q-3. The first-three rule makes `""""` inside a multi-line
-          // string impossible without escapes, which is what the spec says:
-          // "To write three quotation marks you need to escape at least one."
-          // So a run of three or more closes at the first three.
-          this.i += 3;
-          return out;
-        }
-        out += '"'.repeat(q);
+        if (q > 5) this.die("too many quotes at end of basic string");
         this.i += q;
-        continue;
+        return out + '"'.repeat(q - 3);
       }
       const c = this.peek();
       if (c === "\\") {
@@ -289,13 +296,13 @@ class Parser {
     while (!this.eof()) {
       if (!multi && this.peek() === "\n") this.die("unterminated literal string");
       if (this.s.startsWith(delim, this.i)) {
-        if (!multi) { this.i += delim.length; return out; }
-        let q = 0;
+        if (!multi) { this.i++; return out; }
+        // One or two quotes may precede the closing three, but never three.
+        let q = 3;
         while (this.s[this.i + q] === "'") q++;
-        if (q >= 3) { this.i += 3; return out; }
-        out += "'".repeat(q);
+        if (q > 5) this.die("too many quotes at end of literal string");
         this.i += q;
-        continue;
+        return out + "'".repeat(q - 3);
       }
       const c = this.peek();
       this.rejectControl(c, multi);
@@ -324,9 +331,8 @@ class Parser {
     if (raw === "+" || raw === "-" || raw.endsWith("_") || raw.includes("__")) this.die("invalid number");
     this.i = start + raw.length;
     if (/[A-Za-z_]/.test(this.peek())) this.die("invalid number");
-    const n = Number(raw.replace(/_/g, ""));
-    if (!Number.isFinite(n)) this.die("invalid number");
-    return n;
+    const clean = raw.replace(/_/g, "");
+    return /[.eE]/.test(clean) ? Number(clean) : this.integer(clean);
   }
 
   // inf and nan are lowercase. A sign is allowed. `Inf` is not a float.
@@ -360,7 +366,14 @@ class Parser {
     }
     if (prevUnderscore || !body) this.die("invalid number");
     if (/[A-Za-z0-9_]/.test(this.peek())) this.die("invalid number");
-    return parseInt(body, base);
+    return this.integer(prefix + body);
+  }
+
+  integer(raw) {
+    const value = BigInt(raw);
+    // Preserve the existing Number API for safe integers; never round int64s.
+    return value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(value) : value;
   }
 
   // A local date, local time, local date-time, or offset date-time. The
@@ -387,11 +400,11 @@ class Parser {
     this.checkDate(Number(m[1]), Number(m[2]), Number(m[3]));
     let raw = m[0];
     const rest = this.s.slice(this.i + raw.length);
-    if (rest.startsWith("T") || rest.startsWith(" ")) {
-      const tm = /^[T ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?/.exec(rest);
+    if (/^[Tt]/.test(rest) || /^ \d{2}:/.test(rest)) {
+      const tm = /^[Tt ](\d{2}):(\d{2}):(\d{2})(\.\d+)?([Zz]|[+-]\d{2}:\d{2})?/.exec(rest);
       if (!tm) this.die("invalid date or time");
       this.checkTime(tm[1], tm[2], tm[3]);
-      if (tm[5] && tm[5] !== "Z") this.checkTime(tm[5].slice(1, 3), tm[5].slice(4, 6), "00");
+      if (tm[5] && !/^[Zz]$/.test(tm[5])) this.checkTime(tm[5].slice(1, 3), tm[5].slice(4, 6), "00");
       raw += tm[0];
     }
     this.i += raw.length;
@@ -404,7 +417,7 @@ class Parser {
   }
 
   checkDate(y, m, d) {
-    if (m < 1 || m > 12) this.die("invalid date or time");
+    if (y < 1 || m < 1 || m > 12) this.die("invalid date or time");
     const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
     const dim = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     if (d < 1 || d > dim[m - 1]) this.die("invalid date or time");
@@ -414,14 +427,14 @@ class Parser {
     const h = Number(hh);
     const m = Number(mm);
     const s = Number(ss);
-    if (h > 23 || m > 59 || s > 60) this.die("invalid date or time");
+    if (h > 23 || m > 59 || s > 59) this.die("invalid date or time");
   }
 
   rejectControl(c, multi) {
     if (c === "\n" && multi) return;
     if (c === "\t") return;
     const code = c.charCodeAt(0);
-    if (code < 0x20 || code === 0x7f) this.die("control character in string");
+    if (code < 0x20 || code === 0x7f) this.die("control character");
   }
 
   // ── scanning ───────────────────────────────────────────────────────────
@@ -436,18 +449,23 @@ class Parser {
       if (c === " " || c === "\t") { this.i++; continue; }
       if (c === "\n") { this.i++; this.line++; continue; }
       if (c === "#") {
-        while (!this.eof() && this.peek() !== "\n") this.i++;
+        this.skipComment();
         continue;
       }
       return;
     }
   }
 
+  skipComment() {
+    while (!this.eof() && this.peek() !== "\n") {
+      this.rejectControl(this.peek(), false);
+      this.i++;
+    }
+  }
+
   endLine() {
     this.skipSpaces();
-    if (this.peek() === "#") {
-      while (!this.eof() && this.peek() !== "\n") this.i++;
-    }
+    if (this.peek() === "#") this.skipComment();
     if (this.eof()) return;
     if (this.peek() === "\n") { this.i++; this.line++; return; }
     this.die("unexpected trailing content");
