@@ -40,12 +40,14 @@ following:
 3. Counts every other edit a human would need before the catalog validates. That
    number is the "setup ok" column, and the target is zero.
 4. Compiles three times, and checks that the graph is byte-identical.
-5. For one production source file per component, measures the `agentdoc query`
-   answer (about 4 characters per token) and the `agentdoc impact` result.
+5. For each component with a matching file, samples the first tracked source
+   file whose path does not contain `test` (benchmarks and examples may be
+   included). It measures the `agentdoc query` answer, at about 4 characters per
+   token, and the `agentdoc impact` result.
 
 Measured with AgentDoc 1.2.0 on Node 24, on a 2019 Intel Core i9 laptop (load average about 4):
 
-| repository | files | setup ok | components | dependency edges | checks | setup + first compile | compile | deterministic | `query` answer, median / max |
+| repository | files | setup ok | components | dependency edges | checks | init + scaffold + median compile | median compile | deterministic | `query` answer, median / max |
 |---|---|---|---|---|---|---|---|---|---|
 | [tokio-rs/axum](https://github.com/tokio-rs/axum) @ 86aa615 (Rust) | 505 | yes | 4 | 11 | 9 | 1.0 s | 0.5 s | yes | ~151 / 153 tokens |
 | [pydantic/pydantic-ai](https://github.com/pydantic/pydantic-ai) @ 5a4d576 (Python, TS) | 5,142 | yes | 8 | 9 | 5 | 4.6 s | 1.9 s | yes | ~112 / 144 tokens |

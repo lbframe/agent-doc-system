@@ -94,7 +94,8 @@ function measure(repo) {
   const graph = JSON.parse(fs.readFileSync(path.join(dir, ".agentdoc", "graph.json"), "utf8"));
   const components = graph.entities.filter((e) => e.kind === "Component");
 
-  // One query and one impact per component, on a production source file.
+  // One query and one impact per component, on the first tracked source file
+  // whose path does not contain "test" (benchmarks and examples may be picked).
   const samples = [];
   for (const c of components) {
     const root = c.derived?.sourcePath;
@@ -128,7 +129,7 @@ if (asJson) {
   console.log(JSON.stringify({ agentdoc: agentdoc(workDir, ["--version"]).trim(), node: process.version, platform: process.platform + "-" + process.arch, results }, null, 2));
 } else {
   console.log("agentdoc " + agentdoc(workDir, ["--version"]).trim().replace(/^agentdoc /, "") + " · node " + process.version + " · " + process.platform + "-" + process.arch + "\n");
-  console.log("| repository | files | setup ok | components | dependency edges | checks | setup + 1st compile | compile | deterministic | query answer (median / max, ~tokens) |");
+  console.log("| repository | files | setup ok | components | dependency edges | checks | init + scaffold + median compile | median compile | deterministic | query answer (median / max, ~tokens) |");
   console.log("|---|---|---|---|---|---|---|---|---|---|");
   for (const r of results) {
     if (!r.setupOk) {
