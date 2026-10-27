@@ -35,6 +35,13 @@ is deterministic and cannot be moved by phrasing.
 | irrelevance (noise) | fraction of retrieved facts outside the graph's one-hop closure of the touched entities |
 | retrieval reduction | `1 - catalog facts / baseline-full facts` |
 
+Scenario verification expectations accept `verify:<command>` and
+`verify-id:<check-id>`. Use check IDs when multiple components have the same
+command (for example `go test ./...`), so the library's own check cannot stand in
+for a dependent's. Retrieved context includes the entity refs already returned
+in query's neighbour summaries, even when those neighbours are dependencies and
+therefore absent from impact's affected components.
+
 ### Why noise is measured against reachability, not against the truth set
 
 The first definition of noise was the complement of truth recall. It is

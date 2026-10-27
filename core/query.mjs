@@ -9,6 +9,7 @@
 // than silently dropped, so an agent can see that it is seeing a slice.
 import { AgentDocError, CODES } from "./codes.mjs";
 import { assertNoSecretsInText } from "./secrets.mjs";
+import { verificationForChange } from "./dependents.mjs";
 
 const DEFAULT_BUDGET = {
   relations: 40,
@@ -151,7 +152,7 @@ export function queryContext(graph, needle, opts = {}) {
   const verificationScope = entity.kind === "API"
     ? [ref, ...apiConsumers, ...(apiProvider ? [apiProvider] : [])]
     : [ref];
-  const verification = g.verification.filter((e) => e.componentRefs.some((r) => verificationScope.includes(r)));
+  const verification = verificationForChange(g, verificationScope);
   const journeys = g.journeys.filter((j) => j.components.includes(ref));
   const contracts = g.contracts.filter((c) => c.apiRef && apiRefs.has(c.apiRef));
   const conflicts = g.conflicts.filter((c) => c.subject === ref);

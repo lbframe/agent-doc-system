@@ -35,6 +35,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export function factsFromContext(ctx) {
   const out = new Set();
   out.add(ctx.entity.ref);
+  for (const n of ctx.neighbours) out.add(n.ref);
   for (const r of ctx.relations.items) out.add(r.type + ":" + r.other);
   for (const p of ctx.journeyPeers || []) out.add(p);
   for (const s2 of ctx.placement.systems) out.add(s2);
@@ -76,7 +77,10 @@ export function criticalFromContext(ctx) {
 }
 
 export function verificationFromContext(ctx) {
-  return new Set(ctx.verification.items.map((v) => "verify:" + v.command));
+  // Commands such as `go test ./...` recur in multiple modules. Scenarios can
+  // require a scoped check ID as well as a command to measure dependent checks
+  // without letting the library's identical command satisfy the expectation.
+  return new Set(ctx.verification.items.flatMap((v) => ["verify:" + v.command, "verify-id:" + v.id]));
 }
 
 // ── baseline: unassisted repository exploration ────────────────────────
@@ -154,7 +158,7 @@ export function fullRepositoryContext(graph) {
 // Baseline verification: without routing, an agent runs the union of every
 // check in the repository, because nothing narrows it.
 function baselineVerification(graph) {
-  return new Set(graph.verification.map((v) => "verify:" + v.command));
+  return new Set(graph.verification.flatMap((v) => ["verify:" + v.command, "verify-id:" + v.id]));
 }
 
 function score(retrieved, truth) {

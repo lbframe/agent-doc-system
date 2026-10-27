@@ -84,6 +84,17 @@ withheld.
 endpoint is proved by running their suites, so `verification` for an API subject
 is the union over the provider and its consumers.
 
+**A component change carries its dependents' checks.** Verification follows the
+reverse `buildDependsOn` / `testDependsOn` closure (including their inverse
+`buildDependencyOf` / `testDependencyOf` spellings). Build dependents contribute
+all tiers; a route containing a test dependency contributes only `unit` checks.
+If an all-build route also reaches that dependent, all tiers apply. Cycles are
+visited safely. The subject's own checks come first, then the dependents', with
+each group sorted by check ID. A check shared by multiple components appears
+once by ID; identical command text in different component checks remains scoped
+by its ID and `configPaths`. The usual verification budget and truncation fields
+apply to the combined list.
+
 **Journey peers are named.** If a component appears in a journey, the other
 components in that journey are in scope and are listed explicitly rather than
 left for the agent to rediscover.
@@ -180,10 +191,25 @@ contracts, documentation, resources, verification and catalog sources; whether
 the graph will be invalidated; the recommended verification commands; any open
 conflicts on the affected subjects; and related journeys.
 
-Reachability rules: a contract change reaches its provider and every consumer; a
-component change reaches its transitive dependents two hops out, and everything
-connected to it by a runtime call or a schedule. Two hops is deliberate — a
-third hop is where the graph stops being a routing aid and becomes a dump.
+Reachability rules: a contract change reaches its provider and every consumer;
+a Resource change reaches components bound to that exact Resource. A migration
+change (including Alembic `alembic/versions`) reports its changed path and the
+logical databases bound to its enclosing component through existing
+`usesResource` / `resourceUsedBy` relations. Migration authority alone never
+establishes ownership or invents a Resource binding.
+
+A component change reaches its reverse build/test dependency closure, plus
+direct runtime-call and schedule peers. Dependencies are not affected just
+because the changed component uses them; they remain explicitly typed context
+in query's `relations`. The dependent closure has no hop cutoff, so a long chain
+cannot silently omit an affected consumer.
+
+Impact uses the same verification selection and ordering as query, including
+the test-only tier restriction. Directly affected components' checks precede
+their dependents' checks. The `recommendedVerification` array is capped at 25;
+`recommendedVerificationTotal` gives the uncapped count and
+`recommendedVerificationTruncated` reports overflow. Query's default cap is 12
+and can be adjusted with `--budget verification=...`.
 
 ## Using it in a prompt
 
