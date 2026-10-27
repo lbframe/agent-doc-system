@@ -35,6 +35,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export function factsFromContext(ctx) {
   const out = new Set();
   out.add(ctx.entity.ref);
+  for (const n of ctx.neighbours) out.add(n.ref);
   for (const r of ctx.relations.items) out.add(r.type + ":" + r.other);
   for (const p of ctx.journeyPeers || []) out.add(p);
   for (const s2 of ctx.placement.systems) out.add(s2);
