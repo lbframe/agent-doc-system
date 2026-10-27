@@ -350,7 +350,8 @@ export function renderContext(ctx, opts = {}) {
   for (const key of ["constraints", "docs", "runbooks"]) {
     const paths = ctx.constraints[key];
     if (!paths.length) continue;
-    const limit = opts.budget?.[key] ?? 12;
+    // Constraints are critical routing context; cap them only on request.
+    const limit = opts.budget?.[key] ?? (key === "constraints" ? paths.length : 12);
     const shown = paths.slice(0, limit);
     const label = key === "constraints" ? "CONSTRAINTS" : key;
     L.push("- " + label + ": " + shown.join(", ") +

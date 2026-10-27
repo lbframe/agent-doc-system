@@ -128,7 +128,7 @@ the slice is never mistaken for the whole.
 | provenance | 20 |
 | contracts | 10 |
 | docs (markdown) | 12 |
-| constraints (markdown) | 12 |
+| constraints (markdown) | uncapped |
 | runbooks (markdown) | 12 |
 
 ## Markdown rendering
@@ -138,8 +138,9 @@ documentation, constraints and runbooks appear under `docs`, `CONSTRAINTS` and
 `runbooks`, respectively. Components also include conventional files discovered
 in their source root. API and Domain schemas do not allow `context`.
 
-Each markdown context list defaults to 12 paths. Lower its cap with, for example,
-`--budget docs=1,runbooks=1`. A shortened line ends with
+Markdown docs and runbooks default to 12 paths each. Constraints are uncapped by
+default so critical routing context is preserved. Set an explicit cap with, for
+example, `--budget docs=1,constraints=5,runbooks=1`. A shortened line ends with
 `[truncated: 1 of 2]`, reporting the number shown and the total. JSON retains the
 complete arrays under `constraints.docs`, `constraints.constraints` and
 `constraints.runbooks`; these markdown-only caps do not shorten the JSON arrays

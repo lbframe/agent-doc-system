@@ -326,6 +326,31 @@ for (const [kind, ref] of [
   });
 }
 
+test("query: markdown constraints are uncapped unless explicitly budgeted", (t) => {
+  const dir = baseFixture(t);
+  const authoredPaths = Array.from({ length: 12 }, (_, i) => "docs/constraint-" + String(i).padStart(2, "0") + ".md");
+  for (const p of authoredPaths) write(dir, p, "# Constraint\n");
+  write(dir, "service/agentdoc.yaml", read(dir, "service/agentdoc.yaml").replace(
+    "      - service/CONSTRAINTS.md", authoredPaths.map((p) => "      - " + p).join("\n")));
+  commitAll(dir);
+  cli(dir, ["compile"]);
+  const ref = "component:default/svc";
+  const ctx = JSON.parse(cli(dir, ["query", ref, "--json"]));
+  const paths = ctx.constraints.constraints;
+  assert.equal(paths.length, 13, "authored constraints and the conventional file must be included");
+  assert.ok(paths.includes("service/CONSTRAINTS.md"));
+  for (const args of [[], ["--md"], ["--md", "--budget", "docs=1,runbooks=1"]]) {
+    const md = cli(dir, ["query", ref, ...args]);
+    const line = md.split("\n").find((s) => s.startsWith("- CONSTRAINTS:"));
+    assert.equal(line, "- CONSTRAINTS: " + paths.join(", "));
+    for (const p of authoredPaths) assert.ok(line.includes(p), p + " missing from markdown");
+  }
+  const limited = cli(dir, ["query", ref, "--md", "--budget", "constraints=12"]);
+  const line = limited.split("\n").find((s) => s.startsWith("- CONSTRAINTS:"));
+  assert.equal(line, "- CONSTRAINTS: " + paths.slice(0, 12).join(", ") + " [truncated: 12 of 13]");
+  assert.ok(!line.includes(paths[12]), "the explicit budget must withhold the last constraint");
+});
+
 test("query: default markdown context budgets report overflow from conventional and authored docs", (t) => {
   const dir = baseFixture(t);
   const paths = Array.from({ length: 12 }, (_, i) => "docs/doc-" + String(i).padStart(2, "0") + ".md");
