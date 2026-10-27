@@ -99,7 +99,6 @@ test("github-actions: shell conditions and mentions of checks are not invocation
     '      - run: \'[[ -n "$CI" ]]\'',
     '      - run: echo "npm test service/"',
     '      - run: npm install test lint build',
-    '      - uses: vendor/test-action@v1',
     '      - run: |',
     '          echo "deploy service/"',
     '          test -n "$CI"',
@@ -265,7 +264,7 @@ test("github-actions: opaque shell programs and oversized commands are never cop
     '          if test -n "$CI"; then',
     '            npm test -- service/',
     '          fi',
-    '      - run: cd service && npm test',
+    '      - run: cd "$TARGET" && npm test',
     '      - run: "npm test -- ' + "x".repeat(610) + '"',
   ].join("\n") + "\n") } });
   cli(dir, ["compile"]);
@@ -286,4 +285,171 @@ test("github-actions: repeated compiles are identical and checks cite real workf
   assert.ok(pr.subjects.some((s) => s.startsWith("/verification/")));
   assert.ok(pr.subjects.some((s) => s.startsWith("/gates/")));
   assert.ok(ciChecks(g, file).every((v) => v.provenanceIds.includes(pr.id)));
+});
+
+
+test("github-actions: review repro keeps real checks and scopes each independently", (t) => {
+  const file = ".github/workflows/review.yml";
+  const dir = baseFixture(t, {
+    config: DEFAULT_CONFIG.replace("    - service/**/agentdoc.yaml\n", "    - service/**/agentdoc.yaml\n    - services/*/agentdoc.yaml\n    - web/agentdoc.yaml\n").replace("  - node\n", "  - node\n  - python\n"),
+    extra: {
+      "services/api/agentdoc.yaml": descriptor("api", "library"),
+      "services/api/pyproject.toml": '[project]\nname = "api"\nversion = "1.0.0"\n[build-system]\nrequires = ["hatchling"]\nbuild-backend = "hatchling.build"\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n',
+      "services/api/api/__init__.py": "",
+      "web/agentdoc.yaml": descriptor("web", "library"),
+      "web/package.json": JSON.stringify({ name: "web", main: "index.js", scripts: { test: "vitest run" } }),
+      [file]: `jobs:
+  api:
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd services/api && pytest
+      - uses: golangci/golangci-lint-action@v6
+        with: { working-directory: services/api }
+  web:
+    steps:
+      - run: npm ci
+      - run: pnpm turbo run test --filter=web
+      - run: npx turbo run lint
+      - run: pnpm --filter web test
+`,
+    },
+  });
+  cli(dir, ["compile"]);
+  const checks = ciChecks(graphOf(dir), file);
+  // The six review rows, including the install that must stay absent.
+  assert.deepEqual(checks.map((v) => [v.command, v.tier, v.componentRefs || []]), [
+    ["cd services/api && pytest", "unit", ["component:default/api"]],
+    ["golangci/golangci-lint-action@v6", "static", ["component:default/api"]],
+    ["pnpm turbo run test --filter=web", "unit", ["component:default/web"]],
+    ["pnpm --filter web test", "unit", ["component:default/web"]],
+    ["npx turbo run lint", "static", []],
+  ]);
+});
+
+test("github-actions: literal cd updates scope only within its step, opaque changes stop extraction", (t) => {
+  const file = ".github/workflows/directories.yml";
+  const dir = baseFixture(t, { extra: { [file]: workflow([
+    '      - run: |',
+    '          cd service',
+    '          npm test',
+    '          cd src',
+    '          npm run lint',
+    '          cd ../..',
+    '          npm run build',
+    '      - run: npm test',
+    '      - run: cd .. && npm test',
+    '        working-directory: service/src',
+    ...['cd "$TARGET"', 'cd ~', 'cd service*', 'cd -', 'cd', 'pushd service', 'popd', 'source setup.sh', '. setup.sh', 'eval setup', 'export PWD=service'].map((change) => '      - run: ' + JSON.stringify(change + ' && npm test -- service/')),
+  ].join("\n") + "\n") } });
+  cli(dir, ["compile"]);
+  const checks = ciChecks(graphOf(dir), file);
+  assert.deepEqual(checks.map((v) => [v.command, v.componentRefs || []]), [
+    ["cd service && npm test", ["component:default/svc"]],
+    ["cd service/src && npm run lint", ["component:default/svc"]],
+    ["cd service && npm test", ["component:default/svc"]],
+    ["npm run build", []],
+    ["npm test", []],
+  ]);
+});
+
+test("github-actions: turbo tasks work through wrappers, multiple tiers and literal filters", (t) => {
+  const file = ".github/workflows/turbo.yml";
+  const invocations = [
+    ["turbo run test lint --filter=@t/svc", ["unit", "static"], true],
+    ["turbo test --filter=./service", ["unit"], true],
+    ["pnpm turbo run test --filter=service", ["unit"], true],
+    ["npx turbo run lint", ["static"], false],
+    ["yarn turbo test --filter @t/svc", ["unit"], true],
+    ["bunx turbo run build", ["build"], false],
+    ["pnpm exec turbo run test", ["unit"], false],
+    ["turbo run test --filter=service-other", ["unit"], false],
+    ["turbo run test --filter=$PACKAGE", ["unit"], false],
+    ["turbo run deploy --label=test", [], false],
+  ];
+  const dir = baseFixture(t, { extra: { [file]: workflow(invocations.map(([command]) => '      - run: ' + JSON.stringify(command)).join("\n") + "\n") } });
+  cli(dir, ["compile"]);
+  const checks = ciChecks(graphOf(dir), file);
+  for (const [command, tiers, scoped] of invocations) {
+    const found = checks.filter((v) => v.command === command);
+    assert.deepEqual(found.map((v) => v.tier), tiers, command);
+    assert.ok(found.every((v) => JSON.stringify(v.componentRefs || []) === JSON.stringify(scoped ? ["component:default/svc"] : [])), command);
+  }
+});
+
+test("github-actions: nx resolves project tasks and unfiltered run-many or affected gates", (t) => {
+  const file = ".github/workflows/nx.yml";
+  const dir = baseFixture(t, { extra: {
+    "service/project.json": JSON.stringify({ name: "backend" }),
+    [file]: workflow([
+      '      - run: nx run backend:test',
+      '      - run: pnpm nx run-many -t lint',
+      '      - run: npx nx affected --target=test',
+      '      - run: nx run-many -t test,build --projects=backend',
+      '      - run: nx run elsewhere:lint',
+    ].join("\n") + "\n"),
+  } });
+  cli(dir, ["compile"]);
+  const checks = ciChecks(graphOf(dir), file);
+  assert.deepEqual(checks.map((v) => [v.command, v.tier, v.componentRefs || []]), [
+    ["nx run backend:test", "unit", ["component:default/svc"]],
+    ["nx run-many -t test,build --projects=backend", "unit", ["component:default/svc"]],
+    ["nx run-many -t test,build --projects=backend", "build", ["component:default/svc"]],
+    ["pnpm nx run-many -t lint", "static", []],
+    ["npx nx affected --target=test", "unit", []],
+    ["nx run elsewhere:lint", "static", []],
+  ]);
+});
+
+test("github-actions: make -C scopes tasks and preserves its runnable command", (t) => {
+  const file = ".github/workflows/make.yml";
+  const dir = baseFixture(t, { extra: { [file]: workflow([
+    '      - run: make -C service test',
+    '      - run: make --directory=service lint build',
+    '      - run: make test',
+    '      - run: make -C .. test',
+    '        working-directory: service/src',
+  ].join("\n") + "\n") } });
+  cli(dir, ["compile"]);
+  assert.deepEqual(ciChecks(graphOf(dir), file).map((v) => [v.command, v.tier, v.componentRefs || []]), [
+    ["make -C service test", "unit", ["component:default/svc"]],
+    ["make --directory=service lint build", "static", ["component:default/svc"]],
+    ["make --directory=service lint build", "build", ["component:default/svc"]],
+    ["cd service/src && make -C .. test", "unit", ["component:default/svc"]],
+    ["make test", "unit", []],
+  ]);
+});
+
+test("github-actions: just tasks are gates unless their step has explicit scope", (t) => {
+  const file = ".github/workflows/just.yml";
+  const dir = baseFixture(t, { extra: { [file]: workflow('      - run: just test\n      - run: just lint\n        working-directory: service\n      - run: just deploy\n') } });
+  cli(dir, ["compile"]);
+  assert.deepEqual(ciChecks(graphOf(dir), file).map((v) => [v.command, v.tier, v.componentRefs || []]), [
+    ["cd service && just lint", "static", ["component:default/svc"]],
+    ["just test", "unit", []],
+  ]);
+});
+
+test("github-actions: check actions use their own input scopes and exclude infrastructure actions", (t) => {
+  const file = ".github/workflows/actions.yml";
+  const dir = baseFixture(t, { extra: { [file]: workflow([
+    '      - uses: vendor/lint-action@v1',
+    '        with: { working_directory: service }',
+    '      - uses: vendor/test-action@v1',
+    '        with: { path: service/tests }',
+    '      - uses: vendor/check-action@v1',
+    '      - uses: vendor/scan-action@v1',
+    '      - uses: vendor/audit-action@v1',
+    '      - uses: vendor/test-action@v2',
+    '        with: { path: service-other }',
+    ...['setup-test', 'checkout', 'cache-test', 'upload-test', 'download-test', 'test-artifact', 'build', 'deploy'].map((name) => '      - uses: vendor/' + name + '@v1'),
+  ].join("\n") + "\n", "on: push\n", "defaults:\n  run:\n    working-directory: service\n") } });
+  cli(dir, ["compile"]);
+  assert.deepEqual(ciChecks(graphOf(dir), file).map((v) => [v.command, v.tier, v.componentRefs || []]), [
+    ["vendor/lint-action@v1", "static", ["component:default/svc"]],
+    ["vendor/test-action@v1", "unit", ["component:default/svc"]],
+    ["vendor/check-action@v1", "static", []],
+    ["vendor/scan-action@v1", "static", []],
+    ["vendor/audit-action@v1", "static", []],
+    ["vendor/test-action@v2", "unit", []],
+  ]);
 });

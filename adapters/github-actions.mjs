@@ -23,29 +23,41 @@ export class GitHubActionsAdapter extends Adapter {
       const filters = Object.values(doc?.on || {}).flatMap((trigger) => Array.isArray(trigger?.paths) ? trigger.paths : []);
       for (const [jobName, job] of Object.entries(doc?.jobs || {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
         for (const [i, step] of (job?.steps || []).entries()) {
-          // `uses` names an action, not a shell invocation we can classify.
-          if (typeof step?.run !== "string") continue;
-          const cwd = step["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? doc.defaults?.run?.["working-directory"];
-          const commands = simpleCommands(step.run);
+          const action = typeof step?.uses === "string";
+          let cwd = action
+            ? step.with?.["working-directory"] ?? step.with?.working_directory ?? step.with?.path
+            : step?.["working-directory"] ?? job.defaults?.run?.["working-directory"] ?? doc.defaults?.run?.["working-directory"];
+          const commands = action ? [{ command: step.uses }] : typeof step?.run === "string" ? simpleCommands(step.run) : [];
           for (const [n, { command, words }] of commands.entries()) {
-            // A preceding directory/environment change makes subsequent lines
-            // ambiguous. Do not invent their execution context.
-            if (["cd", "pushd", "popd", "source", ".", "eval", "export"].includes(words[0])) break;
-            const invocation = ciInvocation(words);
-            if (!invocation || command.length > 600) continue;
-            const { tier, args } = invocation;
-            const covered = units.filter((u) => scopedTo(u, args, cwd, filters, units)).map((u) => u.component.ref).sort();
-            const suffix = f.replace(/[^A-Za-z0-9]+/g, "-") + ":" + jobName + ":" + i + (commands.length > 1 ? ":" + n : "");
-            const id = (covered.length ? "ci:" : "repo-gate:") + suffix;
-            const directory = literalPath(cwd);
-            const record = {
-              id, tier,
-              command: directory && directory !== "." ? "cd " + shellQuote(directory) + " && " + command : command,
-              configPaths: [f], provRecs: [pr],
-            };
-            if (covered.length) ctx.addVerification({ ...record, componentRefs: covered });
-            else ctx.addGate(record);
-            pr.subjects.add((covered.length ? "ver:" : "gate:") + id);
+            if (!action && words[0] === "cd") {
+              const target = words[1] === "--" ? words.slice(2) : words.slice(1);
+              // Only a single literal directory can establish the context of
+              // following commands. Resolve successive changes from that cwd.
+              const directory = target.length === 1 ? resolveDirectory(cwd, target[0]) : null;
+              if (!directory) break;
+              cwd = directory;
+              continue;
+            }
+            if (!action && ["pushd", "popd", "source", ".", "eval", "export"].includes(words[0])) break;
+            const invocations = action ? actionInvocations(command) : ciInvocations(words);
+            if (command.length > 600) continue;
+            for (const [task, invocation] of invocations.entries()) {
+              const { tier, args, directory: invocationDirectory } = invocation;
+              const scopeCwd = invocationDirectory === undefined ? cwd : resolveDirectory(cwd, invocationDirectory);
+              if (invocationDirectory !== undefined && !scopeCwd) continue;
+              const covered = units.filter((u) => scopedTo(u, args, scopeCwd, filters, units, ctx.repo)).map((u) => u.component.ref).sort();
+              const suffix = f.replace(/[^A-Za-z0-9]+/g, "-") + ":" + jobName + ":" + i + (commands.length > 1 ? ":" + n : "") + (invocations.length > 1 ? ":task:" + task : "");
+              const id = (covered.length ? "ci:" : "repo-gate:") + suffix;
+              const directory = literalPath(cwd);
+              const record = {
+                id, tier,
+                command: !action && directory && directory !== "." ? "cd " + shellQuote(directory) + " && " + command : command,
+                configPaths: [f], provRecs: [pr],
+              };
+              if (covered.length) ctx.addVerification({ ...record, componentRefs: covered });
+              else ctx.addGate(record);
+              pr.subjects.add((covered.length ? "ver:" : "gate:") + id);
+            }
           }
         }
       }
@@ -102,19 +114,19 @@ function taskTier(task) {
   if (/(?:contract|openapi|api:check|drift|catalog)/.test(task)) return "contract";
   if (/(?:^|[:_-])integration(?:$|[:_-])/.test(task)) return "integration";
   if (/^(?:lint|typecheck|type-check)/.test(task)) return "static";
-  if (/^tests?(?:$|[:_-])/.test(task)) return "unit";
+  if (/^(?:tests?|check)(?:$|[:_-])/.test(task)) return "unit";
   if (/^(?:build|compile)(?:$|[:_-])/.test(task)) return "build";
   return null;
 }
 
 const VALUE_OPTIONS = new Set(["--filter", "-F", "--prefix", "--dir", "--cwd", "-C", "--workspace", "-w"]);
-function ciInvocation(words) {
+function ciInvocations(words) {
   let [exe, ...args] = words;
   if (exe === "env") [exe, ...args] = args;
   while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(exe || "")) [exe, ...args] = args;
   if (["uv", "poetry"].includes(exe) && args[0] === "run") [exe, ...args] = args.slice(1);
   if (["npx", "bunx"].includes(exe)) [exe, ...args] = args;
-  const result = (tier, scopeArgs = args) => tier ? { tier, args: scopeArgs } : null;
+  const result = (tier, scopeArgs = args) => tier ? [{ tier, args: scopeArgs }] : [];
   if (["npm", "pnpm", "yarn", "bun"].includes(exe)) {
     const selectors = [];
     while (args[0]?.startsWith("-")) {
@@ -122,24 +134,75 @@ function ciInvocation(words) {
       selectors.push(option);
       if (VALUE_OPTIONS.has(option) && args.length) selectors.push(args.shift());
     }
-    if (args[0] === "exec") {
-      const inner = ciInvocation(args.slice(1));
-      return inner && { ...inner, args: [...selectors, ...inner.args] };
+    if (["exec", "dlx"].includes(args[0])) {
+      return ciInvocations(args.slice(1)).map((inner) => ({ ...inner, args: [...selectors, ...inner.args] }));
+    }
+    if (["turbo", "nx"].includes(args[0])) {
+      return ciInvocations(args).map((inner) => ({ ...inner, args: [...selectors, ...inner.args] }));
     }
     if (args[0] === "run") args.shift();
     return result(taskTier(args[0]), [...selectors, ...args.slice(1)]);
   }
   if (exe === "node") return result(args.includes("--test") ? "unit" : null);
-  if (/^python(?:3(?:\.\d+)?)?$/.test(exe) && args[0] === "-m") return ciInvocation(args.slice(1));
+  if (/^python(?:3(?:\.\d+)?)?$/.test(exe) && args[0] === "-m") return ciInvocations(args.slice(1));
   if (["pytest", "unittest", "vitest", "jest", "mocha", "ava"].includes(exe)) return result("unit");
   if (["playwright", "cypress"].includes(exe) && ["test", "run"].includes(args[0])) return result("e2e", args.slice(1));
   if (["eslint", "mypy", "golangci-lint"].includes(exe)) return result("static");
   if (["ruff", "biome"].includes(exe) && ["check", "lint"].includes(args[0])) return result("static", args.slice(1));
   if (exe === "tsc") return result(args.includes("--noEmit") ? "static" : "build");
   if (["go", "cargo", "dotnet"].includes(exe)) return result(({ test: "unit", vet: "static", clippy: "static", build: "build" })[args[0]], args.slice(1));
-  if (exe === "make") return result(taskTier(args[0]), args.slice(1));
+  if (["turbo", "nx", "make", "just"].includes(exe)) return taskInvocations(exe, args);
   if (exe === "agentdoc" && args[0] === "compile") return result("build", args.slice(1));
-  return null;
+  return [];
+}
+
+// Task names determine tiers; option values are never mistaken for tasks or
+// free-form path scope. Multi-task runs contribute one record per tier.
+function taskInvocations(exe, args) {
+  const tasks = [], selectors = [];
+  let directory;
+  const valueOptions = new Set(["--filter", "-F", "-C", "--directory", "--cwd", "-t", "--target", "--targets", "--projects", "--configuration", "-c", "--parallel", "--concurrency", "--cache-dir", "--output-logs"]);
+  for (let i = 0; i < args.length; i++) {
+    const token = args[i];
+    if (token === "--") break;
+    const [option, inline] = token.split(/=(.*)/s);
+    if (token.startsWith("-")) {
+      const value = inline ?? (valueOptions.has(option) ? args[++i] : undefined);
+      if (["--filter", "-F"].includes(option)) selectors.push(option, value || "");
+      if (exe === "nx" && option === "--projects") {
+        for (const project of (value || "").split(",")) selectors.push("--project", project);
+      }
+      if (exe === "nx" && ["-t", "--target", "--targets"].includes(option)) tasks.push(...(value || "").split(","));
+      if (exe === "make" && ["-C", "--directory"].includes(option)) directory = directory === undefined ? value ?? null : resolveDirectory(directory, value);
+      if (exe === "turbo" && option === "--cwd") directory = value ?? null;
+      continue;
+    }
+    if (exe === "nx") {
+      if (args[0] === "run" && i === 1) {
+        const [project, task] = token.split(":");
+        selectors.push("--project", project);
+        tasks.push(task);
+      } else if (["run-many", "affected"].includes(args[0]) && i > 0) tasks.push(...token.split(","));
+    } else if (!(exe === "turbo" && token === "run") && !token.includes("=")) tasks.push(token);
+  }
+  return [...new Set(tasks.map(taskTier).filter(Boolean))].map((tier) => ({ tier, args: selectors, directory }));
+}
+
+function actionInvocations(action) {
+  const name = action.split("@")[0].toLowerCase();
+  if (/setup|checkout|cache|upload|download|artifact/.test(name) || !/lint|test|check|scan|audit/.test(name)) return [];
+  const tier = /e2e|playwright|cypress/.test(name) ? "e2e"
+    : /contract|openapi|drift|catalog/.test(name) ? "contract"
+    : /integration/.test(name) ? "integration"
+    : /lint|typecheck|type-check|scan|audit/.test(name) ? "static"
+    : /test/.test(name) ? "unit" : "static";
+  return [{ tier, args: [] }];
+}
+
+function resolveDirectory(cwd, target) {
+  if (typeof target !== "string" || !target || target.startsWith("-") || /[$`*?!{}\[\]~]/.test(target) || path.posix.isAbsolute(target)) return null;
+  const base = cwd === undefined ? "." : literalPath(cwd);
+  return base ? literalPath(path.posix.join(base, target)) : null;
 }
 
 function literalPath(value) {
@@ -150,7 +213,7 @@ function literalPath(value) {
 function within(p, root) { return root === "." || p === root || p.startsWith(root + "/"); }
 function shellQuote(p) { return /^[A-Za-z0-9_./-]+$/.test(p) ? p : "'" + p.replace(/'/g, "'\\''") + "'"; }
 
-function scopedTo(unit, args, cwd, filters, units) {
+function scopedTo(unit, args, cwd, filters, units, repo) {
   const root = path.posix.normalize(unit.root);
   const directory = literalPath(cwd);
   // A directory belongs to its deepest enclosing component, not every parent.
@@ -160,6 +223,14 @@ function scopedTo(unit, args, cwd, filters, units) {
     const token = args[i];
     const [option, inline] = token.split(/=(.*)/s);
     const value = inline ?? args[i + 1];
+    if (option === "--project") {
+      let name = unit.pkgName;
+      const config = path.posix.join(unit.root, "project.json");
+      try { if (repo.exists(config)) name = repo.readJson(config).name || name; } catch { /* an unreadable project config cannot name a scope */ }
+      if (value === name || value === unit.root) return true;
+      i++;
+      continue;
+    }
     // Package names are scope only in an explicit package selector.
     if (unit.pkgName && ["--filter", "-F", "--workspace", "-w"].includes(option) && value === unit.pkgName) return true;
     const arg = token.startsWith("-") ? inline : token;
