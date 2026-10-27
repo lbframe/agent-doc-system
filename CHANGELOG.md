@@ -9,6 +9,19 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Withdrawn benchmark claim.** The README, `docs/BENCHMARK.md` and the 1.2.0
+  release notes reported that routing retrieves 100% of the facts a change
+  needs against 58% for a baseline that reads only the touched component, with
+  noise under 9% against 40%. The gap came from the evaluation, not from
+  routing: the baseline already held almost every expected fact under a
+  different label, and it read relations from the compiled graph that an agent
+  without AgentDoc does not have. The claim is removed. A baseline that finds
+  relations with search alone will be measured and published. The
+  [correction](docs/BENCHMARK.md#correction-the-fact-recall-comparison-is-withdrawn)
+  gives the details.
+
 ## [1.2.0] - 2026-10-27
 
 Rust and Python are now supported at the same level as Node and Go. Before
