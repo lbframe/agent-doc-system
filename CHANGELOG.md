@@ -104,7 +104,9 @@ recommend those dependents' checks.
   ([#29]). A step becomes a component check only when its command is a
   recognised test, lint or build invocation, scoped by `working-directory`,
   `cd <dir> &&`, a path argument, a package selector (`--filter`, turbo, nx,
-  `make -C`) or a `paths:` filter. Anything else is a repository gate.
+  `make -C`) or a `paths:` filter. Repository scripts whose names say what
+  they check (`./scripts/test.sh`, `bash scripts/lint.sh`) are recognised
+  with the same scoping ([#40]). Anything else is a repository gate.
   - Before, every step was attached to every component whose path or package
     name appeared anywhere in the workflow, including multi-line ops scripts.
     A shell `test -n` was also recorded as a unit test.
@@ -148,6 +150,9 @@ recommend those dependents' checks.
   - `init` now discovers descriptors with the `*/**/agentdoc.yaml` glob
     instead of an explicit list, and `scaffold` covers every unit an adapter
     declares, including workspace members under `examples/`.
+  - A `setup.py` unit is named after the distribution it declares, and the
+    `python` adapter reads `name`, `python_requires` and `install_requires`
+    inside a one-line `setup(…)` or `setuptools.setup(…)` call ([#41]).
   - On the four public repositories used for benchmarking (tokio-rs/axum,
     pydantic/pydantic-ai, fastapi/full-stack-fastapi-template and
     t3-oss/create-t3-turbo), `init` + `scaffold --write` + `compile` now pass
@@ -259,4 +264,6 @@ First public release.
 [#31]: https://github.com/lbframe/agent-doc-system/issues/31
 [#37]: https://github.com/lbframe/agent-doc-system/issues/37
 [#38]: https://github.com/lbframe/agent-doc-system/issues/38
+[#40]: https://github.com/lbframe/agent-doc-system/issues/40
+[#41]: https://github.com/lbframe/agent-doc-system/issues/41
 [#43]: https://github.com/lbframe/agent-doc-system/issues/43
