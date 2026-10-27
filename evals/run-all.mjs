@@ -27,11 +27,11 @@ const per = [];
 for (const r of REPOS) {
   if (!fs.existsSync(r.dir)) { per.push({ id: r.id, skipped: "missing" }); continue; }
   const report = runRoutingEval(r.dir);
-  per.push({ id: r.id, verdict: report.verdict, metrics: report.metrics, failures: report.failures, scenarios: report.perScenario.length });
+  per.push({ id: r.id, verdict: report.verdict, metrics: report.metrics, failures: report.failures, scenarios: report.perScenario.length, perScenario: report.perScenario });
 }
 
 const scored = per.filter((p) => p.metrics);
-const keys = ["recall", "precision", "criticalRecall", "verificationRecall", "noise", "retrievalReduction"];
+const keys = ["recall", "precision", "criticalRecall", "verificationRecall", "checkSelectivity", "noise", "retrievalReduction"];
 // Scenario-weighted: a repository with more scenarios says more about the
 // system than one with fewer, and every repository is a real deployment.
 const totals = {};
@@ -52,7 +52,7 @@ for (const k of keys) aggregate[k] = counts[k] ? Math.round((totals[k] / counts[
 const notMeasured = [];
 for (const side of ["baseline", "fullBaseline"]) {
   aggregate[side] = {};
-  for (const k of ["recall", "noise", "verificationRecall", "size"]) {
+  for (const k of ["recall", "noise", "verificationRecall", "checkSelectivity", "size"]) {
     const contributors = scored.filter((p) => typeof ((p.metrics[side] || {})[k]) === "number");
     if (!contributors.length) {
       aggregate[side][k] = null;

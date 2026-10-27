@@ -30,7 +30,8 @@ is deterministic and cannot be moved by phrasing.
 |---|---|
 | recall | fraction of the scenario's ground-truth facts the catalog retrieved |
 | critical recall | the same, restricted to critical context: constraints, conflicts, observations, resources, API boundaries, event subjects |
-| verification recall | fraction of the checks that must be run, that were returned |
+| verification recall | fraction of the scenario's verification expectations returned; 1 when there are no expectations, for both catalog and baseline |
+| check selectivity | distinct recommended check IDs / distinct check IDs in the repository graph (`verification` + `gates`); reported only, not gated; lower means fewer checks recommended |
 | precision | `1 - irrelevance` |
 | irrelevance (noise) | fraction of retrieved facts outside the graph's one-hop closure of the touched entities |
 | retrieval reduction | `1 - catalog facts / baseline-full facts` |
@@ -41,6 +42,22 @@ command (for example `go test ./...`), so the library's own check cannot stand i
 for a dependent's. Retrieved context includes the entity refs already returned
 in query's neighbour summaries, even when those neighbours are dependencies and
 therefore absent from impact's affected components.
+
+Check selectivity counts the union of checks returned by queries for touched
+and impact-affected entities (`verification.items` and `globalGates`), plus
+impact's `recommendedVerification`. It measures the returned lists, respecting
+their output caps. IDs deduplicate repeated recommendations while preserving
+separate scoped checks that happen to share a command. With no checks in the
+graph, selectivity is 1 (there is nothing to narrow). Corpus values are scenario
+means; the aggregate is scenario-weighted across corpora. Both CLI reports
+include per-scenario values in their `--json` output.
+
+Baseline verification recall is 1 by construction: its verification strategy
+runs every graph verification entry and repository gate, so it cannot miss a
+registered expectation. Empty expectations also score 1 on both sides. Its
+check selectivity is therefore 1. Selectivity is the meaningful comparison of
+how much routing narrows the check set, read alongside catalog verification
+recall so that omitting a required check is not mistaken for an improvement.
 
 ### Why noise is measured against reachability, not against the truth set
 
