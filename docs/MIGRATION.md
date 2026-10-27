@@ -204,8 +204,10 @@ Then, in order:
    documentation, fix the code, or record an authority rule saying which class
    wins for that key.
 3. **Orphan documentation.** `documentation.orphanDocs`. For each: link it to a
-   component via `context.docs`, or delete it. An orphan is a document nothing
-   will ever route to.
+   Component, Resource or System via `context.docs`, `context.constraints` or
+   `context.runbooks`, or delete it. Conventional component documents and
+   configured repository-wide roles also count as routed. An orphan is a
+   document nothing will ever route to.
 4. **Missing documentation.** `documentation.undocumentedComponents` and
    `documentation.unverifiedComponents`. These are the components an agent will
    get wrong.

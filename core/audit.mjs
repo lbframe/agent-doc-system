@@ -160,7 +160,9 @@ export function audit(repo, cfg, res) {
     if (!DOC_EXT.test(f)) continue;
     const owners = graph.entities.filter((e) => {
       const d = e.derived || {};
-      return (d.docs || []).includes(f) || (d.constraints || []).includes(f) || (d.runbooks || []).includes(f);
+      const context = e.entity.spec?.context || {};
+      return [d, context].some((c) =>
+        ["docs", "constraints", "runbooks"].some((key) => (c[key] || []).includes(f)));
     }).map((e) => e.ref);
     const role = (configured.find((h) => h.path === f) || {}).role || null;
     docInventory.push({ path: f, linkedTo: owners.sort(), role });
@@ -193,9 +195,9 @@ export function audit(repo, cfg, res) {
       subject: d.path,
       refs: [d.path],
       message:
-        "document is claimed by no component" +
+        "document is claimed by no entity" +
         (d.role ? " and its configured role (" + d.role + ") is not a repository-wide role" : "") +
-        ". Link it from a component descriptor, or remove it.",
+        ". Link it from an entity descriptor, or remove it.",
     });
   }
   for (const h of hierarchyDocs) {

@@ -12,6 +12,7 @@ import { parse as parseToml } from "../core/toml.mjs";
 import { globToRegExp, isRepoPath } from "../core/fsx.mjs";
 import { assertFresh, COMPILER_VERSION, GRAPH_SCHEMA_VERSION } from "../core/graph.mjs";
 import { AgentDocError } from "../core/codes.mjs";
+import { queryContext, renderContext } from "../core/query.mjs";
 
 // ── YAML subset ────────────────────────────────────────────────────────
 test("yaml: parses the constructs a descriptor may use", () => {
@@ -257,6 +258,114 @@ test("querying a stale graph fails rather than falling back", (t) => {
     () => assertFresh(graphOf(dir), { inputHash: r.stats.inputHash, dirty: r.stats.dirty }),
     (e) => e.code === "AGENTDOC_GRAPH_FRESHNESS"
   );
+});
+
+function contextFixture(t, kind) {
+  const descriptor = {
+    Component: "service/agentdoc.yaml",
+    Resource: "agentdoc/resources.yaml",
+    System: "agentdoc/systems.yaml",
+  }[kind];
+  const dir = baseFixture(t);
+  const context = {};
+  for (const key of ["docs", "constraints", "runbooks"]) {
+    context[key] = ["docs/" + key + "-a.md", "docs/" + key + "-b.md"];
+    for (const p of context[key]) write(dir, p, "# " + key + "\n");
+  }
+  write(dir, descriptor, read(dir, descriptor).replace(/  context:[\s\S]*/, "").trimEnd() +
+    "\n  context:\n" + Object.entries(context).map(([key, paths]) =>
+      "    " + key + ": [" + paths.join(", ") + "]\n").join(""));
+  // Discovered component context must survive alongside authored links.
+  write(dir, "service/README.md", "# Service\n");
+  write(dir, "docs/UNLINKED.md", "# Unlinked\n");
+  commitAll(dir);
+  return { dir, context };
+}
+
+for (const [kind, ref] of [
+  ["Component", "component:default/svc"],
+  ["Resource", "resource:default/svc-postgres"],
+  ["System", "system:default/s1"],
+]) {
+  test("query: " + kind + " context is rendered, budgeted and routable", (t) => {
+    const { dir, context } = contextFixture(t, kind);
+    cli(dir, ["compile"]);
+    const ctx = JSON.parse(cli(dir, ["query", ref, "--json"]));
+    assert.deepEqual(ctx.entity.spec.context, context);
+    const md = cli(dir, ["query", ref]);
+    const limited = cli(dir, ["query", ref, "--md", "--budget", "docs=1,constraints=1,runbooks=1"]);
+    assert.ok(!md.includes("[truncated:"));
+    for (const [key, paths] of Object.entries(context)) {
+      const label = key === "constraints" ? "CONSTRAINTS" : key;
+      for (const p of paths) assert.ok(md.includes(p), p + " missing from " + kind + " markdown");
+      assert.ok(limited.includes("- " + label + ": " + paths[0]));
+      assert.ok(!limited.includes(paths[1]), paths[1] + " should be withheld by the budget");
+      const line = limited.split("\n").find((s) => s.startsWith("- " + label + ":"));
+      assert.ok(line.endsWith("[truncated: 1 of " + ctx.constraints[key].length + "]"), line);
+      assert.equal(queryContext(graphOf(dir), paths[1]).query.resolved, ref);
+    }
+    const limitedJson = JSON.parse(cli(dir, ["query", ref, "--json", "--budget", "docs=1,runbooks=1"]));
+    assert.deepEqual(limitedJson.constraints, ctx.constraints, "markdown caps must preserve the JSON arrays");
+    if (kind === "Component") {
+      assert.ok(md.includes("service/README.md"));
+      assert.ok(md.includes("service/CONSTRAINTS.md"));
+      assert.equal(md.split("docs/docs-a.md").length - 1, 1, "authored and derived context must not duplicate links");
+    }
+  });
+
+  test("audit: " + kind + " context documents are claimed rather than orphaned", (t) => {
+    const { dir, context } = contextFixture(t, kind);
+    const report = JSON.parse(cli(dir, ["audit", "--json"]));
+    for (const p of Object.values(context).flat()) {
+      assert.ok(!report.documentation.orphanDocs.includes(p), p + " is linked from " + ref);
+      assert.ok(!report.documentation.findings.some((f) => f.code === "AGENTDOC_DOC_ORPHANED" && f.subject === p));
+    }
+    assert.ok(!report.documentation.orphanDocs.includes("service/README.md"));
+    assert.ok(report.documentation.orphanDocs.includes("docs/UNLINKED.md"));
+    assert.ok(report.documentation.findings.some((f) => f.code === "AGENTDOC_DOC_ORPHANED" && f.subject === "docs/UNLINKED.md"));
+  });
+}
+
+test("query: markdown constraints are uncapped unless explicitly budgeted", (t) => {
+  const dir = baseFixture(t);
+  const authoredPaths = Array.from({ length: 12 }, (_, i) => "docs/constraint-" + String(i).padStart(2, "0") + ".md");
+  for (const p of authoredPaths) write(dir, p, "# Constraint\n");
+  write(dir, "service/agentdoc.yaml", read(dir, "service/agentdoc.yaml").replace(
+    "      - service/CONSTRAINTS.md", authoredPaths.map((p) => "      - " + p).join("\n")));
+  commitAll(dir);
+  cli(dir, ["compile"]);
+  const ref = "component:default/svc";
+  const ctx = JSON.parse(cli(dir, ["query", ref, "--json"]));
+  const paths = ctx.constraints.constraints;
+  assert.equal(paths.length, 13, "authored constraints and the conventional file must be included");
+  assert.ok(paths.includes("service/CONSTRAINTS.md"));
+  for (const args of [[], ["--md"], ["--md", "--budget", "docs=1,runbooks=1"]]) {
+    const md = cli(dir, ["query", ref, ...args]);
+    const line = md.split("\n").find((s) => s.startsWith("- CONSTRAINTS:"));
+    assert.equal(line, "- CONSTRAINTS: " + paths.join(", "));
+    for (const p of authoredPaths) assert.ok(line.includes(p), p + " missing from markdown");
+  }
+  const limited = cli(dir, ["query", ref, "--md", "--budget", "constraints=12"]);
+  const line = limited.split("\n").find((s) => s.startsWith("- CONSTRAINTS:"));
+  assert.equal(line, "- CONSTRAINTS: " + paths.slice(0, 12).join(", ") + " [truncated: 12 of 13]");
+  assert.ok(!line.includes(paths[12]), "the explicit budget must withhold the last constraint");
+});
+
+test("query: default markdown context budgets report overflow from conventional and authored docs", (t) => {
+  const dir = baseFixture(t);
+  const paths = Array.from({ length: 12 }, (_, i) => "docs/doc-" + String(i).padStart(2, "0") + ".md");
+  for (const p of paths) write(dir, p, "# Doc\n");
+  write(dir, "service/README.md", "# Service\n");
+  write(dir, "service/agentdoc.yaml", read(dir, "service/agentdoc.yaml") + "    docs: [" + paths.join(", ") + "]\n");
+  commitAll(dir);
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.format()).join("\n"));
+  const ctx = queryContext(res.graph, "component:default/svc");
+  assert.equal(ctx.constraints.docs.length, 13);
+  assert.ok(renderContext(ctx).includes("[truncated: 12 of 13]"));
+  assert.ok(!renderContext(ctx).includes("service/README.md"));
+  assert.ok(renderContext(ctx, { budget: { docs: 13 } }).includes("service/README.md"));
+  assert.ok(!renderContext(ctx, { budget: { docs: 13 } }).includes("[truncated:"));
 });
 
 test("with no adapters enabled, a component descriptor is uncorroborated", (t) => {

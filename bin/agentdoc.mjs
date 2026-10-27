@@ -275,9 +275,9 @@ try {
       }
     }
     const ctx = queryContext(graph, needle, { budget });
-    if (opt("md")) out(renderContext(ctx));
+    if (opt("md")) out(renderContext(ctx, { budget }));
     else if (opt("json")) out(ctx, true);
-    else out(renderContext(ctx));
+    else out(renderContext(ctx, { budget }));
   } else if (cmd === "impact") {
     // Impact answers a question about the working tree, so it compiles in
     // memory rather than reading the committed graph. Refusing a stale graph

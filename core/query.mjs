@@ -231,9 +231,11 @@ export function queryContext(graph, needle, opts = {}) {
     ),
     capabilities: take(capabilities.map((c) => ({ name: c.name, evidenceClass: c.evidenceClass })), budget.capabilities),
     constraints: {
-      docs: (entity.derived && entity.derived.docs) || [],
-      constraints: (entity.derived && entity.derived.constraints) || [],
-      runbooks: (entity.derived && entity.derived.runbooks) || [],
+      // Components derive these lists (including conventional files); central
+      // entities such as Resources and Systems carry them only in their spec.
+      docs: entity.derived?.docs || entity.entity.spec?.context?.docs || [],
+      constraints: entity.derived?.constraints || entity.entity.spec?.context?.constraints || [],
+      runbooks: entity.derived?.runbooks || entity.entity.spec?.context?.runbooks || [],
     },
     verification: take(
       verification.map((v) => ({ id: v.id, tier: v.tier, command: v.command, configPaths: v.configPaths })),
@@ -329,7 +331,7 @@ function contractRef(graph, apiRef) {
 }
 
 // Compact markdown rendering for a prompt or a human. Same routing, less tokens.
-export function renderContext(ctx) {
+export function renderContext(ctx, opts = {}) {
   const L = [];
   const e = ctx.entity;
   L.push("# " + e.ref + " (" + e.kind + ")");
@@ -345,9 +347,16 @@ export function renderContext(ctx) {
   if (ctx.events.items.length) L.push("- events: " + ctx.events.items.map((x) => x.pattern + " [" + x.resolution + "]").join(", "));
   if (ctx.externalDependencies.items.length) L.push("- external: " + ctx.externalDependencies.items.map((x) => x.name + " (" + x.role + ")").join(", "));
   if (ctx.capabilities.items.length) L.push("- capabilities: " + ctx.capabilities.items.map((x) => x.name).join(", "));
-  if (ctx.constraints.constraints.length) L.push("- CONSTRAINTS: " + ctx.constraints.constraints.join(", "));
-  if (ctx.constraints.docs.length) L.push("- docs: " + ctx.constraints.docs.join(", "));
-  if (ctx.constraints.runbooks.length) L.push("- runbooks: " + ctx.constraints.runbooks.join(", "));
+  for (const key of ["constraints", "docs", "runbooks"]) {
+    const paths = ctx.constraints[key];
+    if (!paths.length) continue;
+    // Constraints are critical routing context; cap them only on request.
+    const limit = opts.budget?.[key] ?? (key === "constraints" ? paths.length : 12);
+    const shown = paths.slice(0, limit);
+    const label = key === "constraints" ? "CONSTRAINTS" : key;
+    L.push("- " + label + ": " + shown.join(", ") +
+      (shown.length < paths.length ? " [truncated: " + shown.length + " of " + paths.length + "]" : ""));
+  }
   if (ctx.verification.items.length) {
     L.push("- verify:");
     for (const v of ctx.verification.items) L.push("  - [" + v.tier + "] " + v.command);
