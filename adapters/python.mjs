@@ -470,21 +470,66 @@ function readSetupCfg(repo, root, loc) {
   return finish(repo, root, info, explicit);
 }
 
+// Keep strings and comments opaque, then split only the outer call's arguments.
+// This is deliberately a literal reader, not a Python evaluator: nested calls,
+// prefixed strings, and concatenation cannot supply metadata.
+function setupPyKeywords(text) {
+  const tokens = [...text.matchAll(/#[^\n]*|\s+|("""|'''|"|')(?:\\[\s\S]|(?!\1)[^\\])*?\1|[A-Za-z_]\w*|[\s\S]/g)]
+    .map((m) => m[0]).filter((s) => !/^\s|^#/.test(s));
+  const keywords = new Map();
+  for (let i = 0; i < tokens.length; i++) {
+    const bare = tokens[i] === "setup" && tokens[i - 1] !== "." && tokens[i - 1] !== "def";
+    const qualified = tokens[i] === "setuptools" && tokens[i - 1] !== "."
+      && tokens[i + 1] === "." && tokens[i + 2] === "setup";
+    const open = i + (qualified ? 3 : 1);
+    if ((!bare && !qualified) || tokens[open] !== "(") continue;
+    let start = open + 1;
+    let depth = 0;
+    for (i = start; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (depth === 0 && (token === "," || token === ")")) {
+        if (tokens[start + 1] === "=") keywords.set(tokens[start], tokens.slice(start + 2, i));
+        start = i + 1;
+        if (token === ")") break;
+      } else if ("([{".includes(token)) depth++;
+      else if (")]}".includes(token)) depth--;
+    }
+  }
+  return keywords;
+}
+
+function setupPyString(tokens) {
+  if (!tokens || tokens.length !== 1) return null;
+  const literal = /^("""|'''|"|')([\s\S]*)\1$/.exec(tokens[0]);
+  return literal ? literal[2] : null;
+}
+
+function setupPyList(tokens) {
+  if (!tokens || tokens[0] !== "[" || tokens.at(-1) !== "]") return null;
+  const out = [];
+  for (let i = 1; i < tokens.length - 1; i += 2) {
+    const value = setupPyString([tokens[i]]);
+    if (value === null || (i + 1 < tokens.length - 1 && tokens[i + 1] !== ",")) return null;
+    out.push(value);
+  }
+  return out;
+}
+
 function readSetupPy(repo, root, loc) {
   const text = repo.readText(loc.manifest);
   const info = blank(loc);
   info.backend = true;
-  const name = /(?:^|\n)\s*name\s*=\s*(['"])([^'"]+)\1/.exec(text);
-  if (name) info.dist = pep503(name[2]);
-  const reqPy = /(?:^|\n)\s*python_requires\s*=\s*(['"])([^'"]+)\1/.exec(text);
-  if (reqPy) info.requiresPython = reqPy[2].trim();
-  const listed = /(?:^|\n)\s*install_requires\s*=\s*\[([\s\S]*?)\]/.exec(text);
-  if (listed) {
-    const stripped = listed[1].replace(/#[^\n]*/g, "").replace(/([rubfRUBF]*)(['"])[\s\S]*?\2/g, "").replace(/[\[\],\s]/g, "");
-    if (stripped) warn(info, "setup.py install_requires is not a literal list; its dependencies were not derived");
-    else for (const m of listed[1].matchAll(/['"]([^'"]+)['"]/g)) addDep(info, m[1], "_prod");
-  } else if (/install_requires\s*=/.test(text)) {
-    warn(info, "setup.py install_requires is not a literal list; its dependencies were not derived");
+  const keywords = setupPyKeywords(text);
+  for (const [key, field] of [["name", "dist"], ["python_requires", "requiresPython"]]) {
+    if (!keywords.has(key)) continue;
+    const value = setupPyString(keywords.get(key));
+    if (value === null) warn(info, "setup.py " + key + " is not a string literal; its value was not derived");
+    else if (value.trim()) info[field] = key === "name" ? pep503(value) : value.trim();
+  }
+  if (keywords.has("install_requires")) {
+    const listed = setupPyList(keywords.get("install_requires"));
+    if (listed === null) warn(info, "setup.py install_requires is not a literal list; its dependencies were not derived");
+    else for (const spec of listed) addDep(info, spec, "_prod");
   }
   info.deployable = /console_scripts/.test(text) || hasEntrypointFile(repo, root);
   return finish(repo, root, info, null);
@@ -682,7 +727,7 @@ function addCommand(ctx, compRef, prov, id, tier, command, configPaths) {
 export class PythonAdapter extends Adapter {
   static adapterName = "python";
   constructor() {
-    super({ name: "python", version: "1.2.0", kind: "unit-marker" });
+    super({ name: "python", version: "1.2.1", kind: "unit-marker" });
   }
 
   roots(ctx) {
@@ -990,8 +1035,8 @@ function distributionNameAt(repo, dir) {
       return n ? pep503(n[1]) : null;
     }
     if (loc.kind === "setup.py") {
-      const name = /(?:^|\n)\s*name\s*=\s*(['"])([^'"]+)\1/.exec(repo.readText(loc.manifest));
-      return name ? pep503(name[2]) : null;
+      const name = setupPyString(setupPyKeywords(repo.readText(loc.manifest)).get("name"));
+      return name && name.trim() ? pep503(name) : null;
     }
   } catch {
     return null;

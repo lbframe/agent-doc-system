@@ -10,6 +10,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parse as parseToml } from "../core/toml.mjs";
+import { Repo } from "../core/fsx.mjs";
 import { parsePep508, readPythonUnit } from "../adapters/python.mjs";
 import { SYSTEM_ROOT, write, git, commitAll, cli, cliFails, compile, baseFixture } from "./helpers.mjs";
 
@@ -437,6 +438,117 @@ test("PYTHON: both lockfiles proving a tool leaves the command unprefixed", (t) 
   const res = compile(dir);
   assert.deepEqual(res.graph.verification.map((v) => v.command), ["pytest"]);
   assert.ok(res.diagnostics.some((d) => d.code === "AGENTDOC_BINDING_AMBIGUOUS" && /both uv.lock and poetry.lock/.test(d.message)));
+});
+
+for (const [form, call] of [
+  ["inline setup", (args) => "setup(" + args + ")\n"],
+  ["inline setuptools.setup", (args) => "setuptools.setup(" + args + ")\n"],
+  ["multiline setup", (args) => "setup(\n    " + args + ",\n)\n"],
+]) {
+  for (const [keyword, field, value, expected] of [
+    ["name", "dist", "Published_Name", "published-name"],
+    ["python_requires", "requiresPython", ">=3.11", ">=3.11"],
+    ["install_requires", "prodDeps", "requests[socks]>=2", ["requests"]],
+  ]) {
+    test("PYTHON: " + form + " reads literal " + keyword + " in all quote styles", (t) => {
+      const files = {};
+      const quotes = ["'", '"', "'''", '"""'];
+      for (const [i, quote] of quotes.entries()) {
+        const literal = quote + value + quote;
+        files[i + "/setup.py"] = call(keyword + "=" + (keyword === "install_requires" ? "[" + literal + "]" : literal));
+      }
+      const repo = new Repo(pyRepo(t, files));
+      for (const [i, quote] of quotes.entries()) {
+        const info = readPythonUnit(repo, String(i));
+        assert.deepEqual(info[field], expected, quote);
+        assert.deepEqual(info.warnings, [], quote);
+      }
+    });
+  }
+}
+
+test("PYTHON: setup.py arguments after commas keep comments, extras and nested calls scoped", (t) => {
+  const dir = pyRepo(t, {
+    "setup.py": [
+      '# setup(name="comment", install_requires=["comment-dep"])',
+      'example = """setuptools.setup(name="docstring", python_requires="bad")"""',
+      'name = "outside"',
+      'python_requires = "outside"',
+      'install_requires = ["outside-dep"]',
+      'other.setup(name="unrelated")',
+      'setup(packages=find_packages(where="src", name="nested"), name="published-name",',
+      '      python_requires=\'\'\'>=3.11\'\'\', # python_requires="comment"',
+      '      install_requires=["requests[socks]>=2", # preserve the extra brackets',
+      '                        \'\'\'urllib3>=2\'\'\',],)',
+      'name = "after"',
+      'install_requires = ["after-dep"]',
+      "",
+    ].join("\n"),
+  });
+  const info = readPythonUnit(new Repo(dir), ".");
+  assert.equal(info.dist, "published-name");
+  assert.equal(info.requiresPython, ">=3.11");
+  assert.deepEqual(info.prodDeps, ["requests", "urllib3"]);
+  assert.deepEqual(info.warnings, []);
+});
+
+test("PYTHON: setup.py assignments and unrelated calls do not supply setup keywords", (t) => {
+  const dir = pyRepo(t, {
+    "setup.py": [
+      'name = "outside"',
+      'python_requires = ">=3.11"',
+      'install_requires = ["outside-dep"]',
+      'other.setup(name="unrelated", python_requires=">=3.12", install_requires=["other-dep"])',
+      'def setup(name="default", python_requires=">=3.13", install_requires=["default-dep"]):',
+      '    pass',
+      "",
+    ].join("\n"),
+  });
+  const info = readPythonUnit(new Repo(dir), ".");
+  assert.equal(info.dist, null);
+  assert.equal(info.requiresPython, null);
+  assert.deepEqual(info.prodDeps, []);
+  assert.deepEqual(info.warnings, []);
+});
+
+for (const [label, expression, list] of [
+  ["variable", "value", "requirements"],
+  ["function call", 'read_value("ignored", key="ignored")', 'read_requires("ignored", key="ignored")'],
+  ["f-string", 'f"{value}"', '[f"{value}"]'],
+  ["triple f-string", 'f"""{value}"""', '[f"""{value}"""]'],
+  ["implicit concatenation", '"first" "second"', '["first" "second"]'],
+  ["explicit concatenation", '"first" + "second"', '["first"] + ["second"]'],
+  ["mixed dependency list", "value", '["literal", value]'],
+]) {
+  test("PYTHON: setup.py rejects " + label + " metadata with warnings", (t) => {
+    const dir = pyRepo(t, {
+      "setup.py": "setup(name=" + expression + ", python_requires=" + expression + ", install_requires=" + list + ")\n",
+    });
+    const info = readPythonUnit(new Repo(dir), ".");
+    assert.equal(info.dist, null);
+    assert.equal(info.requiresPython, null);
+    assert.deepEqual(info.prodDeps, []);
+    assert.equal(info.warnings.length, 3);
+    for (const keyword of ["name", "python_requires", "install_requires"]) {
+      assert.ok(info.warnings.some((w) => w.code === "AGENTDOC_PYTHON_SPECIFIER" && w.message.includes(keyword)), keyword);
+    }
+  });
+}
+
+test("PYTHON: inline setup.py names resolve uv workspace dependencies", (t) => {
+  const dir = pyRepo(t, {
+    "pyproject.toml": '[tool.uv.workspace]\nmembers = ["app", "legacy"]\n',
+    "app/pyproject.toml": '[project]\nname = "app"\ndependencies = ["published-name"]\n[tool.uv.sources]\npublished-name = { workspace = true }\n',
+    "app/agentdoc.yaml": component("app", "other"),
+    "legacy/setup.py": 'setuptools.setup(name="published-name")\n',
+    "legacy/published_name/__init__.py": "",
+    "legacy/agentdoc.yaml": component("published-name"),
+  });
+  const res = compile(dir);
+  assert.equal(res.errors.length, 0, res.errors.map((e) => e.message).join("\n"));
+  assert.ok(edge(res.graph, "buildDependsOn", "app", "published-name"));
+  assert.deepEqual(readPythonUnit(res.repo, "app").pathDeps, [{ name: "published-name", dir: "legacy" }]);
+  assert.equal(res.diagnostics.some((d) => /no member.*has that name/.test(d.message)), false);
 });
 
 test("PYTHON: setup.py that computes install_requires does not invent dependencies", (t) => {
