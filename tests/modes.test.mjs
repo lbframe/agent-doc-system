@@ -177,6 +177,82 @@ test("CREATE: an empty notUnitRoots overrides the default scaffold exclusions", 
   assert.deepEqual(JSON.parse(cli(dir, ["scaffold", "--write"])).written, proposed);
 });
 
+const authoredTool = [
+  "apiVersion: agentdoc.dev/v1",
+  "kind: Component",
+  "metadata:",
+  "  name: tool",
+  '  description: "Provides repository tooling."',
+  "spec:",
+  "  type: library",
+  '  placementRationale: "Repository tooling has no system or domain."',
+  "",
+].join("\n");
+
+for (const [label, excludedRoot] of [["default", "scripts"], ["configured", "packages/contracts"]]) {
+  const config = DEFAULT_CONFIG
+    .replace("    - service/**/agentdoc.yaml", '    - "**/agentdoc.yaml"')
+    .replace("  componentDescriptorName: agentdoc.yaml", "  componentDescriptorName: agentdoc.yaml" +
+      (label === "configured" ? "\n  notUnitRoots: [" + excludedRoot + "]" : ""));
+
+  test("VALIDATE: authored descendants of a " + label + " exclusion remain corroborated units", (t) => {
+    const root = excludedRoot + "/tool";
+    const descriptor = root + "/agentdoc.yaml";
+    const dir = baseFixture(t, { config, extra: {
+      [excludedRoot + "/package.json"]: scaffoldManifests["package.json"]("parent"),
+      [root + "/package.json"]: scaffoldManifests["package.json"]("tool"),
+      [root + "/child/package.json"]: scaffoldManifests["package.json"]("unclaimed-child"),
+      [descriptor]: authoredTool,
+    } });
+    assert.match(cli(dir, ["validate"]), /validate: PASS/);
+    const result = compile(dir);
+    assert.deepEqual(result.discovery.eligible.map((u) => u.root).sort(), [root, "service"].sort());
+    assert.deepEqual(result.discovery.eligible.find((u) => u.root === root).markers,
+      [{ adapter: "node", path: root + "/package.json", shape: "both" }]);
+    assert.equal(result.serialized, compile(dir).serialized, "two compiles must be byte-identical");
+
+    const original = read(dir, descriptor);
+    const dry = JSON.parse(cli(dir, ["scaffold"]));
+    const proposed = dry.written.map((f) => f.replace(/ \(dry run\)$/, ""));
+    assert.ok(!proposed.some((f) => f.startsWith(excludedRoot + "/")), proposed.join(","));
+    assert.deepEqual(JSON.parse(cli(dir, ["scaffold", "--write"])).written, proposed);
+    assert.equal(read(dir, descriptor), original, "scaffold must preserve the authored descriptor");
+    assert.equal(fs.existsSync(path.join(dir, root, "child/agentdoc.yaml")), false);
+    assert.match(cli(dir, ["validate"]), /validate: PASS/);
+
+    // Evidence in the excluded parent cannot corroborate the child's claim.
+    fs.rmSync(path.join(dir, root, "package.json"));
+    const unsupported = cliFails(dir, ["validate"]);
+    assert.ok(unsupported, "an authored library still needs evidence in its own root");
+    assert.match(unsupported.stderr, /AGENTDOC_ARTIFACT_TYPE/);
+  });
+
+  test("VALIDATE: a descriptor at a " + label + " excluded root names the exclusion", (t) => {
+    const dir = baseFixture(t, { config, extra: {
+      [excludedRoot + "/package.json"]: scaffoldManifests["package.json"]("tool"),
+      [excludedRoot + "/agentdoc.yaml"]: authoredTool,
+    } });
+    const failure = cliFails(dir, ["validate"]);
+    assert.ok(failure, "an exact-root descriptor must stay refused");
+    assert.match(failure.stderr, /AGENTDOC_COMPONENT_UNCORROBORATED/);
+    assert.ok(failure.stderr.includes("component descriptor at '" + excludedRoot + "' is in discovery.notUnitRoots"), failure.stderr);
+    assert.match(failure.stderr, /remove it from notUnitRoots or move the descriptor/);
+    assert.doesNotMatch(failure.stderr, /no adapter found|enable the adapter/);
+    assert.deepEqual(compile(dir).discovery.eligible.map((u) => u.root), ["service"]);
+  });
+}
+
+test("VALIDATE: an authored descendant loaded only through supplementalRoots remains a unit", (t) => {
+  const config = DEFAULT_CONFIG.replace("  componentDescriptorName: agentdoc.yaml",
+    "  componentDescriptorName: agentdoc.yaml\n  supplementalRoots: [scripts/tool]");
+  const dir = baseFixture(t, { config, extra: {
+    "scripts/tool/package.json": scaffoldManifests["package.json"]("tool"),
+    "scripts/tool/agentdoc.yaml": authoredTool,
+  } });
+  assert.match(cli(dir, ["validate"]), /validate: PASS/);
+  assert.deepEqual(compile(dir).discovery.eligible.map((u) => u.root), ["scripts/tool", "service"]);
+});
+
 // ── MIGRATE ────────────────────────────────────────────────────────────
 test("MIGRATE: audit classifies every fact and never promotes uncertainty", (t) => {
   const dir = baseFixture(t, {
