@@ -28,10 +28,14 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 - **Withdrawn benchmark claim.** The README, `docs/BENCHMARK.md` and the 1.2.0
   release notes reported that routing retrieves 100% of the facts a change
   needs against 58% for a baseline that reads only the touched component, with
-  noise under 9% against 40%. The gap came from the evaluation, not from
+  noise under 9% against 40%, and an answer about 70% smaller than the whole
+  catalog. The gap came from the evaluation, not from
   routing: the baseline already held almost every expected fact under a
   different label, and it read relations from the compiled graph that an agent
-  without AgentDoc does not have. The claim is removed. A baseline that finds
+  without AgentDoc does not have. The size figure counted the same component
+  once per relation label; deduplicated, every corpus falls below the size
+  floor. Both claims are
+  removed. A baseline that finds
   relations with search alone is now measured in the benchmark. The
   [correction](docs/BENCHMARK.md#correction-the-fact-recall-comparison-is-withdrawn)
   gives the details.
@@ -294,3 +298,4 @@ First public release.
 [#40]: https://github.com/lbframe/agent-doc-system/issues/40
 [#41]: https://github.com/lbframe/agent-doc-system/issues/41
 [#43]: https://github.com/lbframe/agent-doc-system/issues/43
+[#46]: https://github.com/lbframe/agent-doc-system/issues/46

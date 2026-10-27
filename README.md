@@ -99,7 +99,6 @@ What every adapter derives, and what it deliberately cannot see, is in [docs/ADA
 Measured, reproducible, and with no model in the loop. Method and caveats are in [docs/BENCHMARK.md](docs/BENCHMARK.md).
 
 - **The checks a change needs, not the whole suite.** Across 30 routing scenarios (Node, Go, Rust, Python), every check the change requires is in the answer, and that answer holds about half of the repository's checks (29% on the largest corpus), not all of them. The thresholds were fixed before the first run and have not moved since.
-- **Less to read.** The answer for a change is about 70% smaller than the whole catalog, on the largest corpus.
 - **Seconds to map a real repository.** A fresh `init` → `scaffold` → `compile` takes 1.0–4.6 s on four public repositories, from 141 to 5,142 files (axum, pydantic-ai, full-stack-fastapi-template, create-t3-turbo). No edit was needed beyond choosing each component's placement.
 - **A briefing, not a dump.** A `query` answer is about 100–260 tokens: what the change reaches, what to read, and which checks to run.
 - **The same graph every time.** Compiles are byte-identical, and CI can verify it.
