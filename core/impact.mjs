@@ -87,7 +87,8 @@ export function impact(graph, changedPaths) {
   }
 
   // A check's configuration is evidence of the components it covers, even
-  // when the file lives outside every component root (for example CI).
+  // when the file lives outside every component root (for example CI). Add
+  // these before taking the seeds so their dependents' checks follow too.
   for (const v of graph.verification) {
     for (const p of verificationPaths) {
       if (!v.configPaths?.includes(p)) continue;

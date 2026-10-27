@@ -146,8 +146,13 @@ repository gates. A working directory is retained in the recorded
 command so the check can be run from the repository root.
 
 `impact` on a workflow follows its recorded check configuration paths to the
-covered components. Repository gates from that file appear in `affectedGates`
-and `recommendedVerification`.
+covered components, which seed the same reverse build/test dependency closure
+as directly changed components. Their own checks precede their dependents'
+checks, with test-only routes contributing only unit checks. Repository gates
+from that file appear in `affectedGates` and are appended after component
+checks in `recommendedVerification`. The combined list is capped at 25;
+`recommendedVerificationTotal` and `recommendedVerificationTruncated` include
+gates. A workflow matched by a check or gate is removed from `unmatchedFiles`.
 
 ### `ansible`
 

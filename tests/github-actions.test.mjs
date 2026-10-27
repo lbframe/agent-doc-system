@@ -200,6 +200,35 @@ test("github-actions: workflow impact returns its component checks and repositor
   assert.deepEqual(gateOnly.unmatchedFiles, []);
 });
 
+test("github-actions: workflow impact seeds library dependents and appends repository gates", (t) => {
+  const file = ".github/workflows/library.yml";
+  const dir = baseFixture(t, { config: NESTED_CONFIG, extra: {
+    "pkg/a/package.json": JSON.stringify({ name: "@t/a", main: "index.js", scripts: { test: "node --test" } }),
+    "pkg/a/agentdoc.yaml": descriptor("a", "library"),
+    "service/package.json": JSON.stringify({
+      name: "@t/svc", main: "dist/index.js", scripts: { test: "vitest run", typecheck: "tsc --noEmit" },
+      dependencies: { "@t/a": "workspace:*", pg: "^8.13.1" },
+    }),
+    [file]: workflow('      - run: pnpm --filter @t/a test\n      - run: agentdoc compile\n'),
+  } });
+  cli(dir, ["compile"]);
+  const g = graphOf(dir);
+  assert.ok(g.relations.some((r) => r.type === "buildDependsOn" && r.sourceRef === "component:default/svc" && r.targetRef === "component:default/a"));
+  const im = JSON.parse(cli(dir, ["impact", file]));
+  assert.deepEqual(im.affectedComponents.map((c) => c.ref), ["component:default/a", "component:default/svc"]);
+  assert.deepEqual(im.unmatchedFiles, []);
+  const own = g.verification.filter((v) => v.componentRefs.includes("component:default/a"));
+  const dependent = g.verification.filter((v) => v.componentRefs.includes("component:default/svc"));
+  assert.ok(own.length && dependent.some((v) => v.tier === "static"));
+  const ids = im.recommendedVerification.map((v) => v.id);
+  assert.ok([...own, ...dependent].every((v) => ids.includes(v.id)));
+  assert.ok(Math.max(...own.map((v) => ids.indexOf(v.id))) < Math.min(...dependent.map((v) => ids.indexOf(v.id))));
+  assert.deepEqual(im.affectedGates.map((v) => v.command), ["agentdoc compile"]);
+  assert.deepEqual(im.recommendedVerification.slice(-1), im.affectedGates);
+  assert.equal(im.recommendedVerificationTotal, own.length + dependent.length + 1);
+  assert.equal(im.recommendedVerificationTruncated, false);
+});
+
 test("github-actions: known runners determine tiers, not words in arguments", (t) => {
   const file = ".github/workflows/runners.yml";
   const invocations = [
