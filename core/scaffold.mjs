@@ -14,11 +14,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { Repo } from "./fsx.mjs";
-import { isNotUnitRoot } from "./discover.mjs";
+import { discoverUnits, isNotUnitRoot } from "./discover.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 import { parse as parseToml } from "./toml.mjs";
 import { cargoUnitShape, isExcludedWorkspaceMember, isVirtualWorkspaceManifest } from "../adapters/rust.mjs";
 import { readPythonUnit } from "../adapters/python.mjs";
+import { loadAdapters } from "../adapters/index.mjs";
 
 const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
@@ -91,7 +92,7 @@ export function installTemplates(repo, cfg, { write, root, force = false, eligib
 }
 
 // Layout inference for CREATE mode: which directories look like unit roots.
-// Uses only file-presence heuristics that any repository can answer.
+// Combines shallow marker heuristics with the compiler's adapter discovery.
 function scanLayout(repo, cfg) {
   const candidates = new Map();
   const note = (root, kind) => {
@@ -127,11 +128,32 @@ function scanLayout(repo, cfg) {
     }
   };
   walk("", 0);
+  // Directory-name/depth heuristics must not hide units declared by adapters
+  // (for example a uv or Cargo member under examples/). During init there is
+  // no config yet: probe supported marker adapters so those members can also
+  // select their adapter in the generated configuration.
+  const discoveryCfg = cfg || { discovery: { componentDescriptors: [] } };
+  const adapters = loadAdapters(cfg ? cfg.adapters : Object.values(ADAPTER_FOR_MARKER));
+  for (const unit of discoverUnits(repo, discoveryCfg, adapters).eligible) {
+    if (!unit.root || unit.root === "." || isNotUnitRoot(unit.root, cfg)) continue;
+    for (const [kind, adapter] of Object.entries(ADAPTER_FOR_MARKER)) {
+      if (unit.markers.some((marker) => marker.adapter === adapter)) note(unit.root, kind);
+    }
+  }
   for (const u of [...candidates.values()]) {
+    // Layout-only candidates need the same artifact evidence as units already
+    // discovered by the compiler. A technology name alone proves no shape.
+    u.deployable = false;
+    u.importable = false;
+    for (const adapter of loadAdapters([...u.kinds].map((k) => ADAPTER_FOR_MARKER[k]))) {
+      const marker = adapter.detect({ repo, cfg }, u.root || ".");
+      if (!marker) continue;
+      const shape = marker.shape || "both";
+      u.deployable ||= shape === "deployable" || shape === "both";
+      u.importable ||= shape === "importable" || shape === "both";
+    }
     if (!u.kinds.has("python")) continue;
     const info = readPythonUnit(repo, u.root);
-    u.deployable = Boolean(info.deployable);
-    u.importable = Boolean(info.importable);
     // A uv workspace root with no distribution is not a unit. Scaffolding it
     // would invent a component for the virtual manifest.
     if (!info.dist && !info.deployable && !info.importable && !info.error && virtualUvWorkspace(repo, u.root)) {
@@ -219,19 +241,7 @@ function discoverUnitNames(repo, cfg, eligible = null) {
     if (found.root === "." || !found.root || seenRoots.has(found.root)) continue;
     if (isNotUnitRoot(found.root, cfg)) continue;
     if (isVirtualWorkspaceManifest(repo, found.root)) continue;
-    let u = found;
-    if (u.kinds.includes("rust")) {
-      const shape = cargoUnitShape(repo, u.root);
-      if (!shape) continue;
-      // Crate shape, not the technology name: a bin-only crate is deployable
-      // and not importable. Treating every Cargo package as a library makes
-      // validate fail with AGENTDOC_ARTIFACT_TYPE.
-      u = {
-        ...u,
-        deployable: u.deployable || shape === "deployable" || shape === "both",
-        importable: u.importable || shape === "importable" || shape === "both",
-      };
-    }
+    const u = found;
     seenRoots.add(u.root);
     const name = nameFor(u.root);
     if (seen.has(name)) continue;
@@ -242,17 +252,10 @@ function discoverUnitNames(repo, cfg, eligible = null) {
 }
 
 function componentDescriptor(u) {
-  const deployable = u.deployable || u.kinds.some((k) => k === "docker" || k === "platform");
-  // Rust is not in this list. A crate's type comes from cargoUnitShape above:
-  // deployable-only → service, importable → library, both → service because
-  // deployable is decided first (the rule every other marker already follows).
-  // Python is not importable just because a manifest exists. The adapter's
-  // shape is the evidence: deployable, importable, or neither.
-  const importable = u.importable || u.kinds.some((k) => k === "node" || k === "go");
   // "library" and "service" both have to be corroborated by artifact evidence
   // (AGENTDOC_ARTIFACT_TYPE); a unit the compiler only knows from configuration
   // shows neither, so claiming a concrete type would manufacture an error.
-  const type = deployable ? "service" : importable ? "library" : "other";
+  const type = u.deployable ? "service" : u.importable ? "library" : "other";
   return [
     "apiVersion: agentdoc.dev/v1",
     "kind: Component",
@@ -288,13 +291,6 @@ function buildConfig(layout) {
     if (!groups.has(head)) groups.set(head, []);
     groups.get(head).push(r);
   }
-  // A manifest at the repository root yields an empty head; emitting
-  // "/agentdoc.yaml" would be an absolute glob, which the loader rejects.
-  const componentGlobs = [...groups.entries()]
-    .filter(([head]) => head.length > 0)
-    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-    .map(([head, list]) => (list.length === 1 && list[0] === head ? head + "/agentdoc.yaml" : head + "/**/agentdoc.yaml"));
-  if (!componentGlobs.length) componentGlobs.push("*/**/agentdoc.yaml");
 
   const adapters = new Set(["generic"]);
   for (const l of layout) {
@@ -321,9 +317,10 @@ function buildConfig(layout) {
     "discovery:",
     "  componentDescriptorName: agentdoc.yaml",
     "  componentDescriptors:",
-    // Globs are quoted: an unquoted leading "*" is an alias in strict YAML,
-    // and a configuration the compiler cannot parse is worse than none.
-    ...componentGlobs.map((g) => "    - " + yamlStr(g)),
+    // Discover every scaffolded descriptor, including adapter roots outside
+    // the shallow layout and units added after init. Keep the leading glob
+    // quoted because an unquoted "*" is an alias in strict YAML.
+    '    - "*/**/agentdoc.yaml"',
     "  centralDescriptors:",
     "    - agentdoc/domains.yaml",
     "    - agentdoc/systems.yaml",
