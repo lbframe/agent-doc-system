@@ -5,5 +5,12 @@
   "touch": ["libs/protocol/ledger.pb.go"],
   "truth": ["component:default/protocol", "component:default/ingest", "component:default/gateway", "doc:libs/protocol/README.md"],
   "critical": [],
-  "verification": []
+  "verification": [
+    "verify:go test ./...",
+    "verify:go vet ./...",
+    "verify-id:component:default/gateway:go-test",
+    "verify-id:component:default/gateway:go-vet",
+    "verify-id:component:default/ingest:go-test",
+    "verify-id:component:default/ingest:go-vet"
+  ]
 }

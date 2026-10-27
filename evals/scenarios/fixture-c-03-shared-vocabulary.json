@@ -5,5 +5,11 @@
   "touch": ["shared/index.js"],
   "truth": ["component:default/shared", "component:default/edge", "component:default/console", "event:corp.telemetry.ingest.v1"],
   "critical": ["event:corp.telemetry.ingest.v1"],
-  "verification": []
+  "verification": [
+    "verify:vitest run",
+    "verify:tsc --noEmit",
+    "verify-id:component:default/console:test",
+    "verify-id:component:default/console:typecheck",
+    "verify-id:component:default/edge:test"
+  ]
 }
