@@ -204,10 +204,17 @@ because the changed component uses them; they remain explicitly typed context
 in query's `relations`. The dependent closure has no hop cutoff, so a long chain
 cannot silently omit an affected consumer.
 
+Changing a workflow file follows recorded verification `configPaths` to the
+components its checks cover. Those components seed the reverse build/test
+dependency closure just like directly changed components. Matching repository
+gates appear in `affectedGates`; a workflow matched by any check or gate is
+removed from `unmatchedFiles`.
+
 Impact uses the same verification selection and ordering as query, including
 the test-only tier restriction. Directly affected components' checks precede
-their dependents' checks. The `recommendedVerification` array is capped at 25;
-`recommendedVerificationTotal` gives the uncapped count and
+their dependents' checks, followed by the matching repository gates. The
+combined `recommendedVerification` array is capped at 25;
+`recommendedVerificationTotal` gives the uncapped count including gates and
 `recommendedVerificationTruncated` reports overflow. Query's default cap is 12
 and can be adjusted with `--budget verification=...`.
 

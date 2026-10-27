@@ -151,6 +151,24 @@ test("IMPACT: verification overflow is explicit and keeps changed component chec
   assert.ok(im.recommendedVerification.slice(0, 3).every((v) => v.id.startsWith("lib:")));
 });
 
+test("IMPACT: workflow gates count toward the cap after library and dependent checks", () => {
+  const graph = dependencyGraph();
+  const file = ".github/workflows/library.yml";
+  graph.verification.find((v) => v.id === "lib:unit").configPaths = [file];
+  const checks = impact(graph, [ref("lib")]).recommendedVerification;
+  assert.equal(checks.length, 13);
+  for (const count of [11, 12, 13]) {
+    graph.gates = Array.from({ length: count }, (_, i) => ({ id: "0-gate:" + i, tier: "static", command: "gate " + i, configPaths: [file] }));
+    const im = impact(graph, [file]);
+    const gates = graph.gates.map(({ id, tier, command }) => ({ id, tier, command }));
+    assert.deepEqual(im.unmatchedFiles, []);
+    assert.deepEqual(im.affectedGates, gates);
+    assert.deepEqual(im.recommendedVerification, [...checks, ...gates].slice(0, 25));
+    assert.equal(im.recommendedVerificationTotal, 13 + count);
+    assert.equal(im.recommendedVerificationTruncated, count > 12);
+  }
+});
+
 test("IMPACT: directly changed checks precede runtime peers' checks", () => {
   const graph = dependencyGraph();
   graph.relations.push({ type: "runtimeCalls", sourceRef: ref("lib"), targetRef: ref("build") });

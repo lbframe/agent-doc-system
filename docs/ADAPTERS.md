@@ -116,6 +116,44 @@ cannot name the file a fact came from, you cannot add the fact.
 `generic` is always on. Everything else is opt-in through `adapters: [...]`, and
 an unknown name is `AGENTDOC_CONFIG`, not a silent no-op.
 
+### `github-actions`
+
+Recognizable test, lint and build invocations in `run` steps contribute
+checks. The executable and task determine the tier; a shell `test`, a step
+name or text printed by `echo` does not. Turbo (including package-manager
+wrappers), Nx (`run`, `run-many`, `affected`), Make and Just tasks are resolved
+by task name. Multi-task commands contribute a check for each distinct tier.
+Simple scripts are split into individual commands, never copied wholesale or
+truncated. A literal `cd` updates the directory for following commands in the
+same step, including across lines. Shell control flow, pipelines,
+substitutions and heredocs are not interpreted; a non-literal `cd`, directory
+stack operation, `source`, `eval` or `export` stops extraction for that step.
+
+`uses` actions whose names contain lint, test, check, scan or audit also
+contribute checks. Setup, checkout, cache, upload, download and artifact
+actions are excluded. Action scope comes from `with.working-directory`,
+`with.working_directory` or `with.path`; run-step defaults do not apply. The
+action reference is recorded as its command, with the workflow as its evidence.
+
+Scope comes from the step's `working-directory` (including job and workflow
+defaults), a component path argument, an explicit package selector, or a
+workflow trigger's `paths` filter with a literal directory prefix. Paths match
+whole segments; a mention in another step cannot scope a check. Turbo filters
+match literal package names or directory paths; Nx project selectors match a
+package name, `project.json` name or component root; Make's `-C` resolves a
+directory relative to the step's working directory. Unscoped checks are
+repository gates. A working directory is retained in the recorded
+command so the check can be run from the repository root.
+
+`impact` on a workflow follows its recorded check configuration paths to the
+covered components, which seed the same reverse build/test dependency closure
+as directly changed components. Their own checks precede their dependents'
+checks, with test-only routes contributing only unit checks. Repository gates
+from that file appear in `affectedGates` and are appended after component
+checks in `recommendedVerification`. The combined list is capped at 25;
+`recommendedVerificationTotal` and `recommendedVerificationTruncated` include
+gates. A workflow matched by a check or gate is removed from `unmatchedFiles`.
+
 ### `ansible`
 
 Reads playbooks under a unit root and follows what they reach — plays,
