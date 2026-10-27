@@ -16,6 +16,10 @@ this release, a Cargo crate or a Python package was invisible to the compiler:
 `agentdoc audit` reported zero units, and a hand-written descriptor produced a
 component with no language, no dependency edges and no verification commands.
 
+The release also fixes how a change is routed. `impact` and `query` now follow
+the components that depend on the changed one, not the ones it depends on, and
+recommend those dependents' checks.
+
 ### Added
 
 - **`rust` adapter** ([#17]). Reads `Cargo.toml` and never runs Cargo or reads
@@ -64,12 +68,47 @@ component with no language, no dependency edges and no verification commands.
 
 ### Changed
 
-- The TOML reader implements the TOML 1.0 value set. It is used for
-  `Cargo.toml`, `pyproject.toml` and `wrangler.toml`. It now reads multi-line
-  basic and literal strings, literal strings, offset and local date-times,
-  dates, times, hex/octal/binary integers, `inf` / `nan`, and `_` digit
-  separators. Invalid TOML is still rejected with `AGENTDOC_YAML_PARSE`.
-  Before, a valid value such as `description = """…"""` could fail the file.
+- **Change routing follows dependents** ([#30], [#25]).
+  - A change to a component reaches the components that depend on it,
+    transitively, through reverse `buildDependsOn` / `testDependsOn` edges.
+    Before, `impact` also listed the components it depends on as affected,
+    and stopped after two hops.
+  - Dependencies stay visible as typed relations in `query`. They are no
+    longer reported as affected components.
+  - `query` and `impact` recommend the dependents' checks after the changed
+    component's own: every tier for build dependents, unit checks only for test
+    dependents.
+  - `impact` adds `recommendedVerificationTotal` and
+    `recommendedVerificationTruncated`, so a capped list is never mistaken for
+    the whole.
+- **`query` markdown shows an entity's context** ([#28]). Resources and
+  Systems now list their `docs`, `CONSTRAINTS` and `runbooks`, as components
+  already did. Constraints are never capped by default. Docs and runbooks show
+  12 paths each, and `--budget docs=…,constraints=…,runbooks=…` sets explicit
+  caps with a `[truncated: x of y]` marker.
+- **`discovery.notUnitRoots` excludes a whole subtree from inferred units**
+  ([#27]). An adapter marker or a scaffold proposal at or below an excluded
+  root is no longer a unit. A hand-written descriptor below an excluded root
+  is still honoured. A descriptor exactly at an excluded root is refused with
+  a message that names the exclusion.
+- **GitHub Actions checks are scoped to the components they run for**
+  ([#29]). A step becomes a component check only when its command is a
+  recognised test, lint or build invocation, scoped by `working-directory`,
+  `cd <dir> &&`, a path argument, a package selector (`--filter`, turbo, nx,
+  `make -C`) or a `paths:` filter. Anything else is a repository gate.
+  - Before, every step was attached to every component whose path or package
+    name appeared anywhere in the workflow, including multi-line ops scripts.
+    A shell `test -n` was also recorded as a unit test.
+  - `impact` on a workflow file now names the components and gates derived
+    from it, plus their dependents' checks.
+- **The TOML reader conforms to TOML 1.0** ([#18], [#31]). It reads
+  `Cargo.toml`, `pyproject.toml` and `wrangler.toml`, and passes every case of
+  the official [toml-test](https://github.com/toml-lang/toml-test) 1.0.0
+  suite: 208 valid and 501 invalid documents. Before, it rejected valid
+  documents, such as multi-line strings and lowercase date-time delimiters,
+  which lost every fact in the file. It also accepted invalid ones, such as a
+  trailing comma in an inline table or a table declared twice. Invalid TOML
+  is rejected with `AGENTDOC_YAML_PARSE`.
 
 ### Fixed
 
@@ -85,6 +124,25 @@ component with no language, no dependency edges and no verification commands.
   but never recognised. It now counts as migration evidence. The evidence file
   is a qualifying `alembic.ini` or `[tool.alembic]` configuration when one
   exists, and otherwise a revision file.
+- A changed migration, including an Alembic revision, now lists the logical
+  database its component uses in `impact`'s `affectedResources` ([#30]).
+  Before, the list stayed empty.
+- The audit no longer reports a document as orphaned when it is linked only
+  from a Resource's or System's `context` ([#28]).
+- `agentdoc scaffold --write` no longer writes descriptors into directories
+  listed in `discovery.notUnitRoots` ([#27]).
+- **A fresh setup compiles without hand edits** ([#37], [#38]).
+  - `scaffold` now types every unit from its artifact evidence: `service`,
+    `library`, or `other` when neither is proven. Before, a Node app without
+    `exports` or `main`, or a Go module, was written as `library` and failed
+    `validate` straight away.
+  - `init` now discovers descriptors with the `*/**/agentdoc.yaml` glob
+    instead of an explicit list, and `scaffold` covers every unit an adapter
+    declares, including workspace members under `examples/`.
+  - On the four public repositories used for benchmarking (tokio-rs/axum,
+    pydantic/pydantic-ai, fastapi/full-stack-fastapi-template and
+    t3-oss/create-t3-turbo), `init` + `scaffold --write` + `compile` now pass
+    with no edits other than choosing each component's placement.
 
 ### Upgrading
 
@@ -100,6 +158,16 @@ component with no language, no dependency edges and no verification commands.
   wrongly attributed to an enclosing component. Review the affected facts,
   dependency edges and verification commands, and any descriptor or document
   that relied on them.
+- Tools that read `impact --json` will see fewer `affectedComponents`
+  (dependencies are gone) and more `recommendedVerification` entries
+  (dependents' checks).
+- A unit inferred below a `notUnitRoots` entry, with no descriptor, is no
+  longer reported as `AGENTDOC_COVERAGE_ZERO`. If it should be a component,
+  write its descriptor, or remove the directory from `notUnitRoots`.
+- If your workflows run checks for specific components, recompiling changes
+  which checks are attached to which component. Review the diff: checks that
+  were attached only because a path was mentioned elsewhere in the workflow
+  move to repository gates.
 - Recompiling always updates the compiler version, source commit and input
   hash. Review the other derived changes, especially in repositories with
   nested units, Alembic migrations or Wrangler TOML manifests: a manifest the
@@ -173,3 +241,11 @@ First public release.
 [#18]: https://github.com/lbframe/agent-doc-system/issues/18
 [#21]: https://github.com/lbframe/agent-doc-system/issues/21
 [#23]: https://github.com/lbframe/agent-doc-system/issues/23
+[#25]: https://github.com/lbframe/agent-doc-system/issues/25
+[#27]: https://github.com/lbframe/agent-doc-system/issues/27
+[#28]: https://github.com/lbframe/agent-doc-system/issues/28
+[#29]: https://github.com/lbframe/agent-doc-system/issues/29
+[#30]: https://github.com/lbframe/agent-doc-system/issues/30
+[#31]: https://github.com/lbframe/agent-doc-system/issues/31
+[#37]: https://github.com/lbframe/agent-doc-system/issues/37
+[#38]: https://github.com/lbframe/agent-doc-system/issues/38
