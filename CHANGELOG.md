@@ -9,16 +9,34 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+### Added
+
+- A deterministic `baseline-search` routing evaluation using working-tree file
+  reads and text search, without compiled relations ([#46]). CLI reports compare
+  catalog, corrected targeted and search recall/noise/check selectivity per
+  scenario, corpus and aggregate; `docs/EVALS.md` documents every heuristic.
+
 ### Fixed
+
+- All routing evaluation systems and the noise closure now share fact labels
+  ([#46]). Corrected targeted micro-recall is 100/101 (0.9901), rather than
+  the previously reported gap. Search matches catalog recall in 21/30 scenarios;
+  measurements and limitations are in `docs/BENCHMARK.md`. Normalized full fact
+  counts fall below the existing size floor, so aggregate size reduction is
+  reported as unmeasured. Thresholds, scenarios and core routing are unchanged.
 
 - **Withdrawn benchmark claim.** The README, `docs/BENCHMARK.md` and the 1.2.0
   release notes reported that routing retrieves 100% of the facts a change
   needs against 58% for a baseline that reads only the touched component, with
-  noise under 9% against 40%. The gap came from the evaluation, not from
+  noise under 9% against 40%, and an answer about 70% smaller than the whole
+  catalog. The gap came from the evaluation, not from
   routing: the baseline already held almost every expected fact under a
   different label, and it read relations from the compiled graph that an agent
-  without AgentDoc does not have. The claim is removed. A baseline that finds
-  relations with search alone will be measured and published. The
+  without AgentDoc does not have. The size figure counted the same component
+  once per relation label; deduplicated, every corpus falls below the size
+  floor. Both claims are
+  removed. A baseline that finds
+  relations with search alone is now measured in the benchmark. The
   [correction](docs/BENCHMARK.md#correction-the-fact-recall-comparison-is-withdrawn)
   gives the details.
 
@@ -280,3 +298,4 @@ First public release.
 [#40]: https://github.com/lbframe/agent-doc-system/issues/40
 [#41]: https://github.com/lbframe/agent-doc-system/issues/41
 [#43]: https://github.com/lbframe/agent-doc-system/issues/43
+[#46]: https://github.com/lbframe/agent-doc-system/issues/46

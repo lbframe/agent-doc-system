@@ -1,7 +1,7 @@
 # BENCHMARK
 
-Two measurements back the numbers in the README. Both are reproducible from a
-checkout. Neither involves a model, so phrasing cannot move them.
+Two measurements are reproducible from a checkout. Neither involves a model;
+both depend on the measurement rules described here.
 
 ## Routing quality: `node evals/run-all.mjs`
 
@@ -11,21 +11,9 @@ registered on 2026-09-28 and not moved since. For each scenario, it compares
 the context `agentdoc query` + `agentdoc impact` returns with what an agent
 gets without routing.
 
-| | without routing | AgentDoc |
-|---|---|---|
-| share of the repository's checks returned (selectivity) | 100% (runs everything) | **46%** (29% on the golden corpus) |
-| context size vs. reading the whole catalog | — | **−70%** |
-
-Every check a scenario requires is in AgentDoc's answer (verification recall
-1.0). The baseline never misses one either, because it runs every check in the
-repository. Selectivity is therefore the meaningful comparison: the share of
-the repository's checks the answer contains, counting everything the agent is
-shown. It is reported, not gated; small corpora inflate it, and a
-one-component corpus scores 100% because there is nothing to narrow.
-
-The size reduction is measured on the golden corpus (`examples/koda`). The
-smaller fixtures hold fewer than 100 facts, so the harness reports their
-reduction but does not aggregate it.
+The measured systems are catalog routing, a corrected graph-assisted targeted
+reference, and working-tree search. Their current results appear below. The
+pre-registered thresholds and scenario truth are unchanged.
 
 ### Correction: the fact-recall comparison is withdrawn
 
@@ -43,9 +31,65 @@ baseline that reads only the touched component, with noise under 9% against
   agent without AgentDoc does not have. A fair baseline has to find them with
   search over the repository's files.
 
-The comparison against a baseline that is allowed to search is not measured
-yet. It will be published here, whatever it shows. Check selectivity and the
-size reduction above do not depend on the targeted baseline's labels.
+The search comparison is now measured. The targeted reference's corrected
+micro-recall is 100/101 (99.01%); its scenario-mean recall is 99.17%. The
+100%-versus-58% comparison remains withdrawn.
+
+### Search baseline
+
+`baseline-search` starts with touched files, searches source/manifests for
+import names and local paths in both directions to a fixed point, and reads
+the reached components' docs and checks. Contracts, endpoint strings, event
+subjects and resource evidence are found in working-tree files. Catalog
+descriptors supply only component identity and path ownership. Retrieval never
+reads the compiled graph or compiler relations. All naming guesses, exclusions
+and check conventions are listed in [EVALS.md](EVALS.md#search-baseline-heuristics).
+
+| Corpus (scenarios) | System | Mean recall | Noise | Check selectivity |
+|---|---|---:|---:|---:|
+| Koda (9) | baseline-targeted (corrected) | 100.00% | 41.23% | 100.00% |
+| Koda (9) | baseline-search | 71.90% | 71.55% | 100.00% |
+| Koda (9) | catalog | 100.00% | 4.02% | 28.79% |
+| Node/TS (3) | baseline-targeted (corrected) | 100.00% | 17.86% | 100.00% |
+| Node/TS (3) | baseline-search | 91.67% | 30.64% | 83.33% |
+| Node/TS (3) | catalog | 100.00% | 0.00% | 100.00% |
+| Go (4) | baseline-targeted (corrected) | 93.75% | 28.94% | 100.00% |
+| Go (4) | baseline-search | 83.33% | 26.01% | 100.00% |
+| Go (4) | catalog | 100.00% | 5.88% | 66.67% |
+| Mixed monorepo (4) | baseline-targeted (corrected) | 100.00% | 37.82% | 100.00% |
+| Mixed monorepo (4) | baseline-search | 100.00% | 41.25% | 100.00% |
+| Mixed monorepo (4) | catalog | 100.00% | 5.88% | 54.17% |
+| Rust (4) | baseline-targeted (corrected) | 100.00% | 48.25% | 100.00% |
+| Rust (4) | baseline-search | 100.00% | 32.81% | 83.33% |
+| Rust (4) | catalog | 100.00% | 0.00% | 25.00% |
+| Python (6) | baseline-targeted (corrected) | 100.00% | 46.70% | 100.00% |
+| Python (6) | baseline-search | 100.00% | 23.68% | 41.67% |
+| Python (6) | catalog | 100.00% | 0.00% | 41.67% |
+| Aggregate (30) | baseline-targeted (corrected) | 99.17% | 38.83% | 100.00% |
+| Aggregate (30) | baseline-search | 88.51% | 42.61% | 84.44% |
+| Aggregate (30) | catalog | 100.00% | 2.77% | 46.42% |
+
+These are scenario means, aggregated by scenario count. Search micro-recall is
+85/101 (84.16%), compared with 100/101 (99.01%) for corrected targeted and
+101/101 for catalog routing. All three systems retrieve every scenario-required
+verification expectation. Selectivity counts distinct registered check IDs,
+including repository gates, after matching search's discovered scoped commands.
+
+Search matches catalog fact recall in 21 of 30 scenarios, including all Rust,
+Python and mixed-monorepo scenarios. It beats catalog recall in none. The
+remaining misses include authored placement, authority conflicts/runtime
+observations, and API identities/roles not recoverable by these lexical rules.
+Its broad closure can also overreach through shared endpoint strings. This is
+a comparison of deterministic retrieval rules on authored corpora, not an agent
+session, a limit on search quality, or evidence of time/token savings. Noise is
+scored against the catalog's one-hop graph closure and can penalize useful
+source facts absent from that graph.
+
+The unchanged relative recall gate passes: corrected targeted ties catalog in
+five corpora and trails it in Go. All applicable gates pass. Normalization also
+changes noise and deduplicates fact counts: the full Koda inventory now has 86
+facts, below the unchanged 100-fact size floor. Aggregate retrieval reduction
+is **not measured**, so the former 70% size figure is not a current result.
 
 ## Fresh setup on public repositories: `node scripts/bench/run.mjs`
 

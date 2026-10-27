@@ -37,6 +37,8 @@
     "core",
     "docs",
     "evals/harness.mjs",
+    "evals/facts.mjs",
+    "evals/baseline-search.mjs",
     "evals/scenarios",
     "evals/thresholds.json",
     "schemas",
