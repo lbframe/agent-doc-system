@@ -4,14 +4,8 @@
 // an agent through it retrieve the right context, and less noise than unassisted
 // repository exploration".
 //
-// Two retrieval systems are measured on the same scenarios:
-//
-//   baseline  what an agent gets by exploring the repository the obvious way:
-//             every documentation file, every descriptor, every source file
-//             under the touched component. This is the honest shape of "just
-//             read the repo", and it is what the catalog has to beat.
-//
-//   catalog   what `agentdoc query` returns for the same scenario.
+// Compare catalog routing with a graph-assisted targeted reference and a
+// working-tree search baseline. The full graph is only a size yardstick.
 //
 // Retrieval-set overlap against a per-scenario ground truth gives precision,
 // recall, critical-constraint recall, verification-command recall and noise.
@@ -28,32 +22,35 @@ import { AgentDocError, CODES } from "../core/codes.mjs";
 import { queryContext, ContextIndex } from "../core/query.mjs";
 import { impact } from "../core/impact.mjs";
 
+import { fact, addRelationFacts, addGraphRelations } from "./facts.mjs";
+import { searchContext } from "./baseline-search.mjs";
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // A retrieved item is a "fact reference" the agent would have to understand:
 // an entity ref, a constraint path, a verification command, a contract ref.
 export function factsFromContext(ctx) {
   const out = new Set();
-  out.add(ctx.entity.ref);
-  for (const n of ctx.neighbours) out.add(n.ref);
-  for (const r of ctx.relations.items) out.add(r.type + ":" + r.other);
-  for (const p of ctx.journeyPeers || []) out.add(p);
-  for (const s2 of ctx.placement.systems) out.add(s2);
-  for (const d2 of ctx.placement.domains) out.add(d2);
-  for (const a of ctx.apis.provided) out.add("provides:" + a.api);
-  for (const a of ctx.apis.consumed) out.add("consumes:" + a.api);
-  for (const c of ctx.apis.consumers || []) out.add("consumer:" + c);
-  if (ctx.apis.provider) out.add("provider:" + ctx.apis.provider);
-  for (const r of ctx.resources.used) out.add("uses:" + r);
-  for (const r of ctx.resources.usedBy) out.add("usedBy:" + r);
-  for (const e of ctx.events.items) out.add("event:" + e.pattern);
-  for (const e of ctx.externalDependencies.items) out.add("external:" + e.name);
-  for (const v of ctx.verification.items) out.add("verify:" + v.command);
-  for (const p of ctx.constraints.constraints) out.add("constraint:" + p);
-  for (const d of ctx.constraints.docs) out.add("doc:" + d);
-  for (const r of ctx.constraints.runbooks) out.add("runbook:" + r);
-  for (const c of ctx.authority.conflicts.items) out.add("conflict:" + c.key);
-  for (const o of ctx.authority.observations) out.add("observation:" + o.id);
+  out.add(fact("ref", ctx.entity.ref));
+  for (const n of ctx.neighbours) out.add(fact("ref", n.ref));
+  for (const r of ctx.relations.items) addRelationFacts(out, r.type, r.other, r.direction);
+  for (const p of ctx.journeyPeers || []) out.add(fact("ref", p));
+  for (const s2 of ctx.placement.systems) out.add(fact("ref", s2));
+  for (const d2 of ctx.placement.domains) out.add(fact("ref", d2));
+  for (const a of ctx.apis.provided) out.add(fact("provides", a.api));
+  for (const a of ctx.apis.consumed) out.add(fact("consumes", a.api));
+  for (const c of ctx.apis.consumers || []) out.add(fact("consumer", c));
+  if (ctx.apis.provider) out.add(fact("provider", ctx.apis.provider));
+  for (const r of ctx.resources.used) out.add(fact("uses", r));
+  for (const r of ctx.resources.usedBy) out.add(fact("usedBy", r));
+  for (const e of ctx.events.items) out.add(fact("event", e.pattern));
+  for (const e of ctx.externalDependencies.items) out.add(fact("external", e.name));
+  for (const v of ctx.verification.items) out.add(fact("verify", v.command));
+  for (const p of ctx.constraints.constraints) out.add(fact("constraint", p));
+  for (const d of ctx.constraints.docs) out.add(fact("doc", d));
+  for (const r of ctx.constraints.runbooks) out.add(fact("runbook", r));
+  for (const c of ctx.authority.conflicts.items) out.add(fact("conflict", c.key));
+  for (const o of ctx.authority.observations) out.add(fact("observation", o.id));
   return out;
 }
 
@@ -62,17 +59,17 @@ export function factsFromContext(ctx) {
 // resource, an API boundary, or an event subject it publishes or consumes.
 export function criticalFromContext(ctx) {
   const out = new Set();
-  for (const e of ctx.events.items) out.add("event:" + e.pattern);
-  for (const p of ctx.constraints.constraints) out.add("constraint:" + p);
-  for (const c of ctx.authority.conflicts.items) out.add("conflict:" + c.key);
-  for (const o of ctx.authority.observations) out.add("observation:" + o.id);
-  for (const r of ctx.resources.used) out.add("uses:" + r);
-  for (const r of ctx.resources.usedBy) out.add("usedBy:" + r);
-  for (const a of ctx.apis.consumed) out.add("consumes:" + a.api);
-  for (const s2 of ctx.placement.systems) out.add(s2);
-  for (const d2 of ctx.placement.domains) out.add(d2);
-  for (const a of ctx.apis.provided) out.add("provides:" + a.api);
-  for (const c of ctx.apis.consumers || []) out.add("consumer:" + c);
+  for (const e of ctx.events.items) out.add(fact("event", e.pattern));
+  for (const p of ctx.constraints.constraints) out.add(fact("constraint", p));
+  for (const c of ctx.authority.conflicts.items) out.add(fact("conflict", c.key));
+  for (const o of ctx.authority.observations) out.add(fact("observation", o.id));
+  for (const r of ctx.resources.used) out.add(fact("uses", r));
+  for (const r of ctx.resources.usedBy) out.add(fact("usedBy", r));
+  for (const a of ctx.apis.consumed) out.add(fact("consumes", a.api));
+  for (const s2 of ctx.placement.systems) out.add(fact("ref", s2));
+  for (const d2 of ctx.placement.domains) out.add(fact("ref", d2));
+  for (const a of ctx.apis.provided) out.add(fact("provides", a.api));
+  for (const c of ctx.apis.consumers || []) out.add(fact("consumer", c));
   return out;
 }
 
@@ -80,10 +77,10 @@ export function verificationFromContext(ctx) {
   // Commands such as `go test ./...` recur in multiple modules. Scenarios can
   // require a scoped check ID as well as a command to measure dependent checks
   // without letting the library's identical command satisfy the expectation.
-  return new Set(ctx.verification.items.flatMap((v) => ["verify:" + v.command, "verify-id:" + v.id]));
+  return new Set(ctx.verification.items.flatMap((v) => [fact("verify", v.command), fact("verify-id", v.id)]));
 }
 
-// ── baseline: unassisted repository exploration ────────────────────────
+// ── baseline-targeted: graph-assisted reference ────────────────────────
 export function baselineContext(graph, touch) {
   const idx = new ContextIndex(graph);
   const seeds = touch.map((t) => idx.resolve(t)).filter(Boolean);
@@ -94,71 +91,60 @@ export function baselineContext(graph, touch) {
     const inSeed = seeds.includes(e);
     const underRoot = roots.some((r) => e.ref && r && d.sourcePath && (d.sourcePath === r || d.sourcePath.startsWith(r + "/")));
     if (!inSeed && !underRoot) continue;
-    out.add(e.ref);
-    for (const r of graph.relations) {
-      if (r.sourceRef === e.ref) out.add(r.type + ":" + r.targetRef);
-      if (r.targetRef === e.ref) out.add(r.type + ":" + r.sourceRef);
-    }
+    out.add(fact("ref", e.ref));
+    if (e.kind === "API") out.add(fact("provides", e.ref));
+    addGraphRelations(out, graph, e.ref);
     for (const ev of graph.interfaces.events) {
-      if (ev.producers.includes(e.ref) || ev.consumers.includes(e.ref)) out.add("event:" + ev.pattern);
+      if (ev.producers.includes(e.ref) || ev.consumers.includes(e.ref)) out.add(fact("event", ev.pattern));
     }
-    for (const x of graph.externalDependencies) if (x.componentRef === e.ref) out.add("external:" + x.name);
-    for (const v of graph.verification) if (v.componentRefs.includes(e.ref)) out.add("verify:" + v.command);
-    for (const c of graph.conflicts) if (c.subject === e.ref) out.add("conflict:" + c.key);
-    for (const o of graph.observations) if (o.facts.some((f) => f.subject === e.ref)) out.add("observation:" + o.id);
-    for (const p of d.docs || []) out.add("doc:" + p);
-    for (const p of d.constraints || []) out.add("constraint:" + p);
-    for (const p of d.runbooks || []) out.add("runbook:" + p);
-    for (const r of graph.relations) {
-      if (r.sourceRef === e.ref || r.targetRef === e.ref) out.add(r.type + ":" + (r.sourceRef === e.ref ? r.targetRef : r.sourceRef));
-    }
+    for (const x of graph.externalDependencies) if (x.componentRef === e.ref) out.add(fact("external", x.name));
+    for (const v of graph.verification) if (v.componentRefs.includes(e.ref)) out.add(fact("verify", v.command));
+    for (const c of graph.conflicts) if (c.subject === e.ref) out.add(fact("conflict", c.key));
+    for (const o of graph.observations) if (o.facts.some((f) => f.subject === e.ref)) out.add(fact("observation", o.id));
+    for (const p of d.docs || []) out.add(fact("doc", p));
+    for (const p of d.constraints || []) out.add(fact("constraint", p));
+    for (const p of d.runbooks || []) out.add(fact("runbook", p));
   }
-  // A repository-wide documentation sweep is what an agent does when the
-  // routing is not available: read everything that looks like documentation.
-  for (const f of new Set([...repoDocPaths(graph)])) out.add("repodoc:" + f);
+  // Preserve the original targeted reference's repository-wide doc sweep,
+  // now using the same labels as query rather than unmatched repodoc labels.
+  for (const f of new Set([...repoDocPaths(graph)])) out.add(fact("doc", f));
   return out;
 }
 
 function repoDocPaths(graph) {
   const out = new Set();
   for (const e of graph.entities) {
-    for (const p of (e.derived || {}).docs || []) out.add(p);
+    for (const p of (e.derived || {}).docs || []) out.add(fact("ref", p));
   }
-  for (const cfgp of graph.verification) for (const p of cfgp.configPaths || []) out.add(p);
+  for (const cfgp of graph.verification) for (const p of cfgp.configPaths || []) out.add(fact("ref", p));
   return [...out].sort();
 }
 
-// Baseline verification recall: without routing, an agent runs the union of
-// every check in the repository (or nothing). The realistic reading of
-// "unassisted" is the union, since no routing exists to narrow it.
-// The whole-repository baseline: what an agent that has no routing ends up
-// holding. Every entity, every relation, every subject, every check, every
-// document. This is the honest cost of "just read the repository".
+// Whole-graph fact inventory: a size yardstick, not unaided exploration.
 export function fullRepositoryContext(graph) {
   const out = new Set();
   for (const e of graph.entities) {
-    out.add(e.ref);
+    out.add(fact("ref", e.ref));
+    if (e.kind === "API") out.add(fact("provides", e.ref));
     const d = e.derived || {};
-    for (const p of d.docs || []) out.add("doc:" + p);
-    for (const p of d.constraints || []) out.add("constraint:" + p);
-    for (const p of d.runbooks || []) out.add("runbook:" + p);
+    for (const p of d.docs || []) out.add(fact("doc", p));
+    for (const p of d.constraints || []) out.add(fact("constraint", p));
+    for (const p of d.runbooks || []) out.add(fact("runbook", p));
   }
-  for (const r of graph.relations) out.add(r.type + ":" + (r.sourceRef === undefined ? "" : r.targetRef));
-  for (const r of graph.relations) out.add(r.type + ":" + r.sourceRef);
-  for (const ev of graph.interfaces.events) out.add("event:" + ev.pattern);
-  for (const x of graph.externalDependencies) out.add("external:" + x.name);
-  for (const x of graph.capabilities) out.add("capability:" + x.name);
-  for (const v of graph.verification) out.add("verify:" + v.command);
-  for (const c of graph.conflicts) out.add("conflict:" + c.key);
-  for (const o of graph.observations) out.add("observation:" + o.id);
-  for (const p of repoDocPaths(graph)) out.add("repodoc:" + p);
+  for (const e of graph.entities) addGraphRelations(out, graph, e.ref);
+  for (const ev of graph.interfaces.events) out.add(fact("event", ev.pattern));
+  for (const x of graph.externalDependencies) out.add(fact("external", x.name));
+  for (const x of graph.capabilities) out.add(fact("capability", x.name));
+  for (const v of graph.verification) out.add(fact("verify", v.command));
+  for (const c of graph.conflicts) out.add(fact("conflict", c.key));
+  for (const o of graph.observations) out.add(fact("observation", o.id));
+  for (const p of repoDocPaths(graph)) out.add(fact("doc", p));
   return out;
 }
 
-// Baseline verification: without routing, an agent runs the union of every
-// check in the repository, because nothing narrows it.
+// The historical targeted reference runs every registered check and gate.
 function baselineVerification(graph) {
-  return new Set([...graph.verification, ...graph.gates].flatMap((v) => ["verify:" + v.command, "verify-id:" + v.id]));
+  return new Set([...graph.verification, ...graph.gates].flatMap((v) => [fact("verify", v.command), fact("verify-id", v.id)]));
 }
 
 export function verificationRecall(retrieved, expected) {
@@ -182,13 +168,6 @@ function score(retrieved, truth) {
     else missed.push(t);
   }
   return { hit, total: truth.size, missed, precision: truth.size ? hit / truth.size : 1 };
-}
-
-function noiseRatio(retrieved, truth) {
-  if (!retrieved.size) return 0;
-  let n = 0;
-  for (const r of retrieved) if (!truth.has(r)) n++;
-  return n / retrieved.size;
 }
 
 // ── Irrelevance, measured against reachability rather than against the
@@ -223,35 +202,25 @@ export function relevantClosure(graph, touch) {
     if (seeds2.has(r.targetRef)) refs.add(r.sourceRef);
   }
   const out = new Set();
-  for (const ref of refs) out.add(ref);
-  for (const r of graph.relations) {
-    if (refs.has(r.sourceRef)) out.add(r.type + ":" + r.targetRef);
-    if (refs.has(r.targetRef)) out.add(r.type + ":" + r.sourceRef);
-  }
+  for (const ref of refs) out.add(fact("ref", ref));
+  for (const ref of refs) addGraphRelations(out, graph, ref);
   for (const e of graph.entities) {
     if (!refs.has(e.ref)) continue;
+    if (e.kind === "API") out.add(fact("provides", e.ref));
     const d = e.derived || {};
-    for (const p of d.docs || []) out.add("doc:" + p);
-    for (const p of d.constraints || []) out.add("constraint:" + p);
-    for (const p of d.runbooks || []) out.add("runbook:" + p);
+    for (const p of d.docs || []) out.add(fact("doc", p));
+    for (const p of d.constraints || []) out.add(fact("constraint", p));
+    for (const p of d.runbooks || []) out.add(fact("runbook", p));
     for (const ev of graph.interfaces.events) {
       if (ev.producers.includes(e.ref) || ev.consumers.includes(e.ref) || (d.sourcePath && ev.contract.ref.startsWith(d.sourcePath + "/"))) {
-        out.add("event:" + ev.pattern);
+        out.add(fact("event", ev.pattern));
       }
     }
-    for (const x of graph.externalDependencies) if (x.componentRef === e.ref) out.add("external:" + x.name);
-    for (const x of graph.capabilities) if (x.componentRef === e.ref) out.add("capability:" + x.name);
-    for (const v of graph.verification) if (v.componentRefs.includes(e.ref)) out.add("verify:" + v.command);
-    for (const c of graph.conflicts) if (c.subject === e.ref) out.add("conflict:" + c.key);
-    for (const o of graph.observations) if (o.facts.some((f) => f.subject === e.ref)) out.add("observation:" + o.id);
-    for (const r of graph.relations) {
-      if (r.type === "usesResource" && r.sourceRef === e.ref) out.add("uses:" + r.targetRef);
-      if (r.type === "usesResource" && r.targetRef === e.ref) out.add("usedBy:" + r.sourceRef);
-      if (r.type === "consumesApi" && r.sourceRef === e.ref) out.add("consumes:" + r.targetRef);
-      if (r.type === "consumesApi" && r.targetRef === e.ref) out.add("consumer:" + r.sourceRef);
-      if (r.type === "providesApi" && r.sourceRef === e.ref) out.add("provides:" + r.targetRef);
-      if (r.type === "providesApi" && r.targetRef === e.ref) out.add("provider:" + r.sourceRef);
-    }
+    for (const x of graph.externalDependencies) if (x.componentRef === e.ref) out.add(fact("external", x.name));
+    for (const x of graph.capabilities) if (x.componentRef === e.ref) out.add(fact("capability", x.name));
+    for (const v of graph.verification) if (v.componentRefs.includes(e.ref)) out.add(fact("verify", v.command));
+    for (const c of graph.conflicts) if (c.subject === e.ref) out.add(fact("conflict", c.key));
+    for (const o of graph.observations) if (o.facts.some((f) => f.subject === e.ref)) out.add(fact("observation", o.id));
   }
   return out;
 }
@@ -321,14 +290,24 @@ export function runRoutingEval(root, { json = false } = {}) {
     const base = baselineContext(graph, s.touch);
     const baseV = baselineVerification(graph);
     const full = fullRepositoryContext(graph);
+    const search = searchContext(root, s.touch);
+    const searchAll = score(search.facts, new Set(s.truth));
+    // Retrieval has no graph access. Only scoring maps discovered scoped
+    // commands to the registered check IDs for a common selectivity denominator.
+    const searchIds = new Set([...graph.verification, ...graph.gates]
+      .filter((v) => search.checks.some((c) => c.command === v.command &&
+        (c.componentRef === null ? !(v.componentRefs || []).length : (v.componentRefs || []).includes(c.componentRef))))
+      .map((v) => v.id));
+    const searchV = new Set(search.checks.map((c) => fact("verify", c.command)));
+    for (const id of searchIds) searchV.add(fact("verify-id", id));
 
     const closure = relevantClosure(graph, s.touch);
-    const baseClosure = relevantClosure(graph, s.touch);
+
     const all = score(retrieved, new Set(s.truth));
     const baseAll = score(base, new Set(s.truth));
     const crit = score(critical, new Set(s.critical));
     const noise = irrelevanceRatio(retrieved, closure);
-    const baseNoise = irrelevanceRatio(base, baseClosure);
+    const baseNoise = irrelevanceRatio(base, closure);
 
     perScenario.push({
       id: s.id,
@@ -345,6 +324,18 @@ export function runRoutingEval(root, { json = false } = {}) {
         verificationRecall: verificationRecall(baseV, new Set(s.verification)),
         checkSelectivity: 1, // The baseline runs every verification entry and gate.
       },
+      searchBaseline: {
+        recall: searchAll.hit / (searchAll.total || 1),
+        noise: irrelevanceRatio(search.facts, closure),
+        verificationRecall: verificationRecall(searchV, new Set(s.verification)),
+        checkSelectivity: checkSelectivity(graph, searchIds),
+        missed: searchAll.missed,
+      },
+      truthCount: all.total,
+      recalledCount: all.hit,
+      baselineRecalledCount: baseAll.hit,
+      searchRecalledCount: searchAll.hit,
+      searchCount: search.facts.size,
       missed: all.missed.slice(0, 8),
       offClosure: [...retrieved].filter((r) => !closure.has(r)).slice(0, 8),
       unresolvedTouches: unresolved,
@@ -357,18 +348,31 @@ export function runRoutingEval(root, { json = false } = {}) {
 
   const mean = (k) => (perScenario.length ? perScenario.reduce((a, b) => a + b[k], 0) / perScenario.length : 0);
   const meanB = (k) => (perScenario.length ? perScenario.reduce((a, b) => a + b.baseline[k], 0) / perScenario.length : 0);
-  void meanB;
+  const meanS = (k) => perScenario.length ? perScenario.reduce((a, b) => a + b.searchBaseline[k], 0) / perScenario.length : 0;
+  const truthCount = perScenario.reduce((sum, s) => sum + s.truthCount, 0);
+  const micro = (key) => truthCount ? round(perScenario.reduce((sum, s) => sum + s[key], 0) / truthCount) : 0;
   const metrics = {
     scenarios: perScenario.length,
     recall: round(mean("recall")),
+    microRecall: micro("recalledCount"),
     precision: round(mean("precision")),
     criticalRecall: round(mean("criticalRecall")),
     verificationRecall: round(mean("verificationRecall")),
     checkSelectivity: round(mean("checkSelectivity")),
     noise: round(mean("noise")),
     retrievalReduction: 0,
+    searchBaseline: {
+      recall: round(meanS("recall")),
+      microRecall: micro("searchRecalledCount"),
+      size: round(mean("searchCount")),
+      noise: round(meanS("noise")),
+      verificationRecall: round(meanS("verificationRecall")),
+      checkSelectivity: round(meanS("checkSelectivity")),
+    },
     baseline: {
       recall: round(meanB("recall")),
+      microRecall: micro("baselineRecalledCount"),
+      size: round(mean("baselineCount")),
       noise: round(meanB("noise")),
       verificationRecall: round(meanB("verificationRecall")),
       checkSelectivity: round(meanB("checkSelectivity")),
