@@ -19,7 +19,7 @@ import { observationFreshness, stalenessDiagnostics } from "../core/observations
 import { assertNoSecretsInText } from "../core/secrets.mjs";
 import { installTemplates } from "../core/scaffold.mjs";
 import { COMMANDS, flagsOf, parseArgs, commandHelp, UsageError } from "./commands.mjs";
-import { loadSchemaBundle, loadConfig } from "../core/descriptors.mjs";
+import { loadSchemaBundle, loadConfig, CONFIG_PATH } from "../core/descriptors.mjs";
 import { execFileSync } from "node:child_process";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -353,7 +353,14 @@ try {
         : {}),
     }, true);
   } else if (cmd === "init") {
-    const result = installTemplates(null, null, { write: true, root: ROOT, force: opt("force") });
+    // An existing configuration is the authority on where documentation lives
+    // (issue #49). Load it through the compiler's own loader, so init, scaffold,
+    // audit and compile cannot disagree, and so an invalid or escaping docs path
+    // is rejected before anything is written.
+    const docsConfig = fs.existsSync(path.join(ROOT, CONFIG_PATH))
+      ? loadConfig(new Repo(ROOT, { noGit: true }), loadSchemaBundle().bundle)
+      : null;
+    const result = installTemplates(null, null, { write: true, root: ROOT, force: opt("force"), docsConfig });
     out(result, true);
   } else if (cmd === "eval") {
     const which = positional[0] || "routing";

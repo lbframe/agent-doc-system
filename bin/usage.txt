@@ -5,6 +5,8 @@ agentdoc — portable documentation & software-catalog system
   agentdoc <command> --help          every flag one command accepts (also: agentdoc help <command>)
 
   agentdoc init [--force]            write a configuration and documentation skeleton
+                                     (docs skeleton goes to the configured docs.* paths;
+                                     docs/ only when there is no configuration yet)
   agentdoc audit                     inventory the repository, classify every fact
   agentdoc scaffold [--write]        generate a CREATE-mode skeleton from the audit
   agentdoc validate                  sources + schemas + semantic checks

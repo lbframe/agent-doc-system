@@ -33,8 +33,10 @@ agentdoc validate && agentdoc compile && agentdoc check
 
 `init` writes `agentdoc/agentdoc.config.yaml`, the central descriptor files
 (`domains.yaml`, `systems.yaml`, `apis.yaml`, `resources.yaml`),
-`agentdoc/journeys.yaml`, the documentation hierarchy under `docs/`, the
-observations README, and a CI workflow. It writes **project data only** — it
+`agentdoc/journeys.yaml`, the documentation hierarchy, the observations
+README, and a CI workflow. The documentation hierarchy goes to the configured
+`docs.product`, `docs.architecture`, `docs.constraints` and `docs.adrDir` when
+a configuration already exists, and to `docs/` only when none does. It writes **project data only** — it
 never copies the agentdoc implementation into the repository.
 
 In `agentdoc.config.yaml`:

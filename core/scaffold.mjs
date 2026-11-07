@@ -13,7 +13,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentDocError, CODES } from "./codes.mjs";
-import { Repo } from "./fsx.mjs";
+import { Repo, assertRepoPath } from "./fsx.mjs";
+import { CONFIG_PATH } from "./descriptors.mjs";
 import { discoverUnits, isNotUnitRoot } from "./discover.mjs";
 import { classifyContractFile } from "./contracts.mjs";
 import { parse as parseToml } from "./toml.mjs";
@@ -45,23 +46,91 @@ function sentence(s) {
   return /[.!?]$/.test(t) ? t : t + ".";
 }
 
-export function installTemplates(repo, cfg, { write, root, force = false, eligible = null } = {}) {
+// Where the documentation skeleton goes when no configuration exists yet. Once
+// a configuration exists, it is the only authority: `docs.*` is what audit and
+// compile read, so the scaffolder writes there and nowhere else (issue #49 —
+// `docs/` is often the product's own user documentation).
+export const DEFAULT_DOCS = Object.freeze({
+  product: "docs/PRODUCT.md",
+  architecture: "docs/ARCHITECTURE.md",
+  constraints: "docs/CONSTRAINTS.md",
+  adrDir: "docs/adr",
+});
+
+// The skeleton roles that have a template. `runbookDir` and `normative` are
+// honoured by never writing anything for them: there is no runbook template,
+// and normative documents are the project's own.
+const SKELETON_ROLES = [
+  { key: "product", template: "PRODUCT.md", file: (p) => p },
+  { key: "architecture", template: "ARCHITECTURE.md", file: (p) => p },
+  { key: "constraints", template: "CONSTRAINTS.md", file: (p) => p },
+  { key: "adrDir", template: "ADR.md", file: (p) => p.replace(/\/+$/, "") + "/README.md" },
+];
+
+// Resolve the documentation skeleton for a loaded configuration (`null` when
+// there is none). A configured role is written to its configured path; a role
+// a configuration leaves out is not written anywhere and is reported, so an
+// omitted role can never fall back into `docs/`.
+export function docsSkeleton(cfg) {
+  const docs = cfg ? cfg.docs || {} : DEFAULT_DOCS;
+  const targets = [];
+  const notConfigured = [];
+  for (const role of SKELETON_ROLES) {
+    const configured = docs[role.key];
+    if (!configured) { notConfigured.push("docs." + role.key); continue; }
+    // loadConfig already validated these; re-asserting keeps this function
+    // safe for any caller that hands it an unvalidated object.
+    assertRepoPath(configured, CONFIG_PATH);
+    const rel = role.file(configured);
+    assertRepoPath(rel, CONFIG_PATH);
+    targets.push({ key: role.key, path: rel, template: role.template });
+  }
+  return { targets, notConfigured, docs: cfg ? docs : DEFAULT_DOCS };
+}
+
+// Refuse a write target that leaves the repository, including through a
+// symlinked directory or a (possibly dangling) symlink at the target itself.
+// Lexical checks alone (`isRepoPath`) cannot see a symlink.
+function assertWritableInside(root, rel) {
+  const abs = path.resolve(root, rel);
+  const inside = path.relative(path.resolve(root), abs);
+  if (!inside || inside === ".." || inside.startsWith(".." + path.sep) || path.isAbsolute(inside)) {
+    throw new AgentDocError(CODES.PATH_ESCAPE, "path escapes repository: " + rel, { path: rel });
+  }
+  const realRoot = fs.realpathSync(root);
+  let cur = path.resolve(root);
+  for (const seg of inside.split(path.sep)) {
+    cur = path.join(cur, seg);
+    let st;
+    try { st = fs.lstatSync(cur); } catch { return; } // nothing further exists yet
+    if (!st.isSymbolicLink()) continue;
+    let real = null;
+    try { real = fs.realpathSync(cur); } catch { /* dangling */ }
+    if (real === null || (real !== realRoot && !real.startsWith(realRoot + path.sep))) {
+      throw new AgentDocError(CODES.PATH_ESCAPE, "refusing to write through a symlink that leaves the repository: " + rel, { path: rel });
+    }
+  }
+}
+
+// `cfg` is the loaded configuration (scaffold) or null (init). `docsConfig`
+// overrides the configuration the documentation paths are read from: init
+// writes no component descriptors, but it must still honour an existing
+// configuration's `docs.*` paths.
+export function installTemplates(repo, cfg, { write, root, force = false, eligible = null, docsConfig } = {}) {
   const written = [];
   const skipped = [];
   const targetRoot = root || (repo ? repo.root : process.cwd());
   const r = repo || new Repo(targetRoot, { noGit: false });
+  const docsSource = docsConfig === undefined ? cfg : docsConfig;
+  const skeleton = docsSkeleton(docsSource);
 
-  const put = (rel, content) => {
-    const abs = path.join(targetRoot, rel);
-    if (fs.existsSync(abs) && !force) { skipped.push(rel); return; }
-    if (!write) { written.push(rel + " (dry run)"); return; }
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, content.endsWith("\n") ? content : content + "\n");
-    written.push(rel);
-  };
+  // Plan every file first and check every target before writing anything, so
+  // a refused path leaves the repository exactly as it was.
+  const plan = [];
+  const put = (rel, content) => { plan.push([rel, content]); };
 
   // ── configuration ───────────────────────────────────────────────────────
-  const config = buildConfig(scanLayout(r, cfg));
+  const config = buildConfig(scanLayout(r, cfg), skeleton.docs);
   put("agentdoc/agentdoc.config.yaml", config);
   put("agentdoc/journeys.yaml", "schemaVersion: agentdoc.dev/journeys/v1\njourneys: []\n");
   for (const f of ["domains.yaml", "systems.yaml", "apis.yaml", "resources.yaml"]) {
@@ -69,12 +138,10 @@ export function installTemplates(repo, cfg, { write, root, force = false, eligib
   }
   put("agentdoc/observations/README.md", OBSERVATIONS_README);
 
-  // ── documentation hierarchy ──────────────────────────────────────────────
-  for (const f of ["PRODUCT.md", "ARCHITECTURE.md", "CONSTRAINTS.md"]) {
-    const tpl = fs.readFileSync(path.join(TEMPLATES_DIR, f), "utf8");
-    put("docs/" + f, tpl);
+  // ── documentation hierarchy (configured docs.* paths) ───────────────────
+  for (const t of skeleton.targets) {
+    put(t.path, fs.readFileSync(path.join(TEMPLATES_DIR, t.template), "utf8"));
   }
-  put("docs/adr/README.md", fs.readFileSync(path.join(TEMPLATES_DIR, "ADR.md"), "utf8"));
   put(".github/workflows/agentdoc.yml", fs.readFileSync(path.join(TEMPLATES_DIR, "ci.yml"), "utf8"));
 
   // ── per-unit component descriptors ──────────────────────────────────────
@@ -88,7 +155,30 @@ export function installTemplates(repo, cfg, { write, root, force = false, eligib
       put(u.root + "/" + cfg.discovery.componentDescriptorName, componentDescriptor(u));
     }
   }
-  return { written, skipped, note: write ? "files written" : "dry run: pass --write to apply" };
+
+  const seen = new Set();
+  for (const [rel] of plan) assertWritableInside(targetRoot, rel);
+  for (const [rel, content] of plan) {
+    if (seen.has(rel)) continue; // two roles configured onto one file: first wins
+    seen.add(rel);
+    const abs = path.join(targetRoot, rel);
+    if (fs.existsSync(abs) && !force) { skipped.push(rel); continue; }
+    if (!write) { written.push(rel + " (dry run)"); continue; }
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content.endsWith("\n") ? content : content + "\n");
+    written.push(rel);
+  }
+  return {
+    written,
+    skipped,
+    ...(docsSource && skeleton.notConfigured.length
+      ? {
+          notConfigured: skeleton.notConfigured,
+          notConfiguredNote: "the configuration declares no path for these roles, so no skeleton was written for them; add them under docs: to scaffold them",
+        }
+      : {}),
+    note: write ? "files written" : "dry run: pass --write to apply",
+  };
 }
 
 // Layout inference for CREATE mode: which directories look like unit roots.
@@ -269,7 +359,7 @@ const ADAPTER_FOR_MARKER = {
   platform: "wrangler",
 };
 
-function buildConfig(layout) {
+function buildConfig(layout, docs = DEFAULT_DOCS) {
   const roots = layout.map((l) => l.root);
   const groups = new Map();
   for (const r of roots) {
@@ -346,13 +436,24 @@ function buildConfig(layout) {
     "  graph: .agentdoc/graph.json",
     "  observations: agentdoc/observations",
     "",
-    "docs:",
-    "  product: docs/PRODUCT.md",
-    "  architecture: docs/ARCHITECTURE.md",
-    "  constraints: docs/CONSTRAINTS.md",
-    "  adrDir: docs/adr",
+    ...docsSection(docs),
     "",
   ].join("\n");
+}
+
+// The `docs:` block of a generated configuration. It repeats the configured
+// paths (init --force regenerates the file and must not move documentation
+// back to docs/), or the defaults when there is no configuration yet.
+function docsSection(docs) {
+  const scalar = (v) => (/^[A-Za-z0-9._/-]+$/.test(v) ? v : yamlStr(v));
+  const lines = [];
+  for (const key of ["product", "architecture", "constraints", "adrDir", "runbookDir"]) {
+    if (docs[key]) lines.push("  " + key + ": " + scalar(docs[key]));
+  }
+  if (Array.isArray(docs.normative) && docs.normative.length) {
+    lines.push("  normative:", ...docs.normative.map((g) => "    - " + yamlStr(g)));
+  }
+  return lines.length ? ["docs:", ...lines] : ["# docs: {}  # no documentation roles configured"];
 }
 
 const OBSERVATIONS_README = `# Runtime observations
