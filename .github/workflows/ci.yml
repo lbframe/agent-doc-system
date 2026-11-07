@@ -4,11 +4,17 @@
 # on every supported Node version. A separate job runs the heavyweight
 # aggregate evaluation once — triplicating it would triple the cost without
 # adding signal.
+#
+# Also reusable (workflow_call): release.yml runs this exact CI as the gate
+# before it publishes.
 name: ci
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_call:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
