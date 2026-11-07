@@ -797,7 +797,8 @@ export function compile(root, opts = {}) {
     ...schemaInputs,
     ...adapters.map((a) => ADAPTER_VERSION_INPUT_PREFIX + a.name + "@" + a.version),
   ]);
-  const dirtySet = new Set(repo.dirtyPaths().filter((p) => p !== graphPath));
+  // The same git status snapshot the ignore oracle answered from (fsx.mjs).
+  const dirtySet = new Set(repo.dirtyPaths({ snapshot: true }).filter((p) => p !== graphPath));
   const walkedDirs = [...repo.walks.keys()];
   const dirty = [...dirtySet].some(
     (p) =>

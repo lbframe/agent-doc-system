@@ -67,6 +67,7 @@ export function findMigrationDirs(repo, root, maxDepth = 5) {
       const abs = path.join(dirAbs, e.name);
       const rel = path.relative(repo.root, abs).split(path.sep).join("/");
       if (!repo.ownsUnitPath(root, rel)) continue;
+      if (repo.isIgnored && repo.isIgnored(rel)) continue;
       if (e.name === "migrations" || e.name === "migration") {
         out.push(rel);
         continue;

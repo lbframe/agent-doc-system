@@ -225,6 +225,9 @@ function childDirectoryNames(repo, dir) {
     if (ent.isSymbolicLink() || !ent.isDirectory()) continue;
     if (!ent.name || ent.name.startsWith(".")) continue;
     if (generated.has(ent.name) || WORKSPACE_SKIP_DIRS.has(ent.name)) continue;
+    // Each child is probed for Cargo.toml, and a probe is an input: a
+    // git-ignored directory must not even be visited (issue #45).
+    if (repo.isIgnored && repo.isIgnored(dir ? dir + "/" + ent.name : ent.name)) continue;
     names.push(ent.name);
   }
   names.sort();
