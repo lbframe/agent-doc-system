@@ -292,6 +292,15 @@ only the codes in `ACCEPTABLE_WARNING_CODES` may be accepted.
 |---|---|
 | `init [--force]` | write a configuration and documentation skeleton; never clobber unless `--force` |
 | `scaffold [--write]` | generate descriptors from provable evidence; dry run by default; never clobbers |
+| `audit` | classify every fact; runs even when the repository cannot compile |
+| `validate` | sources, schemas, semantic checks; no artifact written |
+| `compile [--require-clean]` | deterministic build, atomic replace |
+| `check [--require-clean] [--allow-stale-observations]` | freshness, determinism, time gates |
+| `query <path\|ref> [--json] [--md]` | route context; refuses a stale graph |
+| `impact <paths> \| --diff <ref>` | change impact; compiles in memory |
+| `eval routing [--json]` | routing evaluation; `SKIP` when the repository has no scenarios |
+| `pin-evidence [--json]` | check the digests pinned by reviewed overrides |
+| `doctor` | environment self-check: node version, schema bundle, git, writability |
 
 `init` and `scaffold` write the documentation skeleton to the paths an
 existing configuration declares in `docs.product`, `docs.architecture`,
@@ -302,15 +311,6 @@ configuration exists does `init` use `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
 `docs/CONSTRAINTS.md` and `docs/adr/`. A target outside the repository,
 including through a symlink, fails with `AGENTDOC_PATH_ESCAPE` before anything
 is written.
-| `audit` | classify every fact; runs even when the repository cannot compile |
-| `validate` | sources, schemas, semantic checks; no artifact written |
-| `compile [--require-clean]` | deterministic build, atomic replace |
-| `check [--require-clean] [--allow-stale-observations]` | freshness, determinism, time gates |
-| `query <path\|ref> [--json] [--md]` | route context; refuses a stale graph |
-| `impact <paths> \| --diff <ref>` | change impact; compiles in memory |
-| `eval routing [--json]` | routing evaluation; `SKIP` when the repository has no scenarios |
-| `pin-evidence [--json]` | check the digests pinned by reviewed overrides |
-| `doctor` | environment self-check: node version, schema bundle, git, writability |
 
 Exit codes: `0` ok, `1` failure, `2` usage.
 
