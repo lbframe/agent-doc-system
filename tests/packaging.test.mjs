@@ -171,6 +171,10 @@ test("packaging: npm pack produces a self-contained installable CLI", (t) => {
   for (const bad of ["tests/", "fixtures/", "examples/", "scripts/", ".github/"]) {
     assert.ok(![...files].some((f) => f.startsWith(bad)), "dev-only path shipped: " + bad);
   }
+  // The packed manifest keeps the committed bin mapping verbatim (issue #55).
+  const packed = JSON.parse(execFileSync("tar", ["-xzOf", tarball, "package/package.json"], { encoding: "utf8" }));
+  assert.deepEqual(packed.bin, JSON.parse(readText("package.json")).bin);
+  assert.equal(packed.bin.agentdoc, "bin/agentdoc.mjs");
 
   // Install into a clean prefix with no access to the source checkout.
   const prefix = path.join(tmp, "prefix");
@@ -214,4 +218,72 @@ test("packaging: every shipped source file is greppable text (no NUL bytes)", ()
     }
   }
   assert.deepEqual(offenders, []);
+});
+
+// npm normalizes package.json on publish and warns "npm auto-corrected some
+// errors in your package.json" when the committed manifest is not already in
+// its normal form (issue #55: a "./" bin prefix). The committed manifest must
+// be the published manifest, so it must already be what `npm pkg fix` writes.
+// This mirrors the offline, deterministic `npm pkg fix` steps of
+// @npmcli/package-json (binRefs, bundleDependencies, fixName,
+// fixVersionField, fixRepositoryField, fixDependencies, scriptpath) for the
+// shapes this manifest uses, without depending on npm.
+test("packaging: package.json is already in npm's normalized form", () => {
+  const pkg = JSON.parse(readText("package.json"));
+  // npm's secureAndUnixifyPath: backslashes and colons become "/", the path
+  // is resolved under a virtual root, and anything escaping it is dropped.
+  const unixify = (ref) => ref.replace(/\\|:/g, "/");
+  const secure = (ref) => {
+    const s = unixify(path.posix.join(".", path.posix.join("/", unixify(ref))));
+    return s.startsWith("./") ? "" : s;
+  };
+
+  assert.equal(typeof pkg.bin, "object", "bin must be an object map, not a string or array");
+  assert.ok(pkg.bin && !Array.isArray(pkg.bin), "bin must be an object map");
+  assert.ok(Object.keys(pkg.bin).length > 0, "bin must not be empty");
+  for (const [name, target] of Object.entries(pkg.bin)) {
+    assert.equal(typeof target, "string", `bin[${name}] must be a string`);
+    assert.equal(path.posix.basename(secure(name)), name, `bin name "${name}" is not a bare command name`);
+    assert.ok(!target.startsWith("./"), `bin[${name}] "${target}" must not start with "./"`);
+    assert.ok(!target.includes("\\"), `bin[${name}] "${target}" must use "/" separators`);
+    assert.equal(secure(target), target, `bin[${name}] "${target}" is not normalized (npm would write "${secure(target)}")`);
+    assert.ok(fs.existsSync(path.join(SYSTEM_ROOT, target)), `bin[${name}] target ${target} does not exist`);
+  }
+
+  assert.equal(pkg.name, pkg.name.trim(), "name has surrounding whitespace");
+  assert.equal(pkg.name, encodeURIComponent(pkg.name), "name is not URL-safe");
+  // Strict, already-clean semver: no leading "v"/"=", no whitespace.
+  assert.match(pkg.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/);
+
+  assert.ok(!("bundledDependencies" in pkg), "bundledDependencies is a typo npm rewrites");
+  assert.ok(!("repositories" in pkg), "repositories is rewritten to repository");
+  assert.equal(typeof pkg.repository, "object", "repository must be an object, not a string");
+  // hosted-git-info's canonical form for a GitHub repository.
+  assert.match(pkg.repository.url, /^git\+https:\/\/github\.com\/[^/]+\/[^/]+\.git$/);
+
+  for (const type of ["dependencies", "devDependencies", "optionalDependencies"]) {
+    if (!(type in pkg)) continue;
+    assert.ok(pkg[type] && typeof pkg[type] === "object" && !Array.isArray(pkg[type]), type + " must be an object");
+    for (const [dep, spec] of Object.entries(pkg[type])) assert.equal(typeof spec, "string", `${type}.${dep} must be a string`);
+  }
+  for (const [name, cmd] of Object.entries(pkg.scripts ?? {})) {
+    assert.equal(typeof cmd, "string", `scripts.${name} must be a string`);
+    assert.ok(!/^(\.[/\\])?node_modules[/\\].bin[\\/]/.test(cmd), `scripts.${name} must not name node_modules/.bin`);
+  }
+});
+
+test("packaging: npm pkg fix is a no-op on package.json", (t) => {
+  // The authoritative check, when npm is installed: run npm's own fixer on a
+  // copy of the manifest (offline) and require that it changes nothing.
+  if (!npmAvailable()) { t.skip("npm is not available"); return; }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "agentdoc-pkgfix-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const original = readText("package.json");
+  fs.writeFileSync(path.join(tmp, "package.json"), original);
+  execFileSync("npm", ["pkg", "fix"], { cwd: tmp, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, npm_config_offline: "true" } });
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(tmp, "package.json"), "utf8")),
+    JSON.parse(original),
+    "npm pkg fix would change package.json; run it and commit the result"
+  );
 });
