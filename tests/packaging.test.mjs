@@ -171,6 +171,10 @@ test("packaging: npm pack produces a self-contained installable CLI", (t) => {
   for (const bad of ["tests/", "fixtures/", "examples/", "scripts/", ".github/"]) {
     assert.ok(![...files].some((f) => f.startsWith(bad)), "dev-only path shipped: " + bad);
   }
+  // The packed manifest keeps the committed bin mapping verbatim (issue #55).
+  const packed = JSON.parse(execFileSync("tar", ["-xzOf", tarball, "package/package.json"], { encoding: "utf8" }));
+  assert.deepEqual(packed.bin, JSON.parse(readText("package.json")).bin);
+  assert.equal(packed.bin.agentdoc, "bin/agentdoc.mjs");
 
   // Install into a clean prefix with no access to the source checkout.
   const prefix = path.join(tmp, "prefix");
@@ -214,4 +218,35 @@ test("packaging: every shipped source file is greppable text (no NUL bytes)", ()
     }
   }
   assert.deepEqual(offenders, []);
+});
+
+// npm normalizes package.json on publish and warns "npm auto-corrected some
+// errors in your package.json" when the committed manifest is not already in
+// its normal form (issue #55: a "./" bin prefix). The committed manifest must
+// be the published manifest. The authoritative check is the `npm pkg fix`
+// no-op test below; this one keeps the bin rule enforced when npm is absent.
+test("packaging: bin paths are in npm's normalized form", () => {
+  const pkg = JSON.parse(readText("package.json"));
+  assert.ok(pkg.bin && typeof pkg.bin === "object" && !Array.isArray(pkg.bin), "bin must be an object map");
+  for (const [name, target] of Object.entries(pkg.bin)) {
+    assert.equal(path.posix.normalize(target), target, `bin[${name}] "${target}" is not normalized`);
+    assert.ok(!target.startsWith("./") && !target.includes("\\"), `bin[${name}] "${target}" must be a plain relative "/" path`);
+    assert.ok(fs.existsSync(path.join(SYSTEM_ROOT, target)), `bin[${name}] target ${target} does not exist`);
+  }
+});
+
+test("packaging: npm pkg fix is a no-op on package.json", (t) => {
+  // The authoritative check, when npm is installed: run npm's own fixer on a
+  // copy of the manifest (offline) and require that it changes nothing.
+  if (!npmAvailable()) { t.skip("npm is not available"); return; }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "agentdoc-pkgfix-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const original = readText("package.json");
+  fs.writeFileSync(path.join(tmp, "package.json"), original);
+  execFileSync("npm", ["pkg", "fix"], { cwd: tmp, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, npm_config_offline: "true" } });
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(tmp, "package.json"), "utf8")),
+    JSON.parse(original),
+    "npm pkg fix would change package.json; run it and commit the result"
+  );
 });

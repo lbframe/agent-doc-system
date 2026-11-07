@@ -68,6 +68,9 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   `compile` documented as a workaround in lbframe/klozeo's `AGENTS.md` is no
   longer needed.
 
+- `npm publish` no longer auto-corrects `package.json`: the `bin` path is
+  committed in npm's normalized form, `bin/agentdoc.mjs` ([#55]).
+
 - All routing evaluation systems and the noise closure now share fact labels
   ([#46]). Corrected targeted micro-recall is 100/101 (0.9901), rather than
   the previously reported gap. Search matches catalog recall in 21/30 scenarios;
@@ -352,3 +355,4 @@ First public release.
 [#46]: https://github.com/lbframe/agent-doc-system/issues/46
 [#49]: https://github.com/lbframe/agent-doc-system/issues/49
 [#50]: https://github.com/lbframe/agent-doc-system/issues/50
+[#55]: https://github.com/lbframe/agent-doc-system/issues/55
