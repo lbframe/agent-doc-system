@@ -1,0 +1,16 @@
+# Keeps the SHA-pinned GitHub Actions current (#54). Actions only: the package
+# has no npm dependencies. One grouped PR a month at most, and only for
+# releases at least a week old, so a compromised release has time to be caught.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
