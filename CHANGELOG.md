@@ -23,6 +23,20 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   signatures` can verify that a release was built from this repository.
   `RELEASING.md` in the repository describes the process.
 
+- **Behaviour change for new installs only:** without a configuration,
+  `agentdoc init` (and `scaffold --write`) now writes the documentation
+  skeleton to `agentdoc/docs/PRODUCT.md`, `agentdoc/docs/ARCHITECTURE.md`,
+  `agentdoc/docs/CONSTRAINTS.md` and `agentdoc/docs/adr/`, and records those
+  paths in the `docs:` block of the generated `agentdoc/agentdoc.config.yaml`
+  ([#59]). It used to write to `docs/`, which in many repositories is the
+  product's own user documentation and the source of a published docs site
+  (MkDocs, Docusaurus, GitHub Pages). Authored AgentDoc material now lives in
+  `agentdoc/`; generated output stays in `.agentdoc/`. Existing configurations
+  are unaffected: a configuration that declares `docs.*` keeps its paths,
+  `docs/...` included, and no existing file is moved. To keep `docs/` on a new
+  install, declare `docs.product`, `docs.architecture`, `docs.constraints` and
+  `docs.adrDir` in `agentdoc/agentdoc.config.yaml` before running `init`.
+
 ### Fixed
 
 - A component whose descriptor sits at the repository root now owns the files
@@ -48,7 +62,8 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   instead of falling back to `docs/`. An existing file is still skipped unless
   `init --force` is given. A path that leaves the repository, including through
   a symlink, fails with `AGENTDOC_PATH_ESCAPE` before anything is written.
-  Without a configuration, `init` still writes to `docs/`.
+  Without a configuration, `init` uses the `agentdoc/docs/` defaults (see
+  [#59] under Changed).
 
 - Files git ignores no longer enter the compiler's inputs or `inputHash`
   ([#45]). A local build writing into an ignored directory (`astro build`
@@ -356,3 +371,4 @@ First public release.
 [#49]: https://github.com/lbframe/agent-doc-system/issues/49
 [#50]: https://github.com/lbframe/agent-doc-system/issues/50
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
+[#59]: https://github.com/lbframe/agent-doc-system/issues/59
