@@ -397,6 +397,6 @@ First public release.
 [#46]: https://github.com/lbframe/agent-doc-system/issues/46
 [#49]: https://github.com/lbframe/agent-doc-system/issues/49
 [#50]: https://github.com/lbframe/agent-doc-system/issues/50
-[#51]: https://github.com/lbframe/agent-doc-system/pull/51
+[#51]: https://github.com/lbframe/agent-doc-system/issues/51
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
 [#59]: https://github.com/lbframe/agent-doc-system/issues/59
