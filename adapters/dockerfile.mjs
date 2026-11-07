@@ -1,5 +1,6 @@
 // Dockerfile adapter: a Dockerfile is deployable-artifact evidence.
 import { Adapter } from "./registry.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 export class DockerfileAdapter extends Adapter {
   static adapterName = "dockerfile";
@@ -8,7 +9,7 @@ export class DockerfileAdapter extends Adapter {
   }
   detect(ctx, root) {
     for (const n of ["Dockerfile", "Dockerfile.prod", "Containerfile"]) {
-      if (ctx.repo.exists(root + "/" + n)) return { path: root + "/" + n, shape: "deployable" };
+      if (ctx.repo.exists(joinPath(root, n))) return { path: joinPath(root, n), shape: "deployable" };
     }
     return null;
   }
@@ -16,7 +17,7 @@ export class DockerfileAdapter extends Adapter {
     const { repo, prov, compRef } = ctx;
     const out = { dockerfiles: [] };
     for (const n of ["Dockerfile", "Dockerfile.prod", "Containerfile"]) {
-      const p = unit.root + "/" + n;
+      const p = joinPath(unit.root, n);
       if (!repo.exists(p)) continue;
       prov.add("observed", p, "deploy-extractor", ["der:" + compRef + ":/artifact"]);
       out.dockerfiles.push(p);

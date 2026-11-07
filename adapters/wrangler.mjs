@@ -11,6 +11,7 @@
 import { Adapter } from "./registry.mjs";
 import { parse as parseToml } from "../core/toml.mjs";
 import { sourceFiles } from "../core/sourcescan.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 const MANIFESTS = ["wrangler.toml", "wrangler.json", "wrangler.jsonc"];
 
@@ -21,13 +22,13 @@ export class WranglerAdapter extends Adapter {
   }
   detect(ctx, root) {
     for (const n of MANIFESTS) {
-      if (ctx.repo.exists(root + "/" + n)) return { path: root + "/" + n, shape: "deployable" };
+      if (ctx.repo.exists(joinPath(root, n))) return { path: joinPath(root, n), shape: "deployable" };
     }
     return null;
   }
   extract(ctx, unit) {
     const { repo, prov, compRef } = ctx;
-    const file = MANIFESTS.map((n) => unit.root + "/" + n).find((p) => repo.exists(p));
+    const file = MANIFESTS.map((n) => joinPath(unit.root, n)).find((p) => repo.exists(p));
     if (!file) return {};
     let toml;
     try {

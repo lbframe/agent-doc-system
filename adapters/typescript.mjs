@@ -6,6 +6,7 @@
 import path from "node:path";
 import { Adapter } from "./registry.mjs";
 import { parseYamlDocuments } from "../core/yaml.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 export class TypeScriptAdapter extends Adapter {
   static adapterName = "typescript";
@@ -13,13 +14,13 @@ export class TypeScriptAdapter extends Adapter {
     super({ name: "typescript", version: "1.0.0", kind: "unit-marker" });
   }
   detect(ctx, root) {
-    const p = root + "/tsconfig.json";
+    const p = joinPath(root, "tsconfig.json");
     if (!ctx.repo.exists(p)) return null;
     return { path: p, shape: "importable" };
   }
   extract(ctx, unit) {
     const { repo, prov, compRef } = ctx;
-    const p = unit.root + "/tsconfig.json";
+    const p = joinPath(unit.root, "tsconfig.json");
     if (!repo.exists(p)) return {};
     const derived = { languages: new Set(["typescript"]), runtimes: new Set(["node"]) };
     let ts;
@@ -43,8 +44,9 @@ export class TypeScriptAdapter extends Adapter {
     // real HTTP surface and must be visible to the query surface.
     const routes = [];
     for (const base of ["src/app", "app", "src/pages", "pages"]) {
-      if (!repo.isDir(unit.root + "/" + base)) continue;
-      for (const f of repo.walkUnit(unit.root, unit.root + "/" + base)) {
+      const dir = joinPath(unit.root, base);
+      if (!repo.isDir(dir)) continue;
+      for (const f of repo.walkUnit(unit.root, dir)) {
         const routePath = routeFor(unit.root, base, f);
         if (!routePath) continue;
         const rpr = prov.add("observed", f, "route-extractor", ["der:" + compRef + ":/routes"]);
@@ -63,7 +65,7 @@ export class TypeScriptAdapter extends Adapter {
 }
 
 function routeFor(root, base, file) {
-  const rel = file.slice((root + "/" + base).length + 1);
+  const rel = file.slice(joinPath(root, base).length + 1);
   if (base.endsWith("app")) {
     if (!rel.endsWith("/route.ts") && !rel.endsWith("/route.tsx") && !rel.endsWith("/route.js")) return null;
     const segs = rel.split("/").slice(0, -1);

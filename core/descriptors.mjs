@@ -20,6 +20,7 @@ import { parseYamlDocuments } from "./yaml.mjs";
 import { scanForSecrets } from "./secrets.mjs";
 import { formatErrors } from "./jsonschema.mjs";
 import { SchemaBundle } from "./jsonschema.mjs";
+import { joinPath, ownsPath } from "./paths.mjs";
 
 export const KINDS = Object.freeze(["Domain", "System", "Component", "API", "Resource"]);
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -177,7 +178,7 @@ function descriptorGlobs(repo, cfg) {
   // glob — its descriptor lives at a fixed path and must be loaded even when
   // no componentDescriptors glob happens to cover that directory.
   for (const r of cfg.discovery.supplementalRoots || []) {
-    const f = String(r).replace(/\/+$/, "") + "/" + cfg.discovery.componentDescriptorName;
+    const f = joinPath(String(r), cfg.discovery.componentDescriptorName);
     if (repo.exists(f)) componentFiles.add(f);
   }
   const centralFiles = new Set();
@@ -473,7 +474,7 @@ export function loadReviewedOverrides(repo, cfg, refs, byRef) {
         : null;
       for (const ev of o.evidence) {
         const p = ev.path;
-        const scoped = p === o.contractRef || p.startsWith(subjectRoot + "/") || (targetRoot && p.startsWith(targetRoot + "/"));
+        const scoped = p === o.contractRef || ownsPath(subjectRoot, p) || (targetRoot !== null && ownsPath(targetRoot, p));
         if (!scoped) {
           throw new AgentDocError(
             CODES.RELATION_KIND,

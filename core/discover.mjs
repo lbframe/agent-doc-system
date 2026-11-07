@@ -7,6 +7,7 @@
 import path from "node:path";
 import { AgentDocError, CODES } from "./codes.mjs";
 import { expandGlob, globToRegExp, assertGlob } from "../core/fsx.mjs";
+import { joinPath, ownsPath } from "./paths.mjs";
 
 // Roots excluded from inference and scaffolding. Authored descriptors strictly
 // below them can still claim units; descriptors at these exact roots cannot.
@@ -20,7 +21,7 @@ function notUnitRoots(cfg) {
 // mode shares this policy even for units with an existing authored descriptor.
 export function isNotUnitRoot(root, cfg) {
   return notUnitRoots(cfg)
-    .some((excluded) => root === excluded || root.startsWith(excluded + "/"));
+    .some((excluded) => ownsPath(excluded, root));
 }
 
 export function discoverUnits(repo, cfg, adapters) {
@@ -54,7 +55,7 @@ export function discoverUnits(repo, cfg, adapters) {
   for (const r of cfg.discovery.supplementalRoots || []) {
     candidates.add(r);
     // The descriptor loader also reads these fixed paths outside the globs.
-    if (repo.exists(r + "/" + cfg.discovery.componentDescriptorName)) descriptorRoots.add(r);
+    if (repo.exists(joinPath(r, cfg.discovery.componentDescriptorName))) descriptorRoots.add(r);
   }
 
   // Adapters may contribute roots the descriptor globs cannot know about: a

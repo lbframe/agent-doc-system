@@ -7,6 +7,7 @@
 import path from "node:path";
 import { assertRepoPath } from "./fsx.mjs";
 import { CODES } from "./codes.mjs";
+import { joinPath } from "./paths.mjs";
 
 const DEFAULT_DOC_CANDIDATES = ["README.md", "ARCHITECTURE.md", "AGENTS.md", "CONTRIBUTING.md", "DESIGN.md", "OVERVIEW.md"];
 const DEFAULT_CONSTRAINT_CANDIDATES = ["CONSTRAINTS.md", "INVARIANTS.md"];
@@ -33,15 +34,15 @@ export function genericFacts(ctx, unit) {
   const constraints = [];
   const runbooks = [];
   for (const n of docNames) {
-    const p = root + "/" + n;
+    const p = joinPath(root, n);
     if (repo.exists(p)) { docs.push(p); prov.add("observed", p, "docs-extractor", ["der:" + compRef + ":/docs"]); }
   }
   for (const n of constraintNames) {
-    const p = root + "/" + n;
+    const p = joinPath(root, n);
     if (repo.exists(p)) { constraints.push(p); prov.add("observed", p, "docs-extractor", ["der:" + compRef + ":/constraints"]); }
   }
   for (const n of runbookNames) {
-    const p = root + "/" + n;
+    const p = joinPath(root, n);
     if (repo.exists(p)) { runbooks.push(p); prov.add("observed", p, "docs-extractor", ["der:" + compRef + ":/runbooks"]); }
   }
   const spec = ctx.componentEntity().doc.spec || {};

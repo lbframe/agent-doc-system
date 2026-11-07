@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { AgentDocError, CODES } from "./codes.mjs";
+import { canonicalPath, ownsPath, REPO_ROOT } from "./paths.mjs";
 
 export function sha256Hex(buf) {
   return createHash("sha256").update(buf).digest("hex");
@@ -144,12 +145,11 @@ export class Repo {
   // Per-unit scans use the discovery result, never filesystem heuristics.
   // Keep walk() repository-wide for discovery, contracts and authored inputs.
   ownsUnitPath(unitRoot, rel) {
-    const normalize = (p) => path.posix.normalize(p || ".").replace(/^\.$/, "");
-    const root = normalize(unitRoot);
-    const target = normalize(rel);
-    if (root && target !== root && !target.startsWith(root + "/")) return false;
-    for (const child of this.nestedUnitRoots.get(root) || []) {
-      if (target === child || target.startsWith(child + "/")) return false;
+    if (!ownsPath(unitRoot, rel)) return false;
+    // nestedUnitRoots is keyed with the root spelled "" (see discoverUnits).
+    const root = canonicalPath(unitRoot);
+    for (const child of this.nestedUnitRoots.get(root === REPO_ROOT ? "" : root) || []) {
+      if (ownsPath(child, rel)) return false;
     }
     return true;
   }

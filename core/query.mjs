@@ -10,6 +10,7 @@
 import { AgentDocError, CODES } from "./codes.mjs";
 import { assertNoSecretsInText } from "./secrets.mjs";
 import { verificationForChange } from "./dependents.mjs";
+import { canonicalPath, longestOwner, ownsPath, REPO_ROOT } from "./paths.mjs";
 
 const DEFAULT_BUDGET = {
   relations: 40,
@@ -28,13 +29,13 @@ export class ContextIndex {
   constructor(graph) {
     this.graph = graph;
     this.byRef = new Map(graph.entities.map((e) => [e.ref, e]));
+    // Keyed by canonical source path, so a root unit's "." and any other
+    // spelling of the same directory land on one key.
     this.byPath = new Map();
     for (const e of graph.entities) {
-      const sp = e.derived && e.derived.sourcePath;
-      if (!sp) continue;
+      const sp = e.derived && canonicalPath(e.derived.sourcePath);
+      if (sp === null || sp === undefined) continue;
       this.byPath.set(sp, e);
-      // Longest path first so a nested path resolves to its own component
-      // rather than to a parent.
     }
     // Documentation and constraint files a descriptor links resolve to their
     // component, even when they live outside the source root. Following a
@@ -49,9 +50,12 @@ export class ContextIndex {
         ...(e.derived || {}).constraints || [],
         ...(e.derived || {}).runbooks || [],
       ];
-      for (const p of ctxPaths) if (!this.byDoc.has(p)) this.byDoc.set(p, e);
+      for (const raw of ctxPaths) {
+        const p = canonicalPath(raw) ?? raw;
+        if (!this.byDoc.has(p)) this.byDoc.set(p, e);
+      }
     }
-    this.paths = [...this.byPath.keys()].sort((a, b) => b.length - a.length);
+    this.paths = [...this.byPath.keys()];
     this.relationsByRef = new Map();
     for (const r of graph.relations) {
       if (!this.relationsByRef.has(r.sourceRef)) this.relationsByRef.set(r.sourceRef, []);
@@ -62,32 +66,62 @@ export class ContextIndex {
   }
 
   // A contract file resolves to the API entity that claims it, so "change this
-  // endpoint" routes to the boundary rather than to nothing.
+  // endpoint" routes to the boundary rather than to nothing. A contract ref
+  // names a file, a directory or a module prefix (`events` covering
+  // `events.go`, `events.proto`), the same coverage `Repo.filesWithPrefix`
+  // gives it — never a raw string prefix such as `events2/x`.
   contractFor(needle) {
-    const norm = needle.replace(/^\.\//, "").replace(/\/+$/, "");
+    const norm = canonicalPath(needle);
+    if (norm === null) return null;
     let best = null;
     for (const c of (this.graph.contracts || [])) {
-      if (norm === c.ref || norm.startsWith(c.ref)) {
+      if (contractCovers(c.ref, norm)) {
         if (!best || c.ref.length > best.ref.length) best = c;
       }
     }
     return best;
   }
+  // The component whose source root most specifically owns a repository path:
+  // the longest owning sourcePath, with a root component (".") as the
+  // lowest-precedence fallback. Null when no component owns the path.
+  ownerOf(file) {
+    const p = longestOwner(this.paths, file);
+    return p === null ? null : this.byPath.get(p);
+  }
   resolve(needle) {
     if (this.byRef.has(needle)) return this.byRef.get(needle);
-    const norm = needle.replace(/^\.\//, "").replace(/\/+$/, "");
+    if (looksLikeRef(needle)) return null;
+    // One canonical spelling for every path: `./a/b`, `a//b` and `a/b/` are
+    // all `a/b`. A path escaping the repository resolves to nothing.
+    const norm = canonicalPath(needle);
+    if (norm === null) return null;
     if (this.byDoc.has(norm)) return this.byDoc.get(norm);
-    if (this.byPath.has(norm)) return this.byPath.get(norm);
-    for (const p of this.paths) {
-      if (norm === p || norm.startsWith(p + "/")) return this.byPath.get(p);
-    }
-    for (const p of this.paths) {
-      if (needle.startsWith(p + "/")) return this.byPath.get(p);
-    }
-    if (this.byDoc.has(needle)) return this.byDoc.get(needle);
-    const c = this.contractFor(needle);
-    return c ? this.byRef.get(c.apiRef) || null : null;
+    // Precedence, most specific first: a linked document, a component source
+    // root, a contract's API, and only then a root component. The root owns
+    // every path, so it is the fallback for files nothing else claims; it
+    // must not take a contract file away from the API that declares it.
+    const owner = this.ownerOf(norm);
+    if (owner && canonicalPath(owner.derived.sourcePath) !== REPO_ROOT) return owner;
+    const c = this.contractFor(norm);
+    const api = c ? this.byRef.get(c.apiRef) || null : null;
+    return api || owner || null;
   }
+}
+
+export function contractCovers(ref, file) {
+  const r = canonicalPath(ref);
+  const f = canonicalPath(file);
+  if (r === null || f === null) return false;
+  if (ownsPath(r, f)) return true;
+  const cut = r.lastIndexOf("/");
+  const dir = r.slice(0, cut + 1);
+  return f.startsWith(dir) && f.slice(dir.length).startsWith(r.slice(cut + 1) + ".");
+}
+
+// An entity ref is `kind:namespace/name`. A needle shaped like one that names
+// no entity is an unresolved ref, not a repository path a root component owns.
+function looksLikeRef(needle) {
+  return /^[A-Za-z][\w-]*:/.test(needle);
 }
 
 function contractsOf(graph) {
@@ -136,14 +170,15 @@ export function queryContext(graph, needle, opts = {}) {
   const apiProvider = entity.kind === "API" ? providerOf(ref) : null;
 
   const apiRefs = new Set([...providedApis, ...consumedApis]);
-  const srcPath = (entity.derived && entity.derived.sourcePath) || null;
   const events = g.interfaces.events.filter(
     (e) =>
       e.producers.includes(ref) ||
       e.consumers.includes(ref) ||
       // A contract library that ships the subject catalog owns those subjects,
-      // even when another component is the one that subscribes to them.
-      (srcPath && e.contract && e.contract.ref.startsWith(srcPath + "/"))
+      // even when another component is the one that subscribes to them. The
+      // owner is the component that most specifically owns the contract file,
+      // so a root component does not claim a nested library's catalog.
+      (e.contract && e.contract.ref && idx.ownerOf(e.contract.ref) === entity)
   );
   const externals = g.externalDependencies.filter((e) => e.componentRef === ref);
   const capabilities = g.capabilities.filter((e) => e.componentRef === ref);

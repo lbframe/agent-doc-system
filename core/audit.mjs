@@ -19,6 +19,7 @@ import { classifyContractFile } from "./contracts.mjs";
 import { ContextIndex } from "./query.mjs";
 import { expandGlob, isRepoPath } from "./fsx.mjs";
 import { isNormative, NORMATIVE_SEMANTICS_PREFIX } from "./normative.mjs";
+import { isRepoRoot, longestOwner } from "./paths.mjs";
 
 const DOC_EXT = /\.(md|mdx|adoc|rst|txt)$/;
 
@@ -143,11 +144,12 @@ export function audit(repo, cfg, res) {
       configured.push({ role, path: dir, configured: false });
     }
   }
-  const unitRoots = new Set(res.discovery.units.map((u) => u.root));
-  const insideComponent = (p) => {
-    for (const r of unitRoots) if (p === r || p.startsWith(r + "/")) return r;
-    return null;
-  };
+  // The most specific unit root containing the path. A root unit is left out
+  // on purpose: it contains the whole repository, so counting it would make
+  // every repository-wide hierarchy document "component-scoped" and the
+  // distinction this check draws would disappear.
+  const unitRoots = [...new Set(res.discovery.units.map((u) => u.root))].filter((r) => !isRepoRoot(r));
+  const insideComponent = (p) => longestOwner(unitRoots, p);
 
   // The audit reports; it does not gate. These are therefore collected as audit
   // findings on the report rather than pushed into the compile-time diagnostics,

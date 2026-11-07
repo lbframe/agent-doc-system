@@ -1,5 +1,6 @@
 // Node adapter: package.json as the unit marker and manifest authority.
 import { Adapter } from "./registry.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 // A script name maps to a verification tier. Deliberately conservative and
 // project-neutral: a script that does not look like a check is not a check.
@@ -20,7 +21,7 @@ export class NodeAdapter extends Adapter {
     super({ name: "node", version: "1.0.0", kind: "unit-marker" });
   }
   detect(ctx, root) {
-    const p = root + "/package.json";
+    const p = joinPath(root, "package.json");
     if (!ctx.repo.exists(p)) return null;
     let pkg;
     try {
@@ -34,7 +35,7 @@ export class NodeAdapter extends Adapter {
   extract(ctx, unit) {
     const { repo, prov, compRef } = ctx;
     const root = unit.root;
-    const manifestPath = root + "/package.json";
+    const manifestPath = joinPath(root, "package.json");
     if (!repo.exists(manifestPath)) return {};
     const derived = { languages: new Set(["javascript"]), runtimes: new Set(["node"]) };
     const pkg = unit.pkg || repo.readJson(manifestPath);
