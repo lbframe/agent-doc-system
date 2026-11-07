@@ -8,15 +8,19 @@
 # Also reusable (workflow_call): release.yml runs this exact CI as the gate
 # before it publishes.
 name: ci
-on:
+# No concurrency group on purpose: it would also apply inside release runs
+# (workflow_call), where the gate must never be queued behind or cancelled by
+# an unrelated CI run. Every run completes; jobs are short and read-only.
+on: # zizmor: ignore[concurrency-limits]
   pull_request:
   push:
     branches: [main]
   workflow_call:
 permissions:
   contents: read
+# The job ids are the check names ("test (22)", "eval"); no `name:` keeps them.
 jobs:
-  test:
+  test: # zizmor: ignore[anonymous-definition]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -24,12 +28,14 @@ jobs:
       matrix:
         node: ['22', '24', '26']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
+          package-manager-cache: false
       - name: CLI smoke
         run: |
           node bin/agentdoc.mjs --version
@@ -37,14 +43,18 @@ jobs:
           node bin/agentdoc.mjs doctor
       - name: Tests (unit, adversarial, modes, packaging incl. npm pack install)
         run: node --test tests/*.test.mjs
-  eval:
+  eval: # zizmor: ignore[anonymous-definition]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: '24' }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
       - name: Aggregate routing evaluation
         run: node evals/run-all.mjs
       - name: Corpora gates
