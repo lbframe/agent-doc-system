@@ -50,11 +50,16 @@ function sentence(s) {
 // a configuration exists, it is the only authority: `docs.*` is what audit and
 // compile read, so the scaffolder writes there and nowhere else (issue #49 —
 // `docs/` is often the product's own user documentation).
+//
+// The default lives under `agentdoc/` (issue #59): authored AgentDoc material
+// lives in `agentdoc/`, generated output in `.agentdoc/`. Not `docs/`, which is
+// the product's user documentation (and a MkDocs/Docusaurus/Pages source), and
+// not `.agentdoc/`, which the compiler skips and many repositories git-ignore.
 export const DEFAULT_DOCS = Object.freeze({
-  product: "docs/PRODUCT.md",
-  architecture: "docs/ARCHITECTURE.md",
-  constraints: "docs/CONSTRAINTS.md",
-  adrDir: "docs/adr",
+  product: "agentdoc/docs/PRODUCT.md",
+  architecture: "agentdoc/docs/ARCHITECTURE.md",
+  constraints: "agentdoc/docs/CONSTRAINTS.md",
+  adrDir: "agentdoc/docs/adr",
 });
 
 // The skeleton roles that have a template. `runbookDir` and `normative` are
@@ -444,7 +449,7 @@ function buildConfig(layout, docs = DEFAULT_DOCS) {
 
 // The `docs:` block of a generated configuration. It repeats the configured
 // paths (init --force regenerates the file and must not move documentation
-// back to docs/), or the defaults when there is no configuration yet.
+// elsewhere), or the agentdoc/docs/ defaults when there is no configuration yet.
 function docsSection(docs) {
   const scalar = (v) => (/^[A-Za-z0-9._/-]+$/.test(v) ? v : yamlStr(v));
   const lines = [];
