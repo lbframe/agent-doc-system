@@ -220,7 +220,7 @@ Workspace roots come from every `Cargo.toml` that has `[workspace]`, not only
 the one at the repository root. The search is bounded to five directories
 down, stays inside the repository, and does not enter `discovery.notUnitRoots`
 or their descendants (the authored-descriptor exception is described below),
-`discovery.generatedDirs`, dot-directories, or `test` / `tests` / `examples` /
+`discovery.generatedDirs`, git-ignored directories, dot-directories, or `test` / `tests` / `examples` /
 `example`. `members` minus `exclude` are still relative to the manifest that
 declares them; `*` matches one path segment, and a member that leaves the
 repository is ignored. `workspace = true` resolves against the nearest

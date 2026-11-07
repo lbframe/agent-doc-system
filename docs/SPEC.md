@@ -195,6 +195,34 @@ Every byte flows through the read tracker, so the record is complete by
 construction. A consumer must refuse a graph whose `inputHash` or `dirty` flag
 disagrees with the current checkout. There is no fallback.
 
+**The input set is the checkout as git sees it.** Reads, probes, listings and
+walks — and therefore discovery as well as the hash — never see a path git
+ignores: a local build writing into an ignored directory (`.astro/`, `build/`,
+`*.log`) changes nothing, and a graph compiled after that build is
+byte-identical to the one a clean checkout or CI produces. An ignored path is
+treated as absent: probed as `false`, left out of listings and walks, and a
+tracked read of it fails like a read of a missing file. Git is the oracle
+(`git status --ignored=matching`, one call per compile, shared with the dirty
+check), so its documented semantics apply exactly:
+
+- a tracked file stays an input even when it matches an ignore pattern;
+- nested `.gitignore` files, `$GIT_DIR/info/exclude` and the user's
+  `core.excludesFile` apply with gitignore(5) precedence, negations included,
+  and a file whose parent directory is excluded cannot be re-included;
+- `core.excludesFile` counts on purpose. An ignored untracked file is absent
+  from every clean checkout whatever rule ignored it, so excluding it only ever
+  brings the local input set closer to CI's — and it keeps the hash in step
+  with `git status`, which drives `dirty`;
+- an ignored *ancestor* of the project root (a project nested in a larger
+  checkout) is not honoured: the directory the compiler is pointed at is
+  compiled whole.
+
+`discovery.generatedDirs` (or its built-in list) is excluded in addition, in a
+git checkout or not. Without git — no repository, no git binary — there is no
+oracle: the input set is the filesystem minus those directories, and
+`.gitignore` files are not interpreted. `check` recomputes the hash by running
+the same compile, so compile and check cannot disagree on the input set.
+
 The recorded `commit` is **provenance, not a gate**: committing the graph changes
 `HEAD`, so a commit-equality check could never be satisfied by a committed graph.
 What determines whether the graph still describes the repository is the input
@@ -235,7 +263,9 @@ that references the contract file from a source or build-configuration file.
 
 The core has no knowledge of folder names. A directory is a unit when it holds
 a component descriptor, when an adapter recognises it from a workspace file, or
-when it is listed in `discovery.supplementalRoots`.
+when it is listed in `discovery.supplementalRoots`. Discovery sees only the
+input set of §7.2: a descriptor or manifest under a git-ignored path is not
+discovered.
 
 `init` configures the recursive component descriptor glob `*/**/agentdoc.yaml`,
 so descriptors for adapter-discovered units and units added later are loaded

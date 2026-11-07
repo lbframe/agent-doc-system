@@ -47,6 +47,12 @@ compare the graph's recorded commit with `HEAD`: committing the graph changes
 The commit is recorded as provenance — which checkout produced this graph — not
 as a gate.
 
+Files git ignores are not inputs, so a graph compiled after a local build
+(`astro build`, `next build`, anything writing into an ignored directory) is the
+graph CI reproduces from a clean checkout. No `git clean -fdX` is needed before
+`compile`. An untracked file that is *not* ignored still counts, and marks the
+graph dirty: commit it or ignore it.
+
 Two things to decide per repository:
 
 - **Commit the graph or ignore it.** Both work. Committing it makes the

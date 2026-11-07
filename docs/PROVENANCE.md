@@ -89,6 +89,12 @@ record is complete by construction rather than by remembering to register files.
 A change to any input changes the hash; `check` refuses a graph whose hash
 disagrees.
 
+Paths git ignores are not inputs (SPEC §7.2): the tracked read path, probes and
+listings all treat them as absent, so local build output in an ignored
+directory cannot move the hash. Tracked files always count, even when they
+match an ignore pattern. Outside git the input set is the filesystem minus
+`discovery.generatedDirs`.
+
 ## Secrets
 
 Two independent layers, because derivation can synthesise a secret-shaped string

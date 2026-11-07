@@ -50,6 +50,24 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   a symlink, fails with `AGENTDOC_PATH_ESCAPE` before anything is written.
   Without a configuration, `init` still writes to `docs/`.
 
+- Files git ignores no longer enter the compiler's inputs or `inputHash`
+  ([#45]). A local build writing into an ignored directory (`astro build`
+  filling `.astro/`, a `build/` tree, `*.log`) used to change the hash, so a
+  graph compiled after it failed `check` with `AGENTDOC_GRAPH_FRESHNESS` in CI
+  and in every clean checkout, while passing on the author's machine. Reads,
+  existence probes, listings and discovery now exclude git-ignored paths, with
+  git itself as the oracle: tracked files always count, and nested
+  `.gitignore`, `.git/info/exclude`, `core.excludesFile` and negations behave
+  exactly as in git. A non-ignored untracked file is still an input. Without
+  git the previous behaviour (filesystem minus `discovery.generatedDirs`)
+  holds. Committed graphs keep their hash. A descriptor or configuration
+  that points at a git-ignored file (for example a spec generated into an
+  ignored directory before `compile`) now fails with
+  `AGENTDOC_PATH_UNRESOLVED`, as it would in a clean checkout: commit the file
+  or stop ignoring it. The `git clean -fdX` before
+  `compile` documented as a workaround in lbframe/klozeo's `AGENTS.md` is no
+  longer needed.
+
 - All routing evaluation systems and the noise closure now share fact labels
   ([#46]). Corrected targeted micro-recall is 100/101 (0.9901), rather than
   the previously reported gap. Search matches catalog recall in 21/30 scenarios;
@@ -330,6 +348,7 @@ First public release.
 [#40]: https://github.com/lbframe/agent-doc-system/issues/40
 [#41]: https://github.com/lbframe/agent-doc-system/issues/41
 [#43]: https://github.com/lbframe/agent-doc-system/issues/43
+[#45]: https://github.com/lbframe/agent-doc-system/issues/45
 [#46]: https://github.com/lbframe/agent-doc-system/issues/46
 [#49]: https://github.com/lbframe/agent-doc-system/issues/49
 [#50]: https://github.com/lbframe/agent-doc-system/issues/50

@@ -5,6 +5,15 @@
 // is what the graph's inputHash is computed over, so freshness detection can
 // never miss an input. This is the single most important property of the
 // original system and is preserved verbatim.
+//
+// The input set is the checkout as git sees it: paths git ignores are not part
+// of the repository (issue #45). A local build writing into an ignored
+// directory — `astro build` filling `.astro/`, a `build/` tree, a `*.log` —
+// must not move the inputHash, or a graph compiled after that build can never
+// be reproduced by a clean checkout or by CI. Git itself is the oracle (see
+// `ignoredPaths`); nothing here re-implements gitignore matching. Every read,
+// probe and listing below consults the same oracle, and `check` recomputes the
+// hash by running the same compile, so compile and check cannot disagree.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -40,6 +49,9 @@ export function assertRepoPath(p, ctx) {
 
 // Build/tooling output is never repository authority. Configurable per install
 // so a project with e.g. "target" or "vendor" trees keeps them out too.
+// This list applies everywhere, and is the *only* exclusion when there is no
+// git oracle (no repository, no git binary, or `noGit`). Inside a git
+// checkout, git-ignored paths are excluded in addition — see `ignoredPaths`.
 // Build and tooling output. Tooling caches and dependency directories only: a
 // name like `build`, `out` or `tmp` is far more likely to be a real unit in some
 // repository than a generated directory, and a repository with a deployable
@@ -63,6 +75,11 @@ export class Repo {
     this.nestedUnitRoots = new Map();
     this.generatedDirs = new Set(opts.generatedDirs || DEFAULT_GENERATED_DIRS);
     this.noGit = Boolean(opts.noGit);
+    // Per-Repo git caches. undefined = not asked yet; null = no answer.
+    this._hasGit = undefined;
+    this._prefix = undefined;
+    this._status = undefined;
+    this._ignored = undefined;
   }
   abs(rel) {
     const a = path.resolve(this.root, rel);
@@ -71,14 +88,71 @@ export class Repo {
     }
     return a;
   }
+  // The paths git ignores under this.root, asked once per Repo and cached, so
+  // every read, probe and listing in a run sees the same snapshot.
+  //
+  // `git status --ignored=matching` is the oracle (git-status(1)): it reports
+  // exactly the untracked paths that match an ignore pattern, and an ignored
+  // directory as one `dir/` entry without its contents. That gives git's own
+  // semantics for free:
+  //   - tracked files are never reported, so a tracked file that matches a
+  //     pattern stays an input ("tracked always wins", gitignore(5));
+  //   - nested .gitignore files, $GIT_DIR/info/exclude and core.excludesFile
+  //     apply with gitignore(5) precedence, negations included, and a file
+  //     whose parent directory is excluded cannot be re-included;
+  //   - a directory that is not itself ignored is never collapsed, only its
+  //     ignored contents are listed. (`git ls-files -o -i --directory` gets
+  //     this wrong: it also prints a non-ignored parent whose only content is
+  //     ignored, and aborts when run from inside an ignored directory.)
+  //
+  // The user's global core.excludesFile deliberately counts. An ignored
+  // untracked file is, by definition, absent from every clean checkout, so
+  // whichever ignore source matched it, dropping it moves this machine's input
+  // set *towards* what CI sees, never away from it — no ignore rule can hide a
+  // tracked file. Ignoring core.excludesFile would bring back issue #45 for
+  // anything a developer ignores globally (editor swap files, `.envrc`): the
+  // file would enter the hash while `git status`, and therefore the graph's
+  // `dirty` flag, stays silent about it.
+  //
+  // The snapshot comes from `statusRecords`, the same single `git status`
+  // call the compile's dirty check reads, so the input set and the `dirty`
+  // flag describe the same moment. Paths come back relative to the git
+  // toplevel and are re-keyed by `toRepoPaths`; an ignored *ancestor* of
+  // this.root is dropped there, so a project the user pointed the compiler at
+  // is never blanked out by an outer .gitignore.
+  //
+  // null when there is no oracle — `noGit`, not a git checkout, git missing
+  // or failing. The input set is then the filesystem minus generatedDirs,
+  // exactly as before #45.
+  ignoredPaths() {
+    if (this._ignored !== undefined) return this._ignored;
+    const recs = this.statusRecords();
+    const prefix = recs ? this.gitPrefix() : null;
+    this._ignored = recs && prefix !== null
+      ? new Set(this.toRepoPaths(recs.filter((r) => r.xy === "!!").map((r) => r.path), prefix))
+      : null;
+    return this._ignored;
+  }
+  // True when git ignores `rel` or one of its parent directories. Directory
+  // entries carry a trailing "/" in git's output.
+  isIgnored(rel) {
+    const set = this.ignoredPaths();
+    if (!set || set.size === 0 || !rel || rel === ".") return false;
+    if (set.has(rel) || set.has(rel + "/")) return true;
+    for (let i = rel.indexOf("/"); i >= 0; i = rel.indexOf("/", i + 1)) {
+      if (set.has(rel.slice(0, i + 1))) return true;
+    }
+    return false;
+  }
+  // An ignored path is probed as absent: that is what a clean checkout sees.
   exists(rel) {
-    const r = fs.existsSync(this.abs(rel));
+    const r = !this.isIgnored(rel) && fs.existsSync(this.abs(rel));
     this.probes.set(rel, r);
     return r;
   }
   isDir(rel) {
     try {
-      const r = fs.statSync(this.abs(rel)).isDirectory();
+      const r = !this.isIgnored(rel) && fs.statSync(this.abs(rel)).isDirectory();
       this.probes.set(rel, r);
       return r;
     } catch {
@@ -88,6 +162,16 @@ export class Repo {
   }
   readBytes(rel, { track = true } = {}) {
     const a = this.abs(rel);
+    // A tracked (input) read of an ignored path fails exactly as a read of a
+    // missing file does, so a descriptor that points into build output breaks
+    // locally the same way it breaks in CI. Untracked reads are not inputs.
+    if (track && this.isIgnored(rel)) {
+      throw new AgentDocError(
+        CODES.PATH_UNRESOLVED,
+        "path is ignored by git, so it is not a repository input: " + rel,
+        { path: rel }
+      );
+    }
     let buf;
     try {
       buf = fs.readFileSync(a);
@@ -115,10 +199,13 @@ export class Repo {
     return JSON.parse(this.readText(rel, { track: false }));
   }
   // Recursive listing, byte-sorted, never following symlinks out of the repo.
+  // Ignored directories are pruned, not descended: an ignored `node_modules`
+  // or `.astro` costs one Set lookup.
   walk(relDir, { exclude = () => false } = {}) {
     const base = relDir ? this.abs(relDir) : this.root;
     const out = [];
-    const stack = [base];
+    const ignored = this.ignoredPaths();
+    const stack = relDir && this.isIgnored(relDir) ? [] : [base];
     while (stack.length) {
       const dir = stack.pop();
       let entries;
@@ -133,6 +220,9 @@ export class Repo {
         const full = path.join(dir, ent.name);
         const rel = path.relative(this.root, full).split(path.sep).join("/");
         if (ent.isSymbolicLink()) continue;
+        // Parents are already known not to be ignored, so the entry itself is
+        // the only lookup needed.
+        if (ignored && ignored.has(ent.isDirectory() ? rel + "/" : rel)) continue;
         if (exclude(rel, ent)) continue;
         if (ent.isDirectory()) stack.push(full);
         else if (ent.isFile()) out.push(rel);
@@ -179,12 +269,17 @@ export class Repo {
   // A directory listing is a compiler input like any other, and is recorded so
   // the input hash covers it. An untracked listing would let a change to a
   // directory's contents escape freshness detection.
+  // Ignored entries are left out, as if absent.
   listDir(relDir) {
     let names;
     try {
-      names = fs.readdirSync(this.abs(relDir), { withFileTypes: true })
-        .map((e) => (e.isDirectory() ? e.name + "/" : e.name))
-        .sort();
+      const prefix = relDir && relDir !== "." ? relDir + "/" : "";
+      names = this.isIgnored(relDir)
+        ? []
+        : fs.readdirSync(this.abs(relDir), { withFileTypes: true })
+          .map((e) => (e.isDirectory() ? e.name + "/" : e.name))
+          .filter((n) => !this.isIgnored(prefix + n.replace(/\/$/, "")))
+          .sort();
     } catch {
       names = [];
     }
@@ -204,17 +299,21 @@ export class Repo {
     });
     return trim ? out.trim() : out;
   }
+  // Cached per Repo, like gitPrefix: whether this.root is a git checkout does
+  // not change during a run, and each probe is a process spawn.
   hasGit() {
     if (this.noGit) return false;
+    if (this._hasGit !== undefined) return this._hasGit;
     try {
       const probe = execFileSync("git", ["rev-parse", "--git-dir"], {
         cwd: this.root,
         stdio: ["ignore", "pipe", "ignore"],
       });
-      return probe.toString().trim().length > 0;
+      this._hasGit = probe.toString().trim().length > 0;
     } catch {
-      return false;
+      this._hasGit = false;
     }
+    return this._hasGit;
   }
   // A checkout without git — a source tarball, a vendored copy, a CI runner with
   // no VCS — still compiles. Freshness then rests on the input hash alone, and
@@ -236,14 +335,15 @@ export class Repo {
   // tracker uses.
   gitPrefix() {
     if (this.noGit || !this.hasGit()) return null;
+    if (this._prefix !== undefined) return this._prefix;
     try {
-      return this.git(["rev-parse", "--show-prefix"]);
+      this._prefix = this.git(["rev-parse", "--show-prefix"]);
     } catch {
-      return null;
+      this._prefix = null;
     }
+    return this._prefix;
   }
-  toRepoPaths(gitPaths) {
-    const prefix = this.gitPrefix();
+  toRepoPaths(gitPaths, prefix = this.gitPrefix()) {
     if (prefix === null) return [];
     const out = [];
     for (const p of gitPaths) {
@@ -253,31 +353,46 @@ export class Repo {
     }
     return out;
   }
-  dirtyPaths() {
-    if (this.noGit || !this.hasGit()) return [];
-    let raw;
-    try {
-      // Untrimmed: a porcelain record is `XY <path>` with fixed columns, and an
-      // unstaged change has X = " ". Trimming would eat that space from the
-      // first record, so `.slice(3)` would drop the path's first character —
-      // ` M .agentdoc/graph.json` became `agentdoc/graph.json`, slipped past
-      // the output exclusion and counted as a dirty input (issue #11).
-      raw = this.git(["status", "--porcelain", "-z", "--untracked-files=all"], { trim: false });
-    } catch {
-      return [];
+  // One `git status` for both questions a compile asks git about the
+  // working tree: what is dirty (`XY` records) and what is ignored (`!!`).
+  // `--untracked-files=all` lists untracked files individually, so they can
+  // be matched against the read tracker; `--ignored=matching` adds the
+  // ignored paths without descending into ignored directories.
+  // `--no-optional-locks` keeps it read-only: no refreshed index is written
+  // back, so it never contends with a git command the user is running.
+  // `-- .` scopes the scan to this.root, which may sit inside a larger
+  // checkout. Cached unless `fresh`: the ignore oracle must answer from one
+  // snapshot for the whole run.
+  statusRecords({ fresh = false } = {}) {
+    if (!fresh && this._status !== undefined) return this._status;
+    let recs = null;
+    if (!this.noGit && this.hasGit()) {
+      try {
+        // Untrimmed: a porcelain record is `XY <path>` with fixed columns, and
+        // an unstaged change has X = " ". Trimming would eat that space from
+        // the first record, so `.slice(3)` would drop the path's first
+        // character — ` M .agentdoc/graph.json` became `agentdoc/graph.json`,
+        // slipped past the output exclusion and counted as a dirty input
+        // (issue #11).
+        recs = parseStatusZ(this.git(
+          ["--no-optional-locks", "status", "--porcelain", "-z",
+            "--untracked-files=all", "--ignored=matching", "--", "."],
+          { trim: false }
+        ));
+      } catch {
+        recs = null;
+      }
     }
-    const paths = [];
-    let skipNext = false;
-    for (const rec of raw.split("\0")) {
-      if (!rec) continue;
-      // In -z format a rename/copy is two records: `XY <to>` then a bare
-      // `<from>` with no status. The bare record must be consumed, not parsed
-      // as a status line.
-      if (skipNext) { skipNext = false; continue; }
-      if (rec[0] === "R" || rec[0] === "C" || rec[1] === "R" || rec[1] === "C") skipNext = true;
-      paths.push(rec.slice(3));
-    }
-    return this.toRepoPaths(paths);
+    if (!fresh) this._status = recs;
+    return recs;
+  }
+  // Fresh by default, so a caller holding a Repo sees the current tree. The
+  // compile passes `snapshot: true` to read the same status the ignore oracle
+  // used — one git call, and a dirty flag consistent with the input set.
+  dirtyPaths({ snapshot = false } = {}) {
+    const recs = this.statusRecords({ fresh: !snapshot });
+    if (!recs) return [];
+    return this.toRepoPaths(recs.filter((r) => r.xy !== "!!").map((r) => r.path));
   }
   // null on failure (bad ref, missing object store) so callers can tell
   // "the diff failed" apart from "the diff is empty".
@@ -289,6 +404,23 @@ export class Repo {
       return null;
     }
   }
+}
+
+// `git status --porcelain -z` records (git-status(1), "Porcelain Format
+// Version 1"): `XY <path>`, NUL-terminated, never quoted.
+function parseStatusZ(raw) {
+  const out = [];
+  let skipNext = false;
+  for (const rec of raw.split("\0")) {
+    if (!rec) continue;
+    // In -z format a rename/copy is two records: `XY <to>` then a bare
+    // `<from>` with no status. The bare record must be consumed, not parsed
+    // as a status line.
+    if (skipNext) { skipNext = false; continue; }
+    if (rec[0] === "R" || rec[0] === "C" || rec[1] === "R" || rec[1] === "C") skipNext = true;
+    out.push({ xy: rec.slice(0, 2), path: rec.slice(3) });
+  }
+  return out;
 }
 
 // Minimal glob: '*' matches within one segment, '**' matches any depth.

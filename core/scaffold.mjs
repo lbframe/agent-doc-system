@@ -198,6 +198,7 @@ function scanLayout(repo, cfg) {
     for (const e of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
       if (e.isSymbolicLink() || skip.has(e.name)) continue;
       const rel = dir ? dir + "/" + e.name : e.name;
+      if (repo.isIgnored && repo.isIgnored(rel)) continue;
       if (e.isDirectory()) {
         if (e.name.startsWith(".")) continue;
         walk(rel, depth + 1);
