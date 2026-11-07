@@ -291,7 +291,17 @@ only the codes in `ACCEPTABLE_WARNING_CODES` may be accepted.
 | command | contract |
 |---|---|
 | `init [--force]` | write a configuration and documentation skeleton; never clobber unless `--force` |
-| `scaffold [--write]` | generate descriptors from provable evidence; dry run by default |
+| `scaffold [--write]` | generate descriptors from provable evidence; dry run by default; never clobbers |
+
+`init` and `scaffold` write the documentation skeleton to the paths an
+existing configuration declares in `docs.product`, `docs.architecture`,
+`docs.constraints` and `docs.adrDir`, read through the same loader as
+`compile` and `audit`. A role the configuration omits is not written and is
+reported in `notConfigured`; nothing falls back to `docs/`. Only when no
+configuration exists does `init` use `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
+`docs/CONSTRAINTS.md` and `docs/adr/`. A target outside the repository,
+including through a symlink, fails with `AGENTDOC_PATH_ESCAPE` before anything
+is written.
 | `audit` | classify every fact; runs even when the repository cannot compile |
 | `validate` | sources, schemas, semantic checks; no artifact written |
 | `compile [--require-clean]` | deterministic build, atomic replace |

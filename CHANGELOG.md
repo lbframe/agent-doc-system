@@ -38,6 +38,18 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   root descriptor, root files stay unmatched. Graphs of repositories without a
   root component are unchanged.
 
+- `agentdoc scaffold --write` and `agentdoc init` now write the documentation
+  skeleton (`PRODUCT.md`, `ARCHITECTURE.md`, `CONSTRAINTS.md`, the ADR README)
+  to the configured `docs.product`, `docs.architecture`, `docs.constraints` and
+  `docs.adrDir` paths ([#49]). Both used to write to `docs/` even when the
+  configuration said otherwise, and `docs/` is often the product's own user
+  documentation. The paths are read through the same loader as `compile` and
+  `audit`. A role the configuration omits is listed under `notConfigured`
+  instead of falling back to `docs/`. An existing file is still skipped unless
+  `init --force` is given. A path that leaves the repository, including through
+  a symlink, fails with `AGENTDOC_PATH_ESCAPE` before anything is written.
+  Without a configuration, `init` still writes to `docs/`.
+
 - All routing evaluation systems and the noise closure now share fact labels
   ([#46]). Corrected targeted micro-recall is 100/101 (0.9901), rather than
   the previously reported gap. Search matches catalog recall in 21/30 scenarios;
@@ -319,4 +331,5 @@ First public release.
 [#41]: https://github.com/lbframe/agent-doc-system/issues/41
 [#43]: https://github.com/lbframe/agent-doc-system/issues/43
 [#46]: https://github.com/lbframe/agent-doc-system/issues/46
+[#49]: https://github.com/lbframe/agent-doc-system/issues/49
 [#50]: https://github.com/lbframe/agent-doc-system/issues/50

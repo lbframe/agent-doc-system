@@ -83,7 +83,8 @@ not work around it: run `agentdoc compile`, review the diff, commit the graph.
 ## Rules that are never optional
 
 - **Never vendor the CLI.** A project gets `agentdoc/` project data (config,
-  descriptors, observations), `docs/` skeletons, `.agentdoc/graph.json` and a
+  descriptors, observations), documentation skeletons at the configured
+  `docs.*` paths, `.agentdoc/graph.json` and a
   CI workflow — never a copy of the agentdoc source tree (`core/`, `bin/`,
   `adapters/`, `schemas/`, `templates/`, `evals/`, `tests/`).
 - **Never promote uncertainty.** Heuristic guesses do not become authored

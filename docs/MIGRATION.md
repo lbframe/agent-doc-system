@@ -164,10 +164,18 @@ agentdoc check
 ```
 
 `init` writes `agentdoc/agentdoc.config.yaml`, the four central descriptor
-files, `agentdoc/journeys.yaml`, the documentation hierarchy
-(`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/CONSTRAINTS.md`,
-`docs/adr/`), the observations README, and a CI workflow. It never overwrites an
-existing file.
+files, `agentdoc/journeys.yaml`, the documentation hierarchy, the observations
+README, and a CI workflow. It never overwrites an existing file without
+`--force`, and reports every path it wrote or skipped.
+
+The documentation hierarchy goes where the configuration says. When
+`agentdoc/agentdoc.config.yaml` already exists, `init` and `scaffold --write`
+write `PRODUCT.md`, `ARCHITECTURE.md`, `CONSTRAINTS.md` and the ADR README to
+the configured `docs.product`, `docs.architecture`, `docs.constraints` and
+`docs.adrDir`. A role the configuration leaves out is not written anywhere and
+is listed under `notConfigured`. Without a configuration, `init` uses
+`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/CONSTRAINTS.md` and
+`docs/adr/`, and records those paths in the configuration it writes.
 
 `scaffold` is a dry run unless `--write` is passed.
 
