@@ -9,6 +9,32 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-07
+
+A graph compiled on your machine now passes `check` in CI and in a clean
+checkout. Files git ignores no longer count as compiler inputs, so a local
+build that fills an ignored directory no longer changes `inputHash`. A
+component whose descriptor sits at the repository root now owns the root files
+no other component owns, so `query` and `impact` route them. `init` and
+`scaffold --write` no longer write into your product's `docs/`: they follow the
+configured `docs.*` paths, and a new install without a configuration gets its
+skeleton under `agentdoc/docs/`. Releases are now published from CI with npm
+provenance, so `npm audit signatures` can verify that a release was built from
+this repository. The benchmark claim made in the 1.2.0 release notes is
+withdrawn, because its gap came from the evaluation and not from routing.
+
+Before you upgrade:
+
+- **Recompile committed graphs.** As with every release, a graph compiled by
+  1.2.0 is refused with `AGENTDOC_COMPILER_MISMATCH` until you run
+  `agentdoc compile` again.
+- **A descriptor or configuration path that points at a git-ignored file now
+  fails** with `AGENTDOC_PATH_UNRESOLVED`, as it would in a clean checkout.
+  Commit the file or stop ignoring it ([#45]).
+- **New installs write the documentation skeleton to `agentdoc/docs/`**
+  instead of `docs/`. A configuration that declares `docs.*` keeps its paths,
+  and no existing file is moved ([#59]).
+
 ### Added
 
 - A deterministic `baseline-search` routing evaluation using working-tree file
@@ -20,8 +46,8 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 - Releases are now published only through a manual GitHub Actions workflow,
   using npm trusted publishing (no token) with provenance, so `npm audit
-  signatures` can verify that a release was built from this repository.
-  `RELEASING.md` in the repository describes the process.
+  signatures` can verify that a release was built from this repository
+  ([#51]). `RELEASING.md` in the repository describes the process.
 
 - **Behaviour change for new installs only:** without a configuration,
   `agentdoc init` (and `scaffold --write`) now writes the documentation
@@ -341,7 +367,8 @@ First public release.
   for project health.
 - An Agent Skill under `skills/agent-doc-system/`.
 
-[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/lbframe/agent-doc-system/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lbframe/agent-doc-system/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lbframe/agent-doc-system/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lbframe/agent-doc-system/releases/tag/v1.0.0
@@ -370,5 +397,6 @@ First public release.
 [#46]: https://github.com/lbframe/agent-doc-system/issues/46
 [#49]: https://github.com/lbframe/agent-doc-system/issues/49
 [#50]: https://github.com/lbframe/agent-doc-system/issues/50
+[#51]: https://github.com/lbframe/agent-doc-system/pull/51
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
 [#59]: https://github.com/lbframe/agent-doc-system/issues/59
