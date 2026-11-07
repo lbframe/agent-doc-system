@@ -174,8 +174,18 @@ write `PRODUCT.md`, `ARCHITECTURE.md`, `CONSTRAINTS.md` and the ADR README to
 the configured `docs.product`, `docs.architecture`, `docs.constraints` and
 `docs.adrDir`. A role the configuration leaves out is not written anywhere and
 is listed under `notConfigured`. Without a configuration, `init` uses
-`docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/CONSTRAINTS.md` and
-`docs/adr/`, and records those paths in the configuration it writes.
+`agentdoc/docs/PRODUCT.md`, `agentdoc/docs/ARCHITECTURE.md`,
+`agentdoc/docs/CONSTRAINTS.md` and `agentdoc/docs/adr/`, and records those
+paths in the configuration it writes.
+
+Authored AgentDoc material lives in `agentdoc/`; generated output lives in
+`.agentdoc/`. `docs/` stays the product's own user documentation, which is
+often published as-is (MkDocs, Docusaurus, GitHub Pages). To keep the skeleton
+in `docs/`, or anywhere else, declare `docs.product`, `docs.architecture`,
+`docs.constraints` and `docs.adrDir` in `agentdoc/agentdoc.config.yaml` before
+running `init` or `scaffold --write`. A configuration that already declares
+`docs.*` keeps its paths, `docs/...` included, and nothing ever moves an
+existing file.
 
 `scaffold` is a dry run unless `--write` is passed.
 
@@ -247,7 +257,7 @@ worth discovering before documenting it.
 | `PRODUCT.md` | what it is, for whom, what it does not do | describe components |
 | `ARCHITECTURE.md` | why the shape is what it is | enumerate components or contracts |
 | `CONSTRAINTS.md` | repository-wide rules, one rule one reason one check | restate a component's constraints |
-| `docs/adr/NNNN-*.md` | one decision, its consequences, superseded not edited | be a design document |
+| `<docs.adrDir>/NNNN-*.md` | one decision, its consequences, superseded not edited | be a design document |
 | `<component>/CONSTRAINTS.md` | rules for that component only | duplicate a repository-wide rule |
 | `<component>/README.md` | how to run it, what it is for | restate the catalog |
 | runbooks | operational procedure | contain architectural decisions |

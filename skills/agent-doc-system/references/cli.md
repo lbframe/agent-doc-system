@@ -40,7 +40,10 @@ current directory. `scaffold` is a dry run without `--write`; with `--write` it
 is a superset of `init` — it also installs anything missing from the config,
 doc skeleton and CI workflow, not only component descriptors. Both write the
 doc skeleton to the configured `docs.*` paths when a configuration exists, and
-to `docs/` only when none does; an existing file is reported as skipped. `audit` works
+to `agentdoc/docs/` when none does; an existing file is reported as skipped.
+Authored AgentDoc material lives in `agentdoc/`, generated output in
+`.agentdoc/`; `docs/` is left to the product's own user documentation unless a
+configuration declares `docs.*` paths there. `audit` works
 even when the repository cannot compile yet; it reports the compilation
 failures as part of its output.
 

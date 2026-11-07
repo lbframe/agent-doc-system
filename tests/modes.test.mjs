@@ -18,9 +18,11 @@ test("CREATE: init writes a configuration and a documentation skeleton, and refu
   t.after(() => fs.rmSync(empty, { recursive: true, force: true }));
   const out = JSON.parse(cli(empty, ["init"]));
   assert.ok(out.written.includes("agentdoc/agentdoc.config.yaml"), out.written.join(","));
-  assert.ok(out.written.some((w) => w.endsWith("docs/PRODUCT.md")));
-  assert.ok(out.written.some((w) => w.endsWith("docs/ARCHITECTURE.md")));
-  assert.ok(out.written.some((w) => w.endsWith("docs/CONSTRAINTS.md")));
+  assert.ok(out.written.includes("agentdoc/docs/PRODUCT.md"), out.written.join(","));
+  assert.ok(out.written.includes("agentdoc/docs/ARCHITECTURE.md"), out.written.join(","));
+  assert.ok(out.written.includes("agentdoc/docs/CONSTRAINTS.md"), out.written.join(","));
+  assert.ok(out.written.includes("agentdoc/docs/adr/README.md"), out.written.join(","));
+  assert.ok(!out.written.some((w) => w.startsWith("docs/")), "issue #59: nothing under docs/: " + out.written.join(","));
   assert.ok(out.written.some((w) => w.includes(".github/workflows/agentdoc.yml")));
   const cfg = read(empty, "agentdoc/agentdoc.config.yaml");
   assert.match(cfg, /apiVersion: agentdoc\.dev\/config\/v1/);

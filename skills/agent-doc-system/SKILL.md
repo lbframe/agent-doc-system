@@ -84,7 +84,7 @@ not work around it: run `agentdoc compile`, review the diff, commit the graph.
 
 - **Never vendor the CLI.** A project gets `agentdoc/` project data (config,
   descriptors, observations), documentation skeletons at the configured
-  `docs.*` paths, `.agentdoc/graph.json` and a
+  `docs.*` paths (`agentdoc/docs/` by default), `.agentdoc/graph.json` and a
   CI workflow — never a copy of the agentdoc source tree (`core/`, `bin/`,
   `adapters/`, `schemas/`, `templates/`, `evals/`, `tests/`).
 - **Never promote uncertainty.** Heuristic guesses do not become authored

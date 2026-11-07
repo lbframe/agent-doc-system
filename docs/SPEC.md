@@ -336,11 +336,16 @@ only the codes in `ACCEPTABLE_WARNING_CODES` may be accepted.
 existing configuration declares in `docs.product`, `docs.architecture`,
 `docs.constraints` and `docs.adrDir`, read through the same loader as
 `compile` and `audit`. A role the configuration omits is not written and is
-reported in `notConfigured`; nothing falls back to `docs/`. Only when no
-configuration exists does `init` use `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`,
-`docs/CONSTRAINTS.md` and `docs/adr/`. A target outside the repository,
-including through a symlink, fails with `AGENTDOC_PATH_ESCAPE` before anything
-is written.
+reported in `notConfigured`; nothing falls back to a default. Only when no
+configuration exists does `init` use the defaults `agentdoc/docs/PRODUCT.md`,
+`agentdoc/docs/ARCHITECTURE.md`, `agentdoc/docs/CONSTRAINTS.md` and
+`agentdoc/docs/adr/`, and record them in the `docs:` block of the configuration
+it writes. Authored AgentDoc material lives in `agentdoc/`; generated output
+lives in `.agentdoc/`. `docs/` is left to the product's own user documentation:
+`init` and `scaffold` write there only when a configuration declares `docs.*`
+paths under it, and they never move an existing file. A target outside the
+repository, including through a symlink, fails with `AGENTDOC_PATH_ESCAPE`
+before anything is written.
 
 Exit codes: `0` ok, `1` failure, `2` usage.
 

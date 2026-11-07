@@ -36,7 +36,11 @@ agentdoc validate && agentdoc compile && agentdoc check
 `agentdoc/journeys.yaml`, the documentation hierarchy, the observations
 README, and a CI workflow. The documentation hierarchy goes to the configured
 `docs.product`, `docs.architecture`, `docs.constraints` and `docs.adrDir` when
-a configuration already exists, and to `docs/` only when none does. It writes **project data only** — it
+a configuration already exists, and to `agentdoc/docs/` when none does
+(authored AgentDoc material lives in `agentdoc/`, generated output in
+`.agentdoc/`; `docs/` stays the product's own documentation). To keep the
+skeleton in `docs/`, declare `docs.*` in `agentdoc/agentdoc.config.yaml`
+first. It writes **project data only** — it
 never copies the agentdoc implementation into the repository.
 
 In `agentdoc.config.yaml`:
