@@ -7,6 +7,7 @@
 // knows the namespace convention.
 import path from "node:path";
 import fs from "node:fs";
+import { joinPath } from "./paths.mjs";
 
 const SPECIFIER_RE = /["'`]([A-Za-z@][A-Za-z0-9@._/+-]*(?:\.[A-Za-z0-9@._/+-]+)*(?:\/[A-Za-z0-9@._+*-]+)*)["'`]/g;
 
@@ -86,7 +87,8 @@ export function findMigrationDirs(repo, root, maxDepth = 5) {
 
 export function firstExistingFile(repo, root, names) {
   for (const n of names) {
-    if (repo.ownsUnitPath(root, root + "/" + n) && repo.exists(root + "/" + n)) return root + "/" + n;
+    const p = joinPath(root, n);
+    if (repo.ownsUnitPath(root, p) && repo.exists(p)) return p;
   }
   return null;
 }

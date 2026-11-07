@@ -25,6 +25,19 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ### Fixed
 
+- A component whose descriptor sits at the repository root now owns the files
+  no nested component owns ([#50]). Before, `query vite.config.ts` failed with
+  `AGENTDOC_REF_UNRESOLVED` and `impact` listed the file in `unmatchedFiles`,
+  for both `vite.config.ts` and `./vite.config.ts`. Paths are now compared in
+  one canonical repository-relative form (no `./`), by whole path segment
+  (`src` never owns `src2/x`), and the longest owning root wins, so nested
+  components keep precedence and a contract file still routes to its API. A
+  root unit's derived paths (`README.md`, `package.json`, markers, provenance,
+  verification config paths) are no longer recorded as `./README.md`, so
+  `impact` now recognises them as documentation and compiler inputs. Without a
+  root descriptor, root files stay unmatched. Graphs of repositories without a
+  root component are unchanged.
+
 - All routing evaluation systems and the noise closure now share fact labels
   ([#46]). Corrected targeted micro-recall is 100/101 (0.9901), rather than
   the previously reported gap. Search matches catalog recall in 21/30 scenarios;
@@ -306,3 +319,4 @@ First public release.
 [#41]: https://github.com/lbframe/agent-doc-system/issues/41
 [#43]: https://github.com/lbframe/agent-doc-system/issues/43
 [#46]: https://github.com/lbframe/agent-doc-system/issues/46
+[#50]: https://github.com/lbframe/agent-doc-system/issues/50

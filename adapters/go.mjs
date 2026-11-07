@@ -1,6 +1,7 @@
 // Go adapter: go.mod / go.work as unit markers, module graph as build
 // relations, and the go toolchain's own verification commands.
 import { Adapter } from "./registry.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 export class GoAdapter extends Adapter {
   static adapterName = "go";
@@ -26,13 +27,13 @@ export class GoAdapter extends Adapter {
     return out;
   }
   detect(ctx, root) {
-    const p = root + "/go.mod";
+    const p = joinPath(root, "go.mod");
     if (!ctx.repo.exists(p)) return null;
-    return { path: p, shape: ctx.repo.isDir(root + "/cmd") ? "deployable" : "importable" };
+    return { path: p, shape: ctx.repo.isDir(joinPath(root, "cmd")) ? "deployable" : "importable" };
   }
   extract(ctx, unit) {
     const { repo, prov, compRef } = ctx;
-    const p = unit.root + "/go.mod";
+    const p = joinPath(unit.root, "go.mod");
     if (!repo.exists(p)) return {};
     const derived = { languages: new Set(["go"]), runtimes: new Set(["go"]) };
     const text = repo.readText(p);

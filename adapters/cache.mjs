@@ -1,5 +1,6 @@
 // Cache adapter: Redis / in-memory cache client evidence as a derived binding.
 import { Adapter } from "./registry.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 const CACHE_HINT = /(@upstash\/redis|ioredis|redis\.Redis|redis|go-redis|redis\.go|valkey|memcache|@memcached)/i;
 
@@ -11,12 +12,12 @@ export class CacheAdapter extends Adapter {
   extract(ctx, unit) {
     const { repo, prov, compRef } = ctx;
     const evFile = unit.goModule
-      ? unit.root + "/go.mod"
+      ? joinPath(unit.root, "go.mod")
       : unit.pythonManifest
         ? unit.pythonManifest
-        : repo.exists(unit.root + "/package.json")
-          ? unit.root + "/package.json"
-          : unit.root + "/Cargo.toml";
+        : repo.exists(joinPath(unit.root, "package.json"))
+          ? joinPath(unit.root, "package.json")
+          : joinPath(unit.root, "Cargo.toml");
     if (!repo.exists(evFile)) return {};
     const text = repo.readText(evFile);
     if (!CACHE_HINT.test(text)) return {};

@@ -4,6 +4,7 @@
 // verification answer available for a monorepo unit.
 import { Adapter } from "./registry.mjs";
 import { parseYamlDocuments } from "../core/yaml.mjs";
+import { isRepoRoot, joinPath } from "../core/paths.mjs";
 
 // Whether a declared task is a check is decided by `taskTier` alone, not by a
 // second, narrower pattern. Two lists meant two places to disagree: a task that
@@ -19,7 +20,7 @@ export class TurborepoAdapter extends Adapter {
     super({ name: "turborepo", version: "1.0.0", kind: "ci" });
   }
   detect(ctx, root) {
-    const p = root + "/turbo.json";
+    const p = joinPath(root, "turbo.json");
     if (!ctx.repo.exists(p)) return null;
     return { path: p, shape: "importable" };
   }
@@ -122,7 +123,7 @@ function taskTier(t) {
 
 // A task graph normally lives at the workspace root, not in each package.
 function nearestTurboConfig(repo, root) {
-  let dir = root;
+  let dir = isRepoRoot(root) ? "" : root;
   for (let i = 0; i < 12; i++) {
     const p = dir ? dir + "/turbo.json" : "turbo.json";
     if (repo.exists(p)) return p;

@@ -7,6 +7,7 @@
 import { Adapter } from "./registry.mjs";
 import { resolveClientResources } from "./resource-client.mjs";
 import { sourceFiles } from "../core/sourcescan.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 // Conservative: a health route is an absolute string literal that looks like a
 // liveness or readiness endpoint. Anything more specific belongs to a
@@ -50,7 +51,7 @@ export class GenericAdapter extends Adapter {
     // Provenance must name a file that exists. The dependency evidence is the
     // manifest when there is one, and otherwise the unit's descriptor.
     const manifest = ["package.json", "go.mod", "Cargo.toml", "pyproject.toml", "pom.xml"]
-      .map((n) => unit.root + "/" + n)
+      .map((n) => joinPath(unit.root, n))
       .find((p) => repo.exists(p)) || ctx.componentEntity().file;
     const clientProv = prov.add("observed", manifest, "client-resolver", ["rel:pending", "der:" + compRef + ":/bindings"]);
     resolveClientResources(ctx, unit, compRef, clientProv);

@@ -15,12 +15,29 @@ Resolution order:
 1. an exact entity ref;
 2. a documentation or constraint file a descriptor links, even outside the
    component's source root;
-3. a directory that is exactly a unit root;
-4. the longest unit root that is a prefix of the path;
-5. a canonical contract file, which routes to the API entity that claims it.
+3. the component whose source root most specifically owns the path: a
+   directory that is exactly a unit root, or else the longest unit root
+   containing it;
+4. a canonical contract file, which routes to the API entity that claims it;
+5. a root component (a descriptor at the repository root, `sourcePath: "."`),
+   which owns every file no step above claims.
+
+Paths are compared in one canonical, repository-relative form, the one git uses
+for pathspecs and `ls-files`: `./vite.config.ts`, `vite.config.ts` and
+`tooling//config.ts` are the same paths as `vite.config.ts` and
+`tooling/config.ts`. Ownership is decided on whole path segments, never on a
+raw string prefix, so a unit at `src` owns `src/x.ts` and never `src2/x.ts`.
+When several unit roots contain a path, the longest one wins, as in a routing
+table or a CODEOWNERS file. The repository root is the shortest possible root,
+so a nested component always takes precedence over a root component. A path
+that is absolute or climbs out of the repository with `..` resolves to nothing.
+A needle shaped like an entity ref (`kind:namespace/name`) that names no entity
+is unresolved; it is never treated as a file a root component owns.
 
 If nothing resolves, the command fails with `AGENTDOC_REF_UNRESOLVED` and exits
 non-zero. It never falls back to "the nearest component" or to a global dump.
+Without a root descriptor, a file outside every unit root stays unresolved: the
+repository root is owned only when a descriptor claims it.
 
 ## Freshness refusal
 
@@ -190,6 +207,11 @@ It reports: affected components with the reason each was reached, affected
 contracts, documentation, resources, verification and catalog sources; whether
 the graph will be invalidated; the recommended verification commands; any open
 conflicts on the affected subjects; and related journeys.
+
+Changed paths resolve to components with the same rules as `query`: a `./`
+prefix is ignored, the longest owning unit root wins, and a root component
+receives the files no other component owns. A file nothing owns is listed in
+`unmatchedFiles`.
 
 Reachability rules: a contract change reaches its provider and every consumer;
 a Resource change reaches components bound to that exact Resource. A migration

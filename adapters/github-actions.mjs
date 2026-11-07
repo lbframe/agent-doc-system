@@ -4,6 +4,7 @@
 import path from "node:path";
 import { Adapter } from "./registry.mjs";
 import { parseYamlDocuments } from "../core/yaml.mjs";
+import { ownsPath } from "../core/paths.mjs";
 
 export class GitHubActionsAdapter extends Adapter {
   static adapterName = "github-actions";
@@ -224,7 +225,7 @@ function literalPath(value) {
   const p = path.posix.normalize(value);
   return p === ".." || p.startsWith("../") ? null : p.replace(/\/$/, "");
 }
-function within(p, root) { return root === "." || p === root || p.startsWith(root + "/"); }
+function within(p, root) { return ownsPath(root, p); }
 function shellQuote(p) { return /^[A-Za-z0-9_./-]+$/.test(p) ? p : "'" + p.replace(/'/g, "'\\''") + "'"; }
 
 function scopedTo(unit, args, cwd, filters, units, repo) {

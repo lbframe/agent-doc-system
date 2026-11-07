@@ -24,6 +24,7 @@ import {
 } from "./normative.mjs";
 import { loadAdapters } from "../adapters/index.mjs";
 import { loadCargoUnit, analyzeCargoDeps, rustIdentsInSource } from "../adapters/rust.mjs";
+import { joinPath, ownsPath } from "./paths.mjs";
 import {
   COMPILER_NAME, COMPILER_VERSION, GRAPH_SCHEMA_VERSION,
   assembleGraph, serializeGraph, finalizeSerialization, subjectResolver,
@@ -300,7 +301,7 @@ export function compile(root, opts = {}) {
   // every graph that does not enable python.
   const pythonOn = adapters.some((a) => a.name === "python");
   for (const unit of discovery.eligible) {
-    const pkgPath = unit.root + "/package.json";
+    const pkgPath = joinPath(unit.root, "package.json");
     if (repo.exists(pkgPath)) {
       try {
         const pkg = repo.readJson(pkgPath);
@@ -310,7 +311,7 @@ export function compile(root, opts = {}) {
         res.errors.push(new AgentDocError(CODES.SCHEMA, "package.json is not valid JSON: " + pkgPath, { path: pkgPath }));
       }
     }
-    const gomodPath = unit.root + "/go.mod";
+    const gomodPath = joinPath(unit.root, "go.mod");
     if (repo.exists(gomodPath)) {
       const m = /^module\s+(\S+)/m.exec(repo.readText(gomodPath));
       unit.goModule = m ? m[1] : null;
@@ -398,7 +399,7 @@ export function compile(root, opts = {}) {
       if (t && t.component && t.component.ref !== unit.component.ref) deps.add(t.component.ref);
     }
     if (unit.goModule) {
-      const gomod = repo.exists(unit.root + "/go.mod") ? repo.readText(unit.root + "/go.mod") : "";
+      const gomod = repo.exists(joinPath(unit.root, "go.mod")) ? repo.readText(joinPath(unit.root, "go.mod")) : "";
       const goReqs = [...gomod.matchAll(/^\s*(?:require\s+)?([a-z0-9.]+\.[a-z0-9./-]+)\s+v[0-9]/gm)].map((m) => m[1]);
       productionDependencies.set(unit.component.ref, [...(productionDependencies.get(unit.component.ref) || []), ...goReqs]);
       for (const m of gomod.matchAll(/^\s*(?:require\s+)?([a-z0-9.]+\.[a-z0-9./-]+)\s+v[0-9]/gm)) {
@@ -803,7 +804,7 @@ export function compile(root, opts = {}) {
       repo.readPaths.has(p) ||
       repo.probes.has(p) ||
       repo.listings.has(p) ||
-      walkedDirs.some((d) => (d === "." ? true : p === d || p.startsWith(d + "/")))
+      walkedDirs.some((d) => ownsPath(d, p))
   );
   graph.source = { commit, dirty, inputHash };
 

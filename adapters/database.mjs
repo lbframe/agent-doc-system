@@ -9,6 +9,7 @@
 //     library shipped migrations but explicitly did not own a database.
 import { Adapter } from "./registry.mjs";
 import { firstExistingFile, findMigrationDirs } from "../core/sourcescan.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 const ORM_CONFIG = [
   "drizzle.config.ts", "drizzle.config.js", "drizzle.config.mjs",
@@ -37,8 +38,8 @@ export class DatabaseAdapter extends Adapter {
     }
     const alembicDir = migrationDirs.find((d) => d === "alembic/versions" || d.endsWith("/alembic/versions"));
     if (alembicDir) {
-      const ini = root + "/alembic.ini";
-      const pyproject = root + "/pyproject.toml";
+      const ini = joinPath(root, "alembic.ini");
+      const pyproject = joinPath(root, "pyproject.toml");
       if (repo.exists(ini)) {
         const text = repo.readText(ini);
         if (/^\s*\[alembic\]/m.test(text) || /^\s*script_location\s*=/m.test(text)) evidencePath = ini;

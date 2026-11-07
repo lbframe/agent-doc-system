@@ -5,6 +5,12 @@
 // from the graph alone, so the answer is available before any exploration.
 import { ContextIndex } from "./query.mjs";
 import { dependentScope, verificationForChange } from "./dependents.mjs";
+import { canonicalPath, ownsPath } from "./paths.mjs";
+
+// Changed paths are compared in the graph's canonical form (git's: no "./").
+// A path that is not repository-relative is kept verbatim so it is reported
+// as unmatched rather than silently rewritten.
+const canonical = (p) => canonicalPath(p) ?? p;
 
 // The affected-file classification is derived from the compiled graph, not from
 // a hand-written list of technology filenames. A list would go stale for every
@@ -59,7 +65,7 @@ export function impact(graph, changedPaths) {
   const matchedVerification = new Set();
 
   for (const raw of changedPaths) {
-    const p = raw.replace(/^\.\//, "");
+    const p = canonical(raw);
     const entity = idx.resolve(p);
     // A Resource is not a component. Adding it to `affectedComponents` put a
     // `resource:` ref in a list an agent reads as "components you must check",
@@ -83,7 +89,7 @@ export function impact(graph, changedPaths) {
     }
     if (kind === "verification") verificationPaths.add(p);
     if (kind === "input") dependencyPaths.add(p);
-    if (p.startsWith("agentdoc/")) catalogPaths.add(p);
+    if (ownsPath("agentdoc", p)) catalogPaths.add(p);
   }
 
   // A check's configuration is evidence of the components it covers, even
@@ -180,7 +186,8 @@ export function impact(graph, changedPaths) {
 
 function graphAffected(graph, changedPaths) {
   const inputs = new Set(graph.provenance.map((p) => p.path));
-  for (const p of changedPaths) if (inputs.has(p)) return true;
+  const paths = changedPaths.map(canonical);
+  for (const p of paths) if (inputs.has(p)) return true;
   const idx = new ContextIndex(graph);
-  return changedPaths.some((p) => idx.resolve(p));
+  return paths.some((p) => idx.resolve(p));
 }

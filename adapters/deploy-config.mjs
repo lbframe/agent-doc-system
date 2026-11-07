@@ -2,6 +2,7 @@
 // Only the file's existence is treated as evidence; no value from these files
 // is ever reported as deployed state.
 import { Adapter } from "./registry.mjs";
+import { joinPath } from "../core/paths.mjs";
 
 const DEPLOY_FILES = [
   "fly.toml", "app.yaml", "render.yaml", "railway.json", "vercel.json",
@@ -16,7 +17,7 @@ export class DeployConfigAdapter extends Adapter {
   }
   detect(ctx, root) {
     for (const n of DEPLOY_FILES) {
-      if (ctx.repo.exists(root + "/" + n)) return { path: root + "/" + n, shape: "deployable" };
+      if (ctx.repo.exists(joinPath(root, n))) return { path: joinPath(root, n), shape: "deployable" };
     }
     return null;
   }
@@ -24,7 +25,7 @@ export class DeployConfigAdapter extends Adapter {
     const { repo, prov, compRef } = ctx;
     const out = { deployConfigs: [] };
     for (const n of DEPLOY_FILES) {
-      const p = unit.root + "/" + n;
+      const p = joinPath(unit.root, n);
       if (!repo.exists(p)) continue;
       prov.add("observed", p, "deploy-extractor", ["der:" + compRef + ":/artifact"]);
       out.deployConfigs.push(p);
