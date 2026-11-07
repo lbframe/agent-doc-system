@@ -60,7 +60,11 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   `.gitignore`, `.git/info/exclude`, `core.excludesFile` and negations behave
   exactly as in git. A non-ignored untracked file is still an input. Without
   git the previous behaviour (filesystem minus `discovery.generatedDirs`)
-  holds. Committed graphs keep their hash. The `git clean -fdX` before
+  holds. Committed graphs keep their hash. A descriptor or configuration
+  that points at a git-ignored file (for example a spec generated into an
+  ignored directory before `compile`) now fails with
+  `AGENTDOC_PATH_UNRESOLVED`, as it would in a clean checkout: commit the file
+  or stop ignoring it. The `git clean -fdX` before
   `compile` documented as a workaround in lbframe/klozeo's `AGENTS.md` is no
   longer needed.
 
