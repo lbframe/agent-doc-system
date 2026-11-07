@@ -16,6 +16,13 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
   catalog, corrected targeted and search recall/noise/check selectivity per
   scenario, corpus and aggregate; `docs/EVALS.md` documents every heuristic.
 
+### Changed
+
+- Releases are now published only through a manual GitHub Actions workflow,
+  using npm trusted publishing (no token) with provenance, so `npm audit
+  signatures` can verify that a release was built from this repository.
+  `RELEASING.md` in the repository describes the process.
+
 ### Fixed
 
 - All routing evaluation systems and the noise closure now share fact labels
