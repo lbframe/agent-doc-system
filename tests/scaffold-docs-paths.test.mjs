@@ -30,7 +30,10 @@ const CONFIGURED_SKELETON = [
   "agentdoc/docs/adr/README.md",
 ];
 
-const DEFAULT_SKELETON = ["docs/PRODUCT.md", "docs/ARCHITECTURE.md", "docs/CONSTRAINTS.md", "docs/adr/README.md"];
+// Issue #59: without a configuration, the skeleton defaults to agentdoc/docs/.
+// Authored AgentDoc material lives in agentdoc/, generated output in .agentdoc/.
+const DEFAULT_SKELETON = CONFIGURED_SKELETON;
+const LEGACY_SKELETON = ["docs/PRODUCT.md", "docs/ARCHITECTURE.md", "docs/CONSTRAINTS.md", "docs/adr/README.md"];
 
 function tmp(t, prefix) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -170,15 +173,6 @@ test("#49 runbookDir is honoured: no skeleton is invented for it and nothing lan
   assert.equal(statusUnder(dir, "docs"), "");
 });
 
-test("#49 without a configuration, init keeps today's docs/ defaults", (t) => {
-  const dir = tmp(t, "agentdoc-docs-default-");
-  const res = JSON.parse(cli(dir, ["init"]));
-  for (const f of DEFAULT_SKELETON) assert.ok(res.written.includes(f), "default " + f + ": " + res.written.join(","));
-  const cfg = read(dir, CONFIG);
-  assert.match(cfg, /\ndocs:\n {2}product: docs\/PRODUCT\.md\n {2}architecture: docs\/ARCHITECTURE\.md\n {2}constraints: docs\/CONSTRAINTS\.md\n {2}adrDir: docs\/adr\n/);
-  assert.equal(res.notConfigured, undefined);
-});
-
 for (const [label, bad] of [
   ["a '..' segment", "../outside/adr"],
   ["an absolute path", "/tmp/agentdoc-escape/adr"],
@@ -207,4 +201,124 @@ test("#49 a configured docs path that escapes through a symlink is refused", (t)
     assert.match(res.stdout + res.stderr, /PATH_ESCAPE/, res.stdout + res.stderr);
     assert.deepEqual(fs.readdirSync(outside), [], args.join(" ") + " wrote outside the repository");
   }
+});
+
+// ── #59: the no-configuration default is agentdoc/docs/ ─────────────────────
+
+const APP = {
+  "app/go.mod": "module example.com/app\ngo 1.22\n",
+  "app/cmd/app/main.go": "package main\nfunc main() {}\n",
+};
+
+// The product's own user documentation, written byte for byte (no helper
+// normalisation) so the test can prove it is left byte-identical.
+const USER_DOCS = {
+  "docs/PRODUCT.md": "# Acme\r\n\r\nOur public product page, CRLF and no trailing newline.",
+  "docs/guide.md": "# User guide\n\nThe product's own documentation.\n",
+  "docs/adr/README.md": "# Public decisions\n",
+};
+
+function snapshot(dir, files) {
+  return Object.fromEntries(Object.keys(files).map((f) => [f, fs.readFileSync(path.join(dir, f))]));
+}
+
+test("#59 init without a configuration writes the skeleton to agentdoc/docs/ and creates nothing under docs/", (t) => {
+  const dir = freshRepo(t, APP);
+  const res = JSON.parse(cli(dir, ["init"]));
+  for (const f of DEFAULT_SKELETON) {
+    assert.ok(res.written.includes(f), "default " + f + ": " + res.written.join(","));
+    assert.ok(fs.existsSync(path.join(dir, f)), f + " exists");
+  }
+  assert.ok(!res.written.some((f) => f.startsWith("docs/")), res.written.join(","));
+  assert.equal(fs.existsSync(path.join(dir, "docs")), false, "init must not create docs/");
+  assert.equal(res.notConfigured, undefined);
+});
+
+test("#59 the configuration init generates declares the agentdoc/docs/ paths", (t) => {
+  const dir = tmp(t, "agentdoc-docs-default-");
+  cli(dir, ["init"]);
+  const cfg = read(dir, CONFIG);
+  assert.match(cfg, /\ndocs:\n {2}product: agentdoc\/docs\/PRODUCT\.md\n {2}architecture: agentdoc\/docs\/ARCHITECTURE\.md\n {2}constraints: agentdoc\/docs\/CONSTRAINTS\.md\n {2}adrDir: agentdoc\/docs\/adr\n/);
+  assert.doesNotMatch(cfg, /^ {2}\w+: docs\//m);
+});
+
+test("#59 validate, compile and check pass after init, then after scaffold --write, in a fresh repository", (t) => {
+  const dir = freshRepo(t, { ...APP, ".gitignore": "/.agentdoc/\n" });
+  cli(dir, ["init"]);
+  commitAll(dir, "agentdoc init");
+  assert.match(cli(dir, ["validate"]), /validate: PASS/);
+  assert.match(cli(dir, ["compile"]), /compile: PASS/);
+  assert.match(cli(dir, ["check"]), /PASS/);
+
+  const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  for (const f of DEFAULT_SKELETON) assert.ok(res.skipped.includes(f), "scaffold keeps init's " + f + ": " + res.skipped.join(","));
+  assert.ok(!res.written.some((f) => f.startsWith("docs/")), res.written.join(","));
+  choosePlacements(dir, ["app/agentdoc.yaml"]);
+  commitAll(dir, "agentdoc scaffold");
+  assert.match(cli(dir, ["validate"]), /validate: PASS/);
+  assert.match(cli(dir, ["compile"]), /compile: PASS/);
+  assert.match(cli(dir, ["check"]), /PASS/);
+  const audit = JSON.parse(cli(dir, ["audit"]));
+  const hierarchy = audit.documentation.hierarchy.map((h) => h.path);
+  for (const f of DEFAULT_SKELETON) assert.ok(hierarchy.includes(f), "audit sees " + f + ": " + hierarchy.join(","));
+  assert.equal(fs.existsSync(path.join(dir, "docs")), false);
+});
+
+test("#59 a pre-existing docs/ (the product's own documentation) is left byte-identical", (t) => {
+  const dir = freshRepo(t, APP);
+  for (const [f, content] of Object.entries(USER_DOCS)) {
+    fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+    fs.writeFileSync(path.join(dir, f), content);
+  }
+  commitAll(dir, "user docs");
+  const before = snapshot(dir, USER_DOCS);
+  const listing = () => fs.readdirSync(path.join(dir, "docs"), { recursive: true }).sort();
+  const files = listing();
+
+  const init = JSON.parse(cli(dir, ["init"]));
+  assert.ok(!init.written.some((f) => f.startsWith("docs/")), init.written.join(","));
+  assert.ok(!init.skipped.some((f) => f.startsWith("docs/")), "docs/ is not even considered: " + init.skipped.join(","));
+  const scaffold = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  assert.ok(!scaffold.written.some((f) => f.startsWith("docs/")), scaffold.written.join(","));
+  const forced = JSON.parse(cli(dir, ["init", "--force"]));
+  assert.ok(!forced.written.some((f) => f.startsWith("docs/")), forced.written.join(","));
+
+  assert.deepEqual(snapshot(dir, USER_DOCS), before, "docs/ bytes unchanged");
+  assert.deepEqual(listing(), files, "no file added under docs/");
+  assert.equal(statusUnder(dir, "docs"), "", "git status must show nothing under docs/");
+  for (const f of DEFAULT_SKELETON) assert.ok(fs.existsSync(path.join(dir, f)), f + " written beside it");
+});
+
+test("#59 an existing configuration that declares docs/ keeps writing there", (t) => {
+  const legacy = [
+    "docs:",
+    "  product: docs/PRODUCT.md",
+    "  architecture: docs/ARCHITECTURE.md",
+    "  constraints: docs/CONSTRAINTS.md",
+    "  adrDir: docs/adr",
+    "",
+  ].join("\n");
+  const dir = configuredRepo(t, legacy);
+  fs.rmSync(path.join(dir, "docs"), { recursive: true, force: true });
+  commitAll(dir, "no user docs");
+
+  const res = JSON.parse(cli(dir, ["scaffold", "--write"]));
+  for (const f of LEGACY_SKELETON) assert.ok(res.written.includes(f), "configured " + f + ": " + res.written.join(","));
+  assert.ok(!res.written.some((f) => f.startsWith("agentdoc/docs/")), res.written.join(","));
+  assert.equal(fs.existsSync(path.join(dir, "agentdoc", "docs")), false, "the new default is not used when docs.* is configured");
+
+  const forced = JSON.parse(cli(dir, ["init", "--force"]));
+  assert.ok(forced.written.includes("docs/PRODUCT.md"), forced.written.join(","));
+  assert.equal(fs.existsSync(path.join(dir, "agentdoc", "docs")), false);
+  const cfg = read(dir, CONFIG);
+  assert.match(cfg, /\ndocs:\n {2}product: docs\/PRODUCT\.md\n {2}architecture: docs\/ARCHITECTURE\.md\n {2}constraints: docs\/CONSTRAINTS\.md\n {2}adrDir: docs\/adr\n/);
+});
+
+test("#59 a configuration with docs.product: docs/PRODUCT.md still writes there", (t) => {
+  const dir = configuredRepo(t, "docs:\n  product: docs/PRODUCT.md\n");
+  const res = JSON.parse(cli(dir, ["init"]));
+  assert.ok(res.written.includes("docs/PRODUCT.md"), res.written.join(","));
+  assert.deepEqual(res.notConfigured, ["docs.architecture", "docs.constraints", "docs.adrDir"]);
+  assert.ok(!res.written.some((f) => f.startsWith("agentdoc/docs/")), res.written.join(","));
+  assert.equal(read(dir, "docs/PRODUCT.md"), fs.readFileSync(new URL("../templates/PRODUCT.md", import.meta.url), "utf8"));
 });
