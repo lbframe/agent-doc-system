@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "f3810ce80d6802ed56f0aaa2a22a3c5c16a5e944",
+    "commit": "bc83dfdd20cfbcfb1b49684ca3203669fd0561de",
     "dirty": false,
-    "inputHash": "sha256:cf087dff149b8a290400bbdd0de441a1f02bdf44d1d5b2b1a2b1860a9c4a9cab"
+    "inputHash": "sha256:ec9ed64666324327a4422d9d6ec0dd2a0b16a7fdce3e325d5ab5ffb9b9bb8d5a"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -254,7 +254,7 @@
             "logicalResourceRef": "resource:default/ledger-cache",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0092"
+              "p-0093"
             ]
           },
           {
@@ -273,11 +273,22 @@
             },
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0096"
+              "p-0097"
             ]
           }
         ],
         "migrationAuthority": "services/ledger-api/alembic.ini",
+        "migrationDirs": [
+          {
+            "path": "services/ledger-api/alembic/versions",
+            "via": [
+              "alembic-versions"
+            ],
+            "provenanceIds": [
+              "p-0092"
+            ]
+          }
+        ],
         "dockerfiles": [
           "services/ledger-api/Dockerfile"
         ],
@@ -287,7 +298,7 @@
             "route": "/health",
             "semantics": "liveness",
             "provenanceIds": [
-              "p-0097"
+              "p-0098"
             ]
           }
         ],
@@ -710,8 +721,8 @@
         "package": "ledger-core"
       },
       "provenanceIds": [
-        "p-0095",
-        "p-0098"
+        "p-0096",
+        "p-0099"
       ]
     },
     {
@@ -726,7 +737,7 @@
         "package": "ledger-proto"
       },
       "provenanceIds": [
-        "p-0099"
+        "p-0100"
       ]
     },
     {
@@ -759,8 +770,8 @@
         "package": "ledger-core"
       },
       "provenanceIds": [
-        "p-0095",
-        "p-0098"
+        "p-0096",
+        "p-0099"
       ]
     },
     {
@@ -775,7 +786,7 @@
         "package": "ledger-proto"
       },
       "provenanceIds": [
-        "p-0099"
+        "p-0100"
       ]
     },
     {
@@ -1092,7 +1103,7 @@
       },
       "provenanceIds": [
         "p-0091",
-        "p-0093"
+        "p-0094"
       ]
     },
     {
@@ -1106,7 +1117,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0092"
+        "p-0093"
       ]
     },
     {
@@ -1120,7 +1131,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0096"
+        "p-0097"
       ]
     },
     {
@@ -1135,7 +1146,7 @@
         "package": "ledger-testing"
       },
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -1150,7 +1161,7 @@
         "package": "ledger-testing"
       },
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -1167,7 +1178,7 @@
       },
       "provenanceIds": [
         "p-0091",
-        "p-0093"
+        "p-0094"
       ]
     },
     {
@@ -1181,7 +1192,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0092"
+        "p-0093"
       ]
     },
     {
@@ -1195,7 +1206,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0096"
+        "p-0097"
       ]
     }
   ],
@@ -1210,7 +1221,7 @@
       "mechanism": "sdk",
       "evidenceClass": "DERIVED",
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     }
   ],
@@ -1228,7 +1239,7 @@
         "uv.lock"
       ],
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -1244,7 +1255,7 @@
         "uv.lock"
       ],
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -1259,7 +1270,7 @@
         "uv.lock"
       ],
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -1531,7 +1542,7 @@
       "status": "elected",
       "provenanceIds": [
         "p-0086",
-        "p-0094"
+        "p-0095"
       ]
     },
     {
@@ -1544,7 +1555,7 @@
       "status": "elected",
       "provenanceIds": [
         "p-0086",
-        "p-0094"
+        "p-0095"
       ]
     },
     {
@@ -1569,7 +1580,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0093"
+        "p-0094"
       ],
       "semantics": "the component depends on sqlalchemy, declared as a client of the logical-database Resource"
     },
@@ -3096,6 +3107,19 @@
     {
       "id": "p-0092",
       "class": "observed",
+      "path": "services/ledger-api/alembic/versions/0001_init.py",
+      "extractor": {
+        "name": "migration-extractor",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:9365aa541141bb34fb0fb088656b6016bf0ec2f35ad2cda852a0c533b2a05a1e",
+      "subjects": [
+        "/entities/4/derived/migrationDirs"
+      ]
+    },
+    {
+      "id": "p-0093",
+      "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
         "name": "binding-extractor",
@@ -3109,7 +3133,7 @@
       ]
     },
     {
-      "id": "p-0093",
+      "id": "p-0094",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -3125,7 +3149,7 @@
       ]
     },
     {
-      "id": "p-0094",
+      "id": "p-0095",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -3140,7 +3164,7 @@
       ]
     },
     {
-      "id": "p-0095",
+      "id": "p-0096",
       "class": "observed",
       "path": "services/ledger-api/pyproject.toml",
       "extractor": {
@@ -3159,7 +3183,7 @@
       ]
     },
     {
-      "id": "p-0096",
+      "id": "p-0097",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -3174,7 +3198,7 @@
       ]
     },
     {
-      "id": "p-0097",
+      "id": "p-0098",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -3187,7 +3211,7 @@
       ]
     },
     {
-      "id": "p-0098",
+      "id": "p-0099",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {
@@ -3201,7 +3225,7 @@
       ]
     },
     {
-      "id": "p-0099",
+      "id": "p-0100",
       "class": "observed",
       "path": "services/ledger-api/src/ledger_api/main.py",
       "extractor": {

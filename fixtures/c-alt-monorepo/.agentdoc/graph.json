@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "f3810ce80d6802ed56f0aaa2a22a3c5c16a5e944",
+    "commit": "bc83dfdd20cfbcfb1b49684ca3203669fd0561de",
     "dirty": false,
-    "inputHash": "sha256:b4d02ebc891940eca9034609b4e4350b4b773a40de5abadfbf273d091889c940"
+    "inputHash": "sha256:90341282b9fd481ed48225328715749aa5971cf00da5c6486b0069cd8d9a02cd"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -314,6 +314,17 @@
           }
         ],
         "migrationAuthority": "backend/internal/db/migrations/0001_events.sql",
+        "migrationDirs": [
+          {
+            "path": "backend/internal/db/migrations",
+            "via": [
+              "directory-name"
+            ],
+            "provenanceIds": [
+              "p-0029"
+            ]
+          }
+        ],
         "dockerfiles": [],
         "healthContracts": [
           {
@@ -1641,6 +1652,7 @@
       "subjects": [
         "/assertions/2",
         "/entities/4/derived/bindings",
+        "/entities/4/derived/migrationDirs",
         "/relations/22",
         "/relations/26"
       ]

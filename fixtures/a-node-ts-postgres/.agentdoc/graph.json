@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "f3810ce80d6802ed56f0aaa2a22a3c5c16a5e944",
+    "commit": "bc83dfdd20cfbcfb1b49684ca3203669fd0561de",
     "dirty": false,
-    "inputHash": "sha256:acffed7649e28b34a533d2a0e0b871b1b43d44f9e7fccd45785a7eaa369c75ac"
+    "inputHash": "sha256:d80148dfbbd9d1b9718d938d0afe6e62d4aee458c8a50382ff288cad4b7577f6"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -114,6 +114,17 @@
             "kind": "database",
             "logicalResourceRef": "resource:default/orders-service-postgres",
             "resolution": "resolved",
+            "provenanceIds": [
+              "p-0019"
+            ]
+          }
+        ],
+        "migrationDirs": [
+          {
+            "path": "service/db/migrations",
+            "via": [
+              "directory-name"
+            ],
             "provenanceIds": [
               "p-0019"
             ]
@@ -793,6 +804,7 @@
       "subjects": [
         "/assertions/2",
         "/entities/1/derived/bindings",
+        "/entities/1/derived/migrationDirs",
         "/relations/8",
         "/relations/9"
       ]
