@@ -9,6 +9,26 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-10
+
+`impact` now treats a change under a Drizzle migration directory as a change
+to the database it migrates. It reaches every component bound to that
+database, not only the component that holds the file. Any other ORM layout can
+be declared on the database Resource with the new `spec.migrationPaths`.
+Existing `migrations/` and `alembic/versions/` paths give the same answer as
+before.
+
+Before you upgrade:
+
+- **Recompile committed graphs.** As with every release, a graph compiled by
+  1.3.0 is refused with `AGENTDOC_COMPILER_MISMATCH` until you run
+  `agentdoc compile` again. Graphs of repositories that enable the `database`
+  adapter also gain `derived.migrationDirs` and the provenance behind it.
+- **A Drizzle config whose `out` is not a plain string** (an environment
+  variable, an expression, a spread) now raises the warning
+  `AGENTDOC_MIGRATION_DIR_UNRESOLVED`. Declare the directory with
+  `spec.migrationPaths`, or accept the warning ([#63]).
+
 ### Added
 
 - A `logical-database` Resource can declare where its schema migrations live,
@@ -399,7 +419,8 @@ First public release.
   for project health.
 - An Agent Skill under `skills/agent-doc-system/`.
 
-[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/lbframe/agent-doc-system/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/lbframe/agent-doc-system/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lbframe/agent-doc-system/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lbframe/agent-doc-system/compare/v1.0.0...v1.1.0
