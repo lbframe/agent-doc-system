@@ -9,7 +9,7 @@
 //     library shipped migrations but explicitly did not own a database.
 import { Adapter } from "./registry.mjs";
 import { firstExistingFile, findMigrationDirs } from "../core/sourcescan.mjs";
-import { joinPath } from "../core/paths.mjs";
+import { canonicalPath, joinPath } from "../core/paths.mjs";
 
 const ORM_CONFIG = [
   "drizzle.config.ts", "drizzle.config.js", "drizzle.config.mjs",
@@ -48,6 +48,12 @@ export class DatabaseAdapter extends Adapter {
       }
     }
     const pr = prov.add("observed", evidencePath, "migration-extractor", ["der:" + compRef + ":/bindings"]);
+    // Where this unit's migrations live, recorded in the graph so `impact`
+    // classifies a change from the graph rather than from a list of names.
+    // Authority over a directory, never ownership of a database: these records
+    // create no binding.
+    const recorded = recordMigrationDirs(ctx, unit, migrationDirs, ormConfig, pr);
+    const withDirs = (out) => (recorded.length ? { ...out, migrationDirs: recorded } : out);
 
     // A component that both migrates and opens a connection owns the database.
     const opensConnection = hasConnectionEvidence(ctx, unit);
@@ -66,7 +72,7 @@ export class DatabaseAdapter extends Adapter {
         evidenceClass: "DERIVED", confidence: "candidate", provRecs: [pr],
         semantics: "a schema exists here, but which component owns the logical database is unresolved",
       });
-      return { migrationAuthority: evidencePath };
+      return withDirs({ migrationAuthority: evidencePath });
     }
 
     const name = compRef.split("/")[1];
@@ -89,7 +95,7 @@ export class DatabaseAdapter extends Adapter {
         evidenceClass: "DERIVED", confidence: "candidate", provRecs: [pr],
         semantics: "this component opens a database connection, but no authored Resource claims ownership",
       });
-      return { migrationAuthority: evidencePath };
+      return withDirs({ migrationAuthority: evidencePath });
     }
     ctx.addFact(compRef, "resource.ownership", target.name, {
       evidenceClass: "DERIVED", confidence: "deterministic", provRecs: [pr],
@@ -101,10 +107,10 @@ export class DatabaseAdapter extends Adapter {
     const client = ctx.clientKeyForResourceType("logical-database");
     const attrs = client ? { via: "migrations+connection", client } : { via: "migrations+connection" };
     ctx.addEdge("usesResource", compRef, target.ref, attrs, [pr], "DERIVED");
-    return {
+    return withDirs({
       migrationAuthority: evidencePath,
       bindings: [{ kind: "database", logicalResourceRef: target.ref, resolution: "resolved", provenanceIds: null, _provs: new Set([pr]) }],
-    };
+    });
   }
 }
 
@@ -128,4 +134,146 @@ function findDatabaseResource(ctx, name) {
     (e) => e.kind === "Resource" && e.doc.spec.type === "logical-database" && e.name.startsWith(name)
   );
   return cands.length === 1 ? cands[0] : null;
+}
+
+// ── migration directories ───────────────────────────────────────────────────
+//
+// Two routes, each with its own evidence:
+//   - a directory named by convention (`migrations`, `migration`,
+//     `alembic/versions`), evidenced by a file inside it;
+//   - Drizzle Kit's `out`, evidenced by the config file that states it.
+// Prisma Migrate writes to `prisma/migrations`, which the first route covers.
+function recordMigrationDirs(ctx, unit, conventionDirs, ormConfig, pr) {
+  const { repo, prov, compRef } = ctx;
+  const subject = "der:" + compRef + ":/migrationDirs";
+  const byPath = new Map();
+  const add = (dir, via, rec) => {
+    if (!byPath.has(dir)) byPath.set(dir, { path: dir, via: new Set(), _provs: new Set() });
+    byPath.get(dir).via.add(via);
+    byPath.get(dir)._provs.add(rec);
+  };
+  for (const dir of conventionDirs) {
+    // A directory with no file in the input set has nothing a change could
+    // touch, and nothing to cite as evidence.
+    const file = repo.walkUnit(unit.root, dir)[0];
+    if (!file) continue;
+    let rec;
+    if (file === pr.path) {
+      rec = pr;
+      pr.subjects.add(subject);
+    } else {
+      rec = prov.add("observed", file, "migration-extractor", [subject]);
+    }
+    add(dir, /(^|\/)alembic\/versions$/.test(dir) ? "alembic-versions" : "directory-name", rec);
+  }
+  if (ormConfig && /(^|\/)drizzle\.config\.[cm]?[jt]s$/.test(ormConfig)) {
+    const dir = drizzleOutDir(ctx, unit, ormConfig);
+    if (dir) add(dir, "drizzle-config", prov.add("observed", ormConfig, "drizzle-config-extractor", [subject]));
+  }
+  return [...byPath.values()]
+    .sort((a, b) => (a.path < b.path ? -1 : 1))
+    .map((d) => ({ path: d.path, via: [...d.via].sort(), provenanceIds: null, _provs: d._provs }));
+}
+
+// Drizzle Kit writes migrations to `out`, `./drizzle` when absent. The config
+// is code, and it is never executed: only a string literal is read. Anything
+// else — an expression, an environment variable, a spread that could carry
+// `out`, several `out` keys — is reported and not guessed, because a wrong
+// directory would route migrations to the wrong database silently.
+function drizzleOutDir(ctx, unit, configPath) {
+  const { repo, compRef } = ctx;
+  const unresolved = (why) => {
+    ctx.diagnostics.push({
+      severity: "warning",
+      code: "AGENTDOC_MIGRATION_DIR_UNRESOLVED",
+      subject: compRef,
+      refs: [compRef],
+      message:
+        "Drizzle migration directory in '" + configPath + "' is not recorded: " + why + ". " +
+        "Declare it with spec.migrationPaths on the logical-database Resource it migrates",
+      paths: [configPath],
+    });
+    return null;
+  };
+  const parsed = drizzleOut(repo.readText(configPath));
+  if (parsed.error) return unresolved(parsed.error);
+  const value = parsed.value ?? "./drizzle";
+  // Relative to the directory drizzle-kit runs from, which is the config's own
+  // directory in the documented layout (and the unit root here).
+  const base = configPath.includes("/") ? configPath.slice(0, configPath.lastIndexOf("/")) : ".";
+  const dir = value.startsWith("/") ? null : canonicalPath(joinPath(base, value));
+  if (!dir || dir === "." || dir === canonicalPath(unit.root)) {
+    return unresolved("out " + JSON.stringify(value) + " is not a directory inside the unit at '" + unit.root + "'");
+  }
+  if (!repo.ownsUnitPath(unit.root, dir)) {
+    return unresolved("out " + JSON.stringify(value) + " is outside the unit at '" + unit.root + "'");
+  }
+  // Not generated yet: nothing to classify. The probe is an input, so the
+  // first generated migration invalidates the graph.
+  if (!repo.isDir(dir)) return null;
+  return dir;
+}
+
+// Static read of `out` from a Drizzle config. Comments are removed and string
+// literals set aside first, so neither `// out: "x"` nor a string containing
+// "out:" is mistaken for the key.
+export function drizzleOut(text) {
+  const strings = [];
+  let code = "";
+  for (let i = 0; i < text.length; ) {
+    const c = text[i];
+    if (c === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+      continue;
+    }
+    if (c === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      i = end < 0 ? text.length : end + 2;
+      code += " ";
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      let value = "";
+      let closed = false;
+      while (j < text.length) {
+        if (text[j] === "\\") {
+          value += text[j + 1] ?? "";
+          j += 2;
+          continue;
+        }
+        if (text[j] === c) { closed = true; break; }
+        if (c !== "`" && text[j] === "\n") break;
+        value += text[j];
+        j++;
+      }
+      if (!closed) return { error: "the config could not be read statically" };
+      // A template with a substitution is an expression, not a literal.
+      strings.push(c === "`" && value.includes("${") ? null : value);
+      code += "\u0000" + (strings.length - 1) + "\u0000";
+      i = j + 1;
+      continue;
+    }
+    code += c;
+    i++;
+  }
+  const hits = [];
+  for (const m of code.matchAll(/(?:^|[{,\s])(?:out|\u0000(\d+)\u0000)\s*(:|[,}])/g)) {
+    // A quoted key counts only when it says "out".
+    if (m[1] !== undefined && strings[Number(m[1])] !== "out") continue;
+    hits.push(m);
+  }
+  if (hits.length === 0) {
+    // A spread could bring `out` in from elsewhere; the default is then a guess.
+    if (/\.\.\.\s*[A-Za-z_$(]/.test(code)) return { error: "the config spreads another object that may set out" };
+    return { value: null };
+  }
+  if (hits.length > 1) return { error: "out is set more than once" };
+  const m = hits[0];
+  if (m[2] !== ":") return { error: "out is a shorthand property, not a string literal" };
+  const rest = code.slice(m.index + m[0].length);
+  const lit = /^\s*\u0000(\d+)\u0000\s*(?:[,}]|$)/.exec(rest);
+  const value = lit ? strings[Number(lit[1])] : null;
+  if (typeof value !== "string" || value.trim() === "") return { error: "out is not a string literal" };
+  return { value };
 }

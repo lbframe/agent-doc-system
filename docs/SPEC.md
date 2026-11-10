@@ -77,6 +77,47 @@ authored in exactly one file, and the location is validated.
 The namespace comes from the configuration, so two repositories in one graph
 never collide.
 
+### Resource migration paths
+
+A `logical-database` Resource may list the repository directories that hold its
+schema migrations:
+
+```yaml
+apiVersion: agentdoc.dev/v1
+kind: Resource
+metadata:
+  name: app-postgres
+  description: "Primary Postgres database of the application."
+spec:
+  type: logical-database
+  system: app
+  migrationPaths:
+    - frontend/apps/web/drizzle
+```
+
+Each entry is a repository path matched as a whole-segment prefix (the rules
+of `core/paths.mjs`): `frontend/apps/web/drizzle` covers every file below it,
+including `meta/_journal.json`, and never `frontend/apps/web/drizzle-extra/`.
+`impact` treats a change under it as a change to this Resource, whichever
+component owns the file, and reaches every component bound to the Resource.
+The declaration is AUTHORED: it beats a migration directory the `database`
+adapter detects, and it is pointed at by its own provenance subject
+(`/entities/<i>/entity/spec/migrationPaths`). It never creates a
+`usesResource` relation; which components use the database is still derived.
+
+Validation, at load time:
+
+| case | code |
+|---|---|
+| absolute, backslash, `.` or `..` segment, whitespace | `AGENTDOC_PATH_ESCAPE` |
+| a path that does not exist (or is git-ignored) | `AGENTDOC_PATH_UNRESOLVED` |
+| a glob (`*`, `?`, `[`, `{`, `!`): declare the directory itself | `AGENTDOC_MIGRATION_PATH` |
+| the field on a Resource whose type is not `logical-database` | `AGENTDOC_MIGRATION_PATH` |
+| the same path declared by two Resources | `AGENTDOC_MIGRATION_PATH` |
+
+Nested declarations on different Resources are allowed; the longest prefix
+wins.
+
 ### Why no further entities
 
 A `Team`, `Milestone` or `Tag` entity was considered and rejected: none of them
@@ -142,6 +183,7 @@ least one provenance id and an evidence class.
 ```
 schemaVersion, source{commit, dirty, inputHash}, compiler{name, version, adapters}
 entities[]      ref, kind, name, entity, source, sourcePaths[], derived?
+                (derived.migrationDirs[]: path, via[], provenanceIds[])
 relations[]     type, sourceRef, targetRef, evidenceClass, attributes, provenanceIds[]
 interfaces.events[]              pattern, producers, consumers, contract, resolution
 externalDependencies[]           componentRef, name, role, mechanism, evidenceClass

@@ -107,7 +107,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | `dockerfile` | `Dockerfile`, `Containerfile` | deployable evidence |
 | `deploy-config` | `fly.toml`, `Procfile`, … | deployable evidence |
 | `wrangler` | `wrangler.toml/json` | bindings, crons, service bindings, trigger targets |
-| `database` | migrations, ORM config, pool evidence | logical-database ownership, or a candidate |
+| `database` | migrations, ORM config, pool evidence | logical-database ownership, or a candidate; the unit's migration directories |
 | `object-store` | bucket literals | logical-dataset edges, or an ambiguity |
 | `cache` | cache client evidence | cache bindings |
 | `events` | subject literals, declared constants, event-contract files | producers, consumers, reserved subjects |
@@ -312,6 +312,45 @@ the result is `AGENTDOC_BINDING_AMBIGUOUS` and no edge.
 file pulled in with `-r` / `-c`; a lockfile's resolved versions; a PDM
 workspace; a workspace manifest deeper than the search bound.
 
+### `database`
+
+Migration authority and a connection string in one unit resolve to an authored
+logical-database Resource (by name: `<component>-postgres`, `-database`,
+`-db`, or the single Resource whose name starts with the component's).
+Migrations alone give a candidate and `AGENTDOC_RESOURCE_CANDIDATE`, never an
+edge.
+
+The adapter also records where the unit's migrations live, as
+`derived.migrationDirs` (`path`, `via`, `provenanceIds`). `impact` classifies a
+change under one of them as a resource change. Two routes, each with its own
+evidence:
+
+| `via` | directory | evidence |
+|---|---|---|
+| `directory-name` | a directory named `migrations` or `migration` inside the unit, at most five levels down; Prisma Migrate's `prisma/migrations` is one | the first file in it |
+| `alembic-versions` | `alembic/versions` | the first file in it |
+| `drizzle-config` | Drizzle Kit's `out` in the unit-root `drizzle.config.ts`, `.js` or `.mjs`; `./drizzle` when `out` is absent | the config file |
+
+The Drizzle config is code and is never executed. `out` is read only as a
+single string literal (a template literal without `${...}` counts), after
+comments are removed, and resolved against the config's directory. An `out`
+that is an expression, an environment variable, a shorthand property, set more
+than once, or possibly brought in by a spread is not guessed: the adapter
+records nothing and reports `AGENTDOC_MIGRATION_DIR_UNRESOLVED`, a warning that
+can be accepted. An `out` outside the unit is reported the same way. An `out`
+directory that does not exist yet records nothing; the existence probe is an
+input, so generating the first migration invalidates the graph.
+
+A recorded directory is migration authority, not ownership: it creates no
+binding. A migration change reaches a database only through the enclosing
+component's existing `usesResource` relations, or through a Resource that
+declares the directory in `spec.migrationPaths` (see `SPEC.md`).
+
+**What it cannot see:** a Drizzle config passed with `--config` under another
+name, a config below the unit root, and the migration layouts of Knex, Goose,
+Sequelize or TypeORM outside a `migrations` directory. Declare those with
+`spec.migrationPaths`.
+
 `asyncapi` is a contract **type** (declared on an API descriptor, validated by
 the contract layer), not an adapter — there is no `asyncapi` entry in
 `adapters: [...]`.
@@ -373,9 +412,14 @@ places, and those are the honest exceptions worth naming:
   part of the input hash. A repository that does not enable `python` is not
   probed, and its graph does not change.
 - `core/impact.mjs` classifies a changed file by consulting the compiled graph —
-  its contracts, its provenance paths, its extractor identities — rather than a
-  hand-written list of technology filenames. A list would silently under-report
-  for every repository that is not Node-and-Go.
+  its contracts, its provenance paths, its extractor identities, its declared
+  and detected migration directories — rather than a hand-written list of
+  technology filenames. A list would silently under-report for every
+  repository that is not Node-and-Go. One name rule remains as a fallback: a
+  path under a `migrations/`, `migration/` or `alembic/versions/` segment is a
+  resource change even where the graph records no migration directory (the
+  `database` adapter is off, or the directory is deeper than its walk), so
+  those repositories keep the answer they had.
 - `core/discover.mjs` excludes `agentdoc`, `docs`, `scripts`, `node_modules`, and
   `.github` by default. `discovery.notUnitRoots` replaces that list (`[]`
   disables it). These roots and their descendants cannot be inferred from

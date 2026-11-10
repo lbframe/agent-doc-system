@@ -16,7 +16,15 @@
         "type": { "enum": ["logical-database", "logical-dataset", "event-bus", "queue", "cache", "object-store", "search-index", "secret-store", "other"] },
         "placementRationale": { "$ref": "common.json#/$defs/rationale" },
         "system": { "$ref": "common.json#/$defs/name" },
-        "context": { "$ref": "common.json#/$defs/context" }
+        "context": { "$ref": "common.json#/$defs/context" },
+        "migrationPaths": {
+          "description": "Repository directories (or files) holding this logical database's schema migrations, matched as whole-segment path prefixes. Authoritative for change impact: a change under one of them is a change to this Resource, whichever component owns the file. Never a binding: which components use the database is still derived. Only a logical-database may declare them.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "$ref": "common.json#/$defs/repoPath" }
+        }
       },
       "oneOf": [
         { "required": ["system"] },
