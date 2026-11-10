@@ -215,10 +215,31 @@ receives the files no other component owns. A file nothing owns is listed in
 
 Reachability rules: a contract change reaches its provider and every consumer;
 a Resource change reaches components bound to that exact Resource. A migration
-change (including Alembic `alembic/versions`) reports its changed path and the
-logical databases bound to its enclosing component through existing
-`usesResource` / `resourceUsedBy` relations. Migration authority alone never
-establishes ownership or invents a Resource binding.
+change is a Resource change. Which Resource is decided from the graph, most
+specific directory first, by whole path segment (`drizzle` never matches
+`drizzle-extra/`):
+
+1. **Declared.** Under a path a logical-database Resource lists in
+   `spec.migrationPaths`: that Resource, whichever component owns the file and
+   whatever that component is bound to. An authored declaration beats a
+   detected directory.
+2. **Detected.** Under a directory the `database` adapter recorded in a
+   component's `derived.migrationDirs` (a `migrations` directory, Alembic
+   `alembic/versions`, Drizzle Kit's `out`): the logical databases bound to
+   that component through existing `usesResource` / `resourceUsedBy`
+   relations. The changed path is listed too.
+3. **By name.** Under a `migrations/`, `migration/` or `alembic/versions/`
+   segment the graph does not record (the `database` adapter is off): the same
+   as detected, from the enclosing component.
+
+Every component bound to a reached Resource is affected, with the reason
+`resource change touches <ref>`. When the directory was declared or found
+through an ORM config, a second reason names the migration:
+`migration drizzle/0001_x.sql changes resource:default/app-db (migration
+directory drizzle, detected from drizzle-config in component:default/web)`.
+Migration authority alone never establishes ownership or invents a Resource
+binding: a detected directory whose component has no binding reaches no
+Resource, and a declaration routes changes without creating a relation.
 
 A component change reaches its reverse build/test dependency closure, plus
 direct runtime-call and schedule peers. Dependencies are not affected just

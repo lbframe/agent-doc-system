@@ -498,6 +498,10 @@ export function compile(root, opts = {}) {
       "entf:" + e.ref + ":/metadata/description",
     ];
     if (e.doc.spec !== undefined) subjects.push("entf:" + e.ref + ":/spec");
+    // A declared migration path is the one authored path whose meaning reaches
+    // past the descriptor (impact routes every change below it to this
+    // Resource), so it is pointed at directly rather than through `/spec`.
+    if (e.doc.spec?.migrationPaths) subjects.push("entf:" + e.ref + ":/spec/migrationPaths");
     prov.add("declared", e.file, "descriptor-reader", subjects);
   }
 
@@ -777,7 +781,7 @@ export function compile(root, opts = {}) {
     return earlyOut(res, { entities: sources.entities.length, units: discovery.eligible.length });
   }
   for (const d of derivedMap.values()) {
-    for (const list of [d.bindings || [], d.healthContracts || []]) {
+    for (const list of [d.bindings || [], d.healthContracts || [], d.migrationDirs || []]) {
       for (const b of list) {
         b.provenanceIds = [...(b._provs || [])].map((p) => provFinal.idOf.get(p)).filter(Boolean).sort();
         delete b._provs;

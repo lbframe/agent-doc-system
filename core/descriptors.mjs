@@ -297,6 +297,7 @@ export function loadDescriptors(repo, cfg, bundle, refs) {
           throw new AgentDocError(CODES.PATH_UNRESOLVED, "context link does not resolve: " + p, { path: e.file, ref: e.ref });
         }
       }
+      if (e.kind === "Resource" && spec.migrationPaths) checkMigrationPaths(repo, e);
       if (e.kind === "API") {
         const prov = spec.provider;
         if (!refs.isValidRef(prov) || refs.kindOfRef(prov) !== "Component") {
@@ -335,7 +336,55 @@ export function loadDescriptors(repo, cfg, bundle, refs) {
     }, errors);
   }
 
+  // One directory migrates one database. Two Resources declaring the same path
+  // would make every migration under it ambiguous, and impact must not pick.
+  // Nested declarations are fine: the longest prefix wins, as for ownership.
+  const declaredBy = new Map();
+  for (const e of entities) {
+    if (e.kind !== "Resource") continue;
+    for (const p of e.doc.spec?.migrationPaths || []) {
+      if (!declaredBy.has(p)) declaredBy.set(p, []);
+      declaredBy.get(p).push(e);
+    }
+  }
+  for (const [p, owners] of [...declaredBy.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+    if (owners.length < 2) continue;
+    const names = owners.map((o) => o.ref).sort();
+    errors.push(new AgentDocError(
+      CODES.MIGRATION_PATH,
+      "migration path " + JSON.stringify(p) + " is declared by several Resources (" + names.join(", ") + "); a migration directory migrates one logical database",
+      { path: owners[0].file, ref: names[0] }
+    ));
+  }
+
   return { entities, byRef, byKindName, componentFiles: new Set(componentFiles), errors, componentSet, centralSet };
+}
+
+// `spec.migrationPaths` on a Resource: repository directories (or files) whose
+// changes are changes to this database. They are whole-segment prefixes with
+// the semantics of `core/paths.mjs`, never globs: a glob would need an engine
+// this system does not ship, and `drizzle/**` means nothing a prefix does not.
+function checkMigrationPaths(repo, e) {
+  if (e.doc.spec.type !== "logical-database") {
+    throw new AgentDocError(
+      CODES.MIGRATION_PATH,
+      "spec.migrationPaths is only meaningful on a logical-database Resource, not on type '" + e.doc.spec.type + "'",
+      { path: e.file, ref: e.ref }
+    );
+  }
+  for (const p of e.doc.spec.migrationPaths) {
+    assertRepoPath(p, e.file);
+    if (/[*?[\]{}!]/.test(p)) {
+      throw new AgentDocError(
+        CODES.MIGRATION_PATH,
+        "migration path " + JSON.stringify(p) + " is a glob; declare the directory itself (e.g. \"" + p.replace(/\/?[^/]*[*?[\]{}!].*$/, "") + "\"), which covers everything below it",
+        { path: e.file, ref: e.ref }
+      );
+    }
+    if (!repo.exists(p)) {
+      throw new AgentDocError(CODES.PATH_UNRESOLVED, "migration path does not resolve: " + p, { path: e.file, ref: e.ref });
+    }
+  }
 }
 
 export function loadJourneys(repo, cfg, bundle, byRef) {

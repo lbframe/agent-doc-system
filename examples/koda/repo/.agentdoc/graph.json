@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "f3810ce80d6802ed56f0aaa2a22a3c5c16a5e944",
+    "commit": "bc83dfdd20cfbcfb1b49684ca3203669fd0561de",
     "dirty": false,
-    "inputHash": "sha256:251642649795108d0fd62313fe56bd0990eddf1ed6e24a353e34b8cda0f34aaf"
+    "inputHash": "sha256:52496dd2675aa075ddb0b6800d93af7e63f4963523e20d9dee748f454a44a0ab"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -333,6 +333,17 @@
             ]
           }
         ],
+        "migrationDirs": [
+          {
+            "path": "apps/calendar/src/db/migrations",
+            "via": [
+              "directory-name"
+            ],
+            "provenanceIds": [
+              "p-0072"
+            ]
+          }
+        ],
         "deployConfigs": [],
         "dockerfiles": [
           "apps/calendar/Dockerfile"
@@ -654,6 +665,17 @@
             "kind": "database",
             "logicalResourceRef": "resource:default/notifications-postgres",
             "resolution": "resolved",
+            "provenanceIds": [
+              "p-0106"
+            ]
+          }
+        ],
+        "migrationDirs": [
+          {
+            "path": "apps/notifications/internal/db/migrations",
+            "via": [
+              "directory-name"
+            ],
             "provenanceIds": [
               "p-0106"
             ]
@@ -4363,6 +4385,7 @@
       "subjects": [
         "/assertions/4",
         "/entities/6/derived/bindings",
+        "/entities/6/derived/migrationDirs",
         "/relations/60",
         "/relations/66"
       ]
@@ -4851,6 +4874,7 @@
       "subjects": [
         "/assertions/11",
         "/entities/11/derived/bindings",
+        "/entities/11/derived/migrationDirs",
         "/relations/61",
         "/relations/67"
       ]

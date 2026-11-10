@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "f3810ce80d6802ed56f0aaa2a22a3c5c16a5e944",
+    "commit": "bc83dfdd20cfbcfb1b49684ca3203669fd0561de",
     "dirty": false,
-    "inputHash": "sha256:97f50f2e6288eff434fb8cf0df00eef0a7ed8a5c4905f8320a7e7e55a45eb944"
+    "inputHash": "sha256:be789060fd5efe0b00c5f07f709b1dbc5400eaae1475ddece972c44cf6177773"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -110,6 +110,17 @@
             "kind": "database",
             "logicalResourceRef": "resource:default/gateway-postgres",
             "resolution": "resolved",
+            "provenanceIds": [
+              "p-0032"
+            ]
+          }
+        ],
+        "migrationDirs": [
+          {
+            "path": "services/gateway/internal/store/migrations",
+            "via": [
+              "directory-name"
+            ],
             "provenanceIds": [
               "p-0032"
             ]
@@ -1282,6 +1293,7 @@
       "subjects": [
         "/assertions/4",
         "/entities/1/derived/bindings",
+        "/entities/1/derived/migrationDirs",
         "/relations/18",
         "/relations/19"
       ]

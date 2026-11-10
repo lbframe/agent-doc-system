@@ -9,6 +9,38 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+### Added
+
+- A `logical-database` Resource can declare where its schema migrations live,
+  with `spec.migrationPaths` ([#63]). A change under a declared directory is a
+  change to that Resource, whichever component owns the file, so `impact`
+  reaches every component bound to the database. Paths are whole-segment
+  prefixes, not globs: `frontend/apps/web/drizzle` covers `0036_x.sql` and
+  `meta/_journal.json`, and never `drizzle-extra/`. A glob, a declaration on
+  another Resource type, or one path declared by two Resources fails with the
+  new `AGENTDOC_MIGRATION_PATH`; a path outside the repository fails with
+  `AGENTDOC_PATH_ESCAPE`, a missing one with `AGENTDOC_PATH_UNRESOLVED`. The
+  declaration never creates a binding.
+
+### Fixed
+
+- `impact` now classifies a change under a Drizzle migration directory as a
+  database change ([#63]). Only `migrations/`, `migration/` and
+  `alembic/versions/` used to count, so `impact
+  frontend/apps/web/drizzle/0036_email_locale.sql` reported the web component
+  alone and missed every other component bound to the same database. The
+  `database` adapter now reads Drizzle Kit's `out` from `drizzle.config.ts`
+  (`.js`, `.mjs`) as a string literal, without running it, and defaults to
+  `./drizzle`. An `out` it cannot read statically is reported with the
+  acceptable warning `AGENTDOC_MIGRATION_DIR_UNRESOLVED` instead of being
+  guessed. Detected directories, including `migrations` and `alembic/versions`,
+  are recorded in the graph as `derived.migrationDirs` with provenance, and
+  `impact` classifies from them. A detected directory still reaches a database
+  only through the component's existing bindings. The answer for an existing
+  `migrations/` or `alembic/versions/` path is unchanged. Committed graphs of
+  repositories that enable the `database` adapter gain `migrationDirs` and
+  must be recompiled.
+
 ## [1.3.0] - 2026-11-07
 
 A graph compiled on your machine now passes `check` in CI and in a clean
@@ -400,3 +432,4 @@ First public release.
 [#51]: https://github.com/lbframe/agent-doc-system/issues/51
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
 [#59]: https://github.com/lbframe/agent-doc-system/issues/59
+[#63]: https://github.com/lbframe/agent-doc-system/issues/63
