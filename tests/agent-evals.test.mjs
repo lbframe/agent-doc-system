@@ -82,3 +82,15 @@ test('cumulative dollar costs cannot decrease or disappear even without a dollar
   assert.equal(r.usage.costUsd,.08);
  }
 });
+
+test('evaluation entrypoints execute through symlinked paths',async t=>{
+ const dir=temporary(t);
+ for(const [name,args,expected] of [['run.mjs',['--list'],0],['optimize.mjs',[path.join(dir,'missing.json')],2]]){
+  const target=path.resolve('evals/agent',name),link=path.join(dir,name);
+  fs.symlinkSync(target,link);
+  const r=await runProcess([process.execPath,link,...args],{timeoutMs:10000});
+  assert.equal(r.code,expected,r.stderr);
+  if(name==='run.mjs')assert.equal(JSON.parse(r.stdout).length,30);
+  else assert.match(r.stderr,/ENOENT/);
+ }
+});
