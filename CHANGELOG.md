@@ -9,6 +9,15 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-13
+
+### Fixed
+
+- Evaluation and optimization entrypoints now execute when invoked through a symbolic link, including installed paths under macOS temporary-directory aliases. Previously they could exit successfully without producing output.
+- CI now exercises agent evaluation and package installation on macOS in addition to the Node 22/24/26 Linux matrix.
+
+Recompile committed graphs after upgrading, as the compiler version is now 1.5.1.
+
 ## [1.5.0] - 2026-11-13
 
 ### Added
@@ -440,7 +449,8 @@ First public release.
   for project health.
 - An Agent Skill under `skills/agent-doc-system/`.
 
-[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/lbframe/agent-doc-system/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/lbframe/agent-doc-system/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/lbframe/agent-doc-system/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/lbframe/agent-doc-system/compare/v1.2.0...v1.3.0

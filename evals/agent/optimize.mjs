@@ -43,6 +43,6 @@ export async function optimize(config){
   const decision=validation.stopped?{adopt:false,reason:validation.stopped}:selectCandidate(validation.attempts.filter(x=>x.condition==='reference'),validation.attempts.filter(x=>x.condition===candidate),config.criteria);
   return {schemaVersion:'agentdoc.eval.optimization/v1',status:decision.adopt?'candidate-selected':'inconclusive',candidate,decision,spent,development,validation,publication:'not-performed',finalTest:'required-on-independent-tasks-before-production-performance-claims'};
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+if(process.argv[1]&&fs.existsSync(process.argv[1])&&fs.realpathSync(process.argv[1])===fs.realpathSync(fileURLToPath(import.meta.url))){
   try{const config=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));const report=await optimize(config);const text=JSON.stringify(report,null,2)+'\n';if(process.argv[3])fs.writeFileSync(process.argv[3],text);else process.stdout.write(text);if(report.status!=='candidate-selected')process.exitCode=1;}catch(e){console.error(e.message);process.exitCode=2;}
 }

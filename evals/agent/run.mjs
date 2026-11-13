@@ -150,7 +150,7 @@ export async function campaign(config){
   return {schemaVersion:'agentdoc.eval.campaign/v1',runtime:{node:process.version,runnerHash:RUNNER_HASH,corpusHash:createHash('sha256').update(JSON.stringify(tasks.map(t=>({id:t.id,pin:t.fixtureHash,cases:t.cases})))).digest('hex'),driverFiles:Object.fromEntries(config.driver.filter(p=>path.isAbsolute(p)&&fs.existsSync(p)&&fs.statSync(p).isFile()).map(p=>[p,createHash('sha256').update(fs.readFileSync(p)).digest('hex')]))},config,attempts,summary:summarize(attempts),conditions:Object.fromEntries(Object.keys(conditions).map(k=>[k,summarize(attempts.filter(x=>x.condition===k))]))};
 }
 
-if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+if(process.argv[1]&&fs.existsSync(process.argv[1])&&fs.realpathSync(process.argv[1])===fs.realpathSync(fileURLToPath(import.meta.url))){
   try{
     if(process.argv.includes('--list'))process.stdout.write(JSON.stringify(tasks.map(t=>({...publicTask(t),family:t.family,split:t.split})),null,2)+'\n');
     else{
