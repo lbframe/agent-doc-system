@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "agentdoc.eval.smoke/v1",
+  "purpose": "Real-model functional smoke; not a performance adoption experiment",
+  "model": "gpt-6.1-sol",
+  "modelVersion": "configured-default/codex-cli-0.167.2",
+  "sourceState": "Development worktree during implementation; no immutable release claim",
+  "task": "money-1",
+  "repeats": 1,
+  "budget": {
+    "timeoutMs": 90000,
+    "maxTokens": 300000,
+    "maxToolCalls": 20,
+    "maxCostUsd": null
+  },
+  "conditions": {
+    "baseline": "No preloaded AgentDoc context; identical filesystem task and constraints",
+    "reference": "Current CLI compile followed by query service/src/logic.mjs",
+    "candidate": "Current CLI prepare --request request.json"
+  },
+  "attempts": [
+    {
+      "condition": "baseline",
+      "status": "failed",
+      "usage": {
+        "inputTokens": 157019,
+        "outputTokens": 1003,
+        "cachedInputTokens": 142208,
+        "toolCalls": 6,
+        "costUsd": null
+      },
+      "durationMs": 54914.645124,
+      "fixtureHash": "9d718cd543878efd8f8670eb12c5036f0446024e3185e2d9082836caa7066800",
+      "validation": {
+        "passed": false,
+        "failure": "Behavior assertion: per-unit decimal rounding returned 200 instead of 202 cents."
+      }
+    },
+    {
+      "condition": "reference",
+      "status": "passed",
+      "usage": {
+        "inputTokens": 131257,
+        "outputTokens": 937,
+        "cachedInputTokens": 116608,
+        "toolCalls": 4,
+        "costUsd": null
+      },
+      "durationMs": 54258.42732899999,
+      "fixtureHash": "9d718cd543878efd8f8670eb12c5036f0446024e3185e2d9082836caa7066800",
+      "validation": {
+        "passed": true
+      }
+    },
+    {
+      "condition": "candidate",
+      "status": "passed",
+      "usage": {
+        "inputTokens": 109042,
+        "outputTokens": 978,
+        "cachedInputTokens": 93568,
+        "toolCalls": 3,
+        "costUsd": null
+      },
+      "durationMs": 44541.01249600001,
+      "fixtureHash": "9d718cd543878efd8f8670eb12c5036f0446024e3185e2d9082836caa7066800",
+      "validation": {
+        "passed": true
+      }
+    }
+  ],
+  "limitations": [
+    "One synthetic development task, one repetition, one configured model alias.",
+    "Provider dollar cost is unavailable; no cost-reduction or adoption claim is supported.",
+    "Token usage includes cached input and local Codex harness instructions; it is reported at turn boundaries, not enforced before each provider call.",
+    "Comparison ran against a changing development worktree; rerun a pinned campaign for release performance claims."
+  ],
+  "decision": {
+    "adopt": false,
+    "reason": "Functional smoke only; larger independent held-out campaign required."
+  }
+}

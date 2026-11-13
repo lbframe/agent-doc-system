@@ -13,6 +13,21 @@ const JSON_FLAG = { json: { desc: "print the machine-readable report" } };
 const JSON_ALWAYS = { json: { desc: "accepted for explicitness; the output is always JSON" } };
 
 export const COMMANDS = {
+  prepare: {
+    synopsis: "agentdoc prepare [--request file|-]",
+    summary: "prepare a versioned task context packet from JSON (stdin by default)",
+    flags: { request: { value: "file|-", desc: "JSON request file, or - for stdin" }, ...JSON_ALWAYS },
+  },
+  expand: {
+    synopsis: "agentdoc expand [--request file|-]",
+    summary: "expand a packet continuation on the same snapshot",
+    flags: { request: { value: "file|-", desc: "JSON continuation request" }, ...JSON_ALWAYS },
+  },
+  refresh: {
+    synopsis: "agentdoc refresh [--request file|-]",
+    summary: "refresh context with explicit retained record IDs",
+    flags: { request: { value: "file|-", desc: "JSON refresh request" }, ...JSON_ALWAYS },
+  },
   init: {
     synopsis: "agentdoc init [--force]",
     summary: "write a configuration and documentation skeleton",

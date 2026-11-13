@@ -387,3 +387,127 @@ Each was fixed in the engine, not by relaxing a threshold.
   weight a long constraint file against a short ref.
 - Scenarios touch one or two files. A change spanning twenty files is not
   measured.
+
+## Executable agent-task campaigns
+
+`node evals/agent/run.mjs --list` lists a bootstrap corpus of 30 pinned fixtures
+(10 coding-task families, three fixture variants per family). This is a synthetic
+pilot corpus, not a benchmark of 30 independent production incidents. Development
+and holdout families are disjoint. Fixture content hashes live in
+`evals/agent/tasks/pins.json`; changes require deliberately updating those pins.
+Each attempt creates and commits a fresh temporary repository. Validation runs
+after the driver exits, outside the task repository, against executable behavior
+and input-preservation requirements. Neither the validator nor its cases are
+included in the model prompt. A driver saying it succeeded does not pass a task.
+
+Campaigns are opt-in. No model request is made by the regular deterministic
+routing evaluation or test suite. Example configuration:
+
+```json
+{
+  "driver": ["node", "/absolute/path/to/evals/agent/codex-driver.mjs"],
+  "model": "your-configured-model",
+  "modelVersion": "record-the-model-version-and-driver-version",
+  "repeats": 3,
+  "split": "development",
+  "tasks": ["money-1"],
+  "budget": {
+    "timeoutMs": 120000,
+    "maxTokens": 16000,
+    "maxToolCalls": 40,
+    "maxCostUsd": null,
+    "maxOutputBytes": 1048576
+  },
+  "conditions": {
+    "baseline": {"contextCommands": []},
+    "reference": {"contextCommands": [
+      ["node", "{agentdoc}", "compile"],
+      ["node", "{agentdoc}", "query", "service/src/logic.mjs"]
+    ]},
+    "candidate": {"contextCommands": [
+      ["node", "{agentdoc}", "prepare", "--request", "request.json"]
+    ]}
+  }
+}
+```
+
+Run `node evals/agent/run.mjs --config campaign.json --out report.json`.
+The runner records the declared model/version, driver file hashes, fixture pins,
+conditions, repeats, validation results, usage, runtime and infrastructure errors.
+It does not resolve a provider's model alias to an immutable model build; the
+chosen driver must pin and report its actual deployment for that guarantee.
+Model prompts, editing tools and execution permissions should otherwise remain
+identical across conditions. Context-command outputs are included in the model
+prompt and must be counted in input usage. The built-in Codex adapter uses the
+user's existing configured provider and model without switching either.
+
+### Driver protocol and limits
+
+The runner starts an argv array without a shell. The driver receives one JSON
+line on stdin with protocol `agentdoc.eval.driver/v1`, the temporary workspace,
+public task, condition, context and budgets. It writes JSON lines on stdout:
+
+```json
+{"type":"usage","usage":{"inputTokens":100,"outputTokens":20,"toolCalls":2,"costUsd":0.01}}
+{"type":"result","completed":true}
+```
+
+Usage events are cumulative and nondecreasing. Optional `trace` events can carry
+diagnostics. Missing usage, malformed events, a failed driver or failed context
+command is an infrastructure error. Wrong behavior is a task failure. Both stay
+in the report and denominator; neither is silently dropped. Reports with unknown
+cost retain `null` cost rather than treating it as zero.
+
+Wall time and output limits terminate the process group on POSIX, including its
+children. Token, tool and dollar limits terminate when usage events report a
+limit exceeded. They cannot prevent an unreported request from being charged:
+a driver must reserve/enforce provider request budgets before making calls for
+a hard spend guarantee. The Codex adapter receives token usage at turn boundaries
+and does not expose dollar cost, so use `maxCostUsd: null` with that adapter.
+For a driver reporting dollars, `maxCampaignCostUsd` additionally reserves each
+attempt's maximum before launch and stops when costs are unmeasured.
+
+Temporary repositories isolate task files and cleanup; they are not an OS
+security sandbox. Driver execution permissions and common tool restrictions
+belong to the driver/runtime. The optional Codex adapter requests workspace-write
+execution. Untrusted third-party task code requires an external container or
+sandbox, including for validation.
+
+### Candidate selection
+
+`selectCandidate(reference, candidate)` requires paired holdout outcomes and
+identical fixture hashes. It rejects infrastructure errors and declared critical
+errors. It groups variants and repetitions by family and uses a conservative
+95% bounded-variable interval on the paired success-rate difference. A tiny pilot
+cannot establish a 2-point noninferiority margin, even with identical outcomes.
+Adoption additionally requires measured cost per success to improve by at least
+20%; unknown cost cannot support adoption. All attempts, including failures,
+contribute to total cost. This selector evaluates supplied candidates; it never
+changes truth, edits thresholds, publishes code or starts a paid campaign itself.
+Use development tasks to propose variants, holdout tasks to select them, and a
+separate final test set before making production performance claims.
+
+`node evals/agent/optimize.mjs optimization.json report.json` runs a bounded offline
+search. Its configuration contains `campaign` (the runner configuration),
+`reference`, named `variants` (context-command settings), `maxCandidates` (1–20),
+and `maxTotalCostUsd`. The nested campaign must have a measured per-attempt dollar
+cap. An optional `proposer` argv receives public development tasks and the allowed
+variant definitions, and returns `{"variants":["variant-name"]}`. Only declared
+variants can be proposed. The optimizer compares them on development tasks, then
+runs the selected candidate and reference on holdout tasks and applies the
+conservative selection gate. Unknown costs stop the search; the total dollar
+limit is shared across the two stages. Proposal-provider costs are outside the
+runner's usage stream and must be budgeted by that provider driver separately.
+The optimizer never edits the implementation, adjusts thresholds or publishes a
+candidate. The bootstrap corpus is too small to establish a 2-point margin;
+normal pilot output is therefore `inconclusive`, not an adoption claim.
+
+A real-model functional smoke is recorded in
+[`evals/agent/results/smoke-gpt-6.1-sol.json`](../evals/agent/results/smoke-gpt-6.1-sol.json).
+On one synthetic development task with one repetition, the independent validator
+accepted the reference and candidate patches and rejected the baseline patch's
+per-unit decimal rounding. This verifies the runner/model/validator integration;
+it establishes neither a general success-rate difference nor a cost improvement.
+The configured model was `gpt-6.1-sol` through local Codex CLI 0.167.2. Dollar cost
+was unavailable, and the run used the development worktree rather than an
+immutable released revision. Larger pinned holdout campaigns remain necessary.

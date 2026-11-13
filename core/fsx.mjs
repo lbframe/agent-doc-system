@@ -70,11 +70,19 @@ export class Repo {
     this.root = path.resolve(root);
     this.readPaths = new Map();
     this.probes = new Map();
+    this.probeRecords = new Map();
     this.walks = new Map();
+    this.walkInputs = new Map();
     this.listings = new Map();
     this.nestedUnitRoots = new Map();
     this.generatedDirs = new Set(opts.generatedDirs || DEFAULT_GENERATED_DIRS);
     this.noGit = Boolean(opts.noGit);
+    this.snapshotReads = Boolean(opts.snapshotReads);
+    this.byteCache = new Map();
+    this.textCache = new Map();
+    this.jsonCache = new Map();
+    this.parseCache = opts.parseCache;
+    this.metrics = { physicalReads: 0, bytesRead: 0, readCacheHits: 0, jsonParses: 0, jsonCacheHits: 0, sharedJsonHits: 0 };
     // Per-Repo git caches. undefined = not asked yet; null = no answer.
     this._hasGit = undefined;
     this._prefix = undefined;
@@ -148,15 +156,18 @@ export class Repo {
   exists(rel) {
     const r = !this.isIgnored(rel) && fs.existsSync(this.abs(rel));
     this.probes.set(rel, r);
+    this.probeRecords.set("exists:" + rel, { kind: "exists", path: rel, value: r });
     return r;
   }
   isDir(rel) {
     try {
       const r = !this.isIgnored(rel) && fs.statSync(this.abs(rel)).isDirectory();
       this.probes.set(rel, r);
+      this.probeRecords.set("isDir:" + rel, { kind: "isDir", path: rel, value: r });
       return r;
     } catch {
       this.probes.set(rel, false);
+      this.probeRecords.set("isDir:" + rel, { kind: "isDir", path: rel, value: false });
       return false;
     }
   }
@@ -172,9 +183,15 @@ export class Repo {
         { path: rel }
       );
     }
-    let buf;
+    let buf = this.snapshotReads ? this.byteCache.get(rel) : undefined;
+    if (buf) this.metrics.readCacheHits++;
     try {
-      buf = fs.readFileSync(a);
+      if (!buf) {
+        buf = fs.readFileSync(a);
+        this.metrics.physicalReads++;
+        this.metrics.bytesRead += buf.length;
+        if (this.snapshotReads) this.byteCache.set(rel, buf);
+      }
     } catch {
       throw new AgentDocError(CODES.PATH_UNRESOLVED, "path does not resolve inside the repository: " + rel, { path: rel });
     }
@@ -183,6 +200,7 @@ export class Repo {
   }
   readText(rel, opts = {}) {
     const buf = this.readBytes(rel, opts);
+    if (this.snapshotReads && this.textCache.has(rel)) return this.textCache.get(rel);
     let text;
     try {
       text = new TextDecoder("utf-8", { fatal: true }).decode(buf);
@@ -190,10 +208,26 @@ export class Repo {
       throw new AgentDocError(CODES.UTF8, "file is not valid UTF-8: " + rel, { path: rel });
     }
     if (text.startsWith("﻿")) text = text.slice(1);
+    if (this.snapshotReads) this.textCache.set(rel, text);
     return text;
   }
   readJson(rel) {
-    return JSON.parse(this.readText(rel));
+    const text = this.readText(rel);
+    if (this.snapshotReads && this.jsonCache.has(rel)) {
+      this.metrics.jsonCacheHits++;
+      return structuredClone(this.jsonCache.get(rel));
+    }
+    const shared = this.parseCache?.get(text);
+    if (shared !== undefined) {
+      this.metrics.sharedJsonHits++;
+      if (this.snapshotReads) this.jsonCache.set(rel, structuredClone(shared));
+      return shared;
+    }
+    this.metrics.jsonParses++;
+    const value = JSON.parse(text);
+    this.parseCache?.set(text, value);
+    if (this.snapshotReads) this.jsonCache.set(rel, structuredClone(value));
+    return value;
   }
   readJsonUntracked(rel) {
     return JSON.parse(this.readText(rel, { track: false }));
@@ -215,6 +249,10 @@ export class Repo {
         continue;
       }
       entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      if (this.snapshotReads) {
+        const rel = path.relative(this.root, dir).split(path.sep).join("/") || ".";
+        this.walkInputs.set(rel, this.directoryState(rel, entries));
+      }
       for (const ent of entries) {
         if (this.generatedDirs.has(ent.name)) continue;
         const full = path.join(dir, ent.name);
@@ -231,6 +269,15 @@ export class Repo {
     out.sort();
     this.walks.set(relDir || ".", out);
     return out;
+  }
+  // Raw visited-directory state, independent of extractor filter closures.
+  // Those closures may depend on discovery state which evolves during compile.
+  directoryState(relDir, entries = fs.readdirSync(this.abs(relDir), { withFileTypes: true })) {
+    const prefix = relDir && relDir !== "." ? relDir + "/" : "";
+    return entries
+      .filter(e => !this.generatedDirs.has(e.name) && !this.isIgnored(prefix + e.name))
+      .map(e => [e.name, e.isSymbolicLink() ? "link" : e.isDirectory() ? "dir" : "file"])
+      .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
   }
   // Per-unit scans use the discovery result, never filesystem heuristics.
   // Keep walk() repository-wide for discovery, contracts and authored inputs.

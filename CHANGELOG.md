@@ -9,6 +9,27 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-13
+
+### Added
+
+- Task-oriented `prepare`, `expand` and `refresh` JSON operations with versioned facts, evidence references, explicit coverage, snapshot-bound pagination and exact serialized token budgets for `o200k_base` and `cl100k_base`.
+- Local persistent compilation reuse, shared reads and content-addressed JSON parsing. Changed files, directory probes, ignore rules and compiler inputs invalidate reuse; full compilation remains the reference.
+- Session check-result imports with pinned execution evidence and conservative snapshot invalidation, plus an opt-in JavaScript TypeScript symbol-candidate index that never narrows checks.
+- An agent evaluation runner with independent validators, a 30-task synthetic starter corpus, a local Codex driver, bounded campaigns and conservative candidate selection. No model-efficiency improvement is claimed from the starter corpus.
+- Local context benchmarks with graph and packet equivalence checks.
+
+### Fixed
+
+- Default Markdown now reports capped conflicts and checks, repository gates, typed relationships and runtime facts. Settled conflicts are distinguished from unresolved ones.
+- Test fixtures no longer inherit local Git commit or tag signing requirements.
+
+### Upgrade
+
+- Recompile committed graphs with `agentdoc compile` after upgrading.
+- Exact token budgets use the pinned `js-tiktoken` runtime dependency. The compiler itself remains independent of model APIs. See [the task context protocol](docs/CONTEXT.md).
+
+
 ## [1.4.0] - 2026-11-10
 
 `impact` now treats a change under a Drizzle migration directory as a change
@@ -419,7 +440,8 @@ First public release.
   for project health.
 - An Agent Skill under `skills/agent-doc-system/`.
 
-[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/lbframe/agent-doc-system/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/lbframe/agent-doc-system/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/lbframe/agent-doc-system/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lbframe/agent-doc-system/compare/v1.1.0...v1.2.0

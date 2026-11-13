@@ -26,7 +26,9 @@ export function exists(dir, rel) {
 }
 
 export function git(dir, args) {
-  return execFileSync("git", args, { cwd: dir, encoding: "utf8" });
+  // Temporary repositories must not invoke the maintainer's signing agent.
+  // Command-scoped settings leave both local and global Git configuration intact.
+  return execFileSync("git", ["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", ...args], { cwd: dir, encoding: "utf8" });
 }
 
 export function commitAll(dir, message = "fixture") {

@@ -116,3 +116,9 @@ The normative specification (`docs/SPEC.md`, `docs/AUTHORITY.md`,
 `docs/PROVENANCE.md`, `docs/QUERY.md`, `docs/MIGRATION.md`, `docs/CI.md`) lives
 in the agent-doc-system repository — read it when a rule here needs the full
 contract behind it.
+
+## Task context protocol (1.5+)
+
+For an onboarded repository, use `agentdoc prepare` with a JSON request on stdin: `{"task":"Describe the intended change","paths":["relative/path"],"budget":{"tokens":4096,"encoding":"o200k_base"}}`. The response describes the current working tree, with no requirement to compile a committed graph first. Select the encoding your model uses; do not assume all models share one tokenizer.
+
+A partial packet is incomplete: follow its continuation through `agentdoc expand`, increasing the budget if a record does not fit. After edits, use `agentdoc refresh` with the previous packet reference and only record IDs still retained in active context. Apply retractions and changed versions. Reset after losing context. Stale observations and unknown execution directories require resolution before treating facts as current or running checks. The complete protocol is in `docs/CONTEXT.md`. Existing query/impact/check workflows remain available.

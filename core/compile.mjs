@@ -49,7 +49,27 @@ function earlyOut(res, extra = {}) {
 }
 
 export function compile(root, opts = {}) {
+  const started = performance.now();
+  const result = compileOnce(root, opts);
+  if (opts.telemetry) result.telemetry = {
+    durationMs: performance.now() - started,
+    ...result.repo?.metrics,
+    serializedBytes: result.serialized ? Buffer.byteLength(result.serialized) : 0,
+    heapUsedBytes: process.memoryUsage().heapUsed,
+    stages: result.phaseTimings || {},
+  };
+  return result;
+}
+
+function compileOnce(root, opts = {}) {
   const res = new CompileResult();
+  let stageStart = opts.telemetry ? performance.now() : 0;
+  const stage = (name) => {
+    if (!opts.telemetry) return;
+    const now = performance.now();
+    (res.phaseTimings ||= {})[name] = now - stageStart;
+    stageStart = now;
+  };
   // A peek load, only to read the generated-directory list: a project that keeps
   // build output in a directory this build does not know about must be able to
   // say so.
@@ -60,7 +80,7 @@ export function compile(root, opts = {}) {
   } catch {
     // No configuration, or an invalid one: the real load below reports it.
   }
-  const repo = new Repo(root, { noGit: opts.noGit, generatedDirs: cfgGeneratedDirs });
+  const repo = new Repo(root, { noGit: opts.noGit, generatedDirs: cfgGeneratedDirs, snapshotReads: opts.snapshotReads, parseCache: opts.parseCache });
   let bundle;
   let schemaInputs;
   try {
@@ -83,6 +103,7 @@ export function compile(root, opts = {}) {
   // a coverage failure is what scaffolding exists to fix.
   res.repo = repo;
   res.cfg = cfg;
+  stage("configuration");
   const refs = makeRefs(cfg.namespace);
   const graphPath = cfg.output.graph;
 
@@ -145,6 +166,7 @@ export function compile(root, opts = {}) {
     throw e;
   }
   const discovery = discoverUnits(repo, cfg, adapters);
+  stage("sourcesAndDiscovery");
   repo.nestedUnitRoots = discovery.nestedRoots;
   // Eligibility is the compiler's own answer to "which directories are units" —
   // exposed on the result so scaffold can write descriptors for exactly these
@@ -789,6 +811,7 @@ export function compile(root, opts = {}) {
     }
   }
 
+  stage("extractionAndAuthority");
   const graph = assembleGraph(sources, rel, indexes, derivedMap, facts, rawConflicts, observationOut, provFinal, diagnostics);
   graph.compiler = { name: COMPILER_NAME, version: COMPILER_VERSION, adapters: adapterStamp(adapters) };
 
@@ -865,6 +888,7 @@ export function compile(root, opts = {}) {
     commit,
     dirty,
   };
+  stage("assemblyAndValidation");
   return res;
 }
 

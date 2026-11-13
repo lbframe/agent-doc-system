@@ -90,12 +90,16 @@ reading the whole specification.
 **Critical context is separated from the rest.** `authority.conflicts`,
 `authority.observations` and `constraints.constraints` are the things that cause
 the most damage when missed, and the markdown rendering puts them under explicit
-headings: `CONFLICTS (do not assume one is true)`, `RUNTIME OBSERVATIONS`,
-`CONSTRAINTS`.
+headings: `CONFLICTS (do not assume one is true)` for unresolved conflicts,
+`RESOLVED CONFLICTS` for recorded elections, `RUNTIME OBSERVATIONS`, and
+`CONSTRAINTS`. Runtime observations include the actual keys, values and semantics,
+not only their capture metadata.
 
 **Both sides of a conflict are printed.** A conflicted assertion shows its
 evidence class, its confidence and its value. The contradicted value is never
-withheld.
+withheld within a displayed conflict. Resolved conflicts also show their election,
+including the elected assertion and review condition; they are not presented as
+open decisions. A budget that omits entire conflicts is explicitly reported.
 
 **A contract subject carries the provider's and consumers' checks.** Changing an
 endpoint is proved by running their suites, so `verification` for an API subject
@@ -174,6 +178,20 @@ complete arrays under `constraints.docs`, `constraints.constraints` and
 `constraints.runbooks`; these markdown-only caps do not shorten the JSON arrays
 or `entity.spec.context`.
 
+The default Markdown format also displays typed relation directions and evidence
+classes, API providers/consumers and contracts, resource users, journey peers,
+assertions, contract operations and evidence pointers. Scoped checks retain their
+IDs and configuration paths. Repository gates are a separate required list;
+a scoped verification budget never removes them.
+
+Every capped JSON section that was shortened is repeated in an `INCOMPLETE
+CONTEXT` block, including nested authority sections, with its displayed and total
+counts. For example, `verification [truncated: 1 of 4]` means three required
+verification recommendations are still omitted. Request the same query with a
+larger `--budget verification=...` before treating the list as complete. Truncated
+relations and evidence are likewise identified rather than silently disappearing
+from the default response.
+
 `--md` (the default) produces a compact block suitable for a prompt or a human:
 
 ```
@@ -184,7 +202,7 @@ Triggers governed endpoints on a platform schedule and owns no business logic.
 - CONSTRAINTS: workers/koda-cron/CONSTRAINTS.md
 - verify:
   - [unit] vitest run
-- CONFLICTS (do not assume one is true):
+- RESOLVED CONFLICTS (use the recorded election; re-check its review condition):
   - schedule.cron [contradiction/resolved]
     - DERIVED/deterministic: "0 3 * * *"
     - OBSERVED_RUNTIME/direct: "0 * * * *,3 0 * * *"
@@ -267,6 +285,6 @@ Ask for `--md` and give the output to the agent as-is. Two rules keep it
 honest:
 
 1. Do not summarise a conflict away. If the context contains a `CONFLICTS`
-   block, the agent must be told about it.
+   block, the agent must be told about it, including its status and any recorded election.
 2. If the context contains `UNRESOLVED` or a conflict with `basis: none`, the
    correct agent behaviour is to say so and stop, not to choose a side.

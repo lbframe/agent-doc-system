@@ -36,6 +36,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           package-manager-cache: false
+      - name: Install pinned dependencies
+        run: npm ci
       - name: CLI smoke
         run: |
           node bin/agentdoc.mjs --version
@@ -55,6 +57,8 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Install pinned dependencies
+        run: npm ci
       - name: Aggregate routing evaluation
         run: node evals/run-all.mjs
       - name: Corpora gates
