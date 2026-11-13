@@ -1,13 +1,13 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "0e2a9325416f36d55692ea7d9548ef5548b1dd1f",
+    "commit": "0c317597cf9fa7abe844a02a7503f3241277bb71",
     "dirty": false,
-    "inputHash": "sha256:eb61f82b825adb2f653ec87d5d3be64c263138abcb162461936c3375648f0d15"
+    "inputHash": "sha256:042a710e8f93636428fdb6986d5a3f2ef72d1c8d1b9a51be6e214bff695234a8"
   },
   "compiler": {
     "name": "agentdoc-compiler",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "adapters": [
       {
         "name": "database",
