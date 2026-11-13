@@ -4,6 +4,10 @@ agentdoc — portable documentation & software-catalog system
   agentdoc --help                    show this help
   agentdoc <command> --help          every flag one command accepts (also: agentdoc help <command>)
 
+  agentdoc prepare [--request file|-] task context packet (JSON stdin/stdout)
+  agentdoc expand [--request file|-]  continue a packet on its snapshot
+  agentdoc refresh [--request file|-] update retained context after changes
+
   agentdoc init [--force]            write a configuration and documentation skeleton
                                      (docs skeleton goes to the configured docs.* paths;
                                      agentdoc/docs/ when there is no configuration yet)

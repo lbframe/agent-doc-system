@@ -161,7 +161,7 @@ test("packaging: npm pack produces a self-contained installable CLI", (t) => {
   // Inspect the archive: runtime dirs present, dev-only dirs absent.
   const listing = execFileSync("tar", ["-tzf", tarball], { encoding: "utf8" });
   const files = new Set(listing.split("\n").map((l) => l.replace(/^package\//, "")));
-  for (const need of ["bin/agentdoc.mjs", "bin/usage.txt", "package.json"]) {
+  for (const need of ["bin/agentdoc.mjs", "bin/usage.txt", "package.json", "core/context/index.mjs", "core/snapshot.mjs", "schemas/context.schema.json", "evals/agent/run.mjs"]) {
     assert.ok(files.has(need), "package is missing " + need);
   }
   assert.ok([...files].some((f) => f.startsWith("schemas/")), "no schemas in package");
@@ -204,6 +204,15 @@ test("packaging: npm pack produces a self-contained installable CLI", (t) => {
   // registered scenarios — never a missing-module crash.
   const evalReport = JSON.parse(run(["eval", "routing", "--json"]));
   assert.equal(evalReport.verdict, "SKIP");
+  const requestFile = path.join(project, "request.json");
+  fs.writeFileSync(requestFile, JSON.stringify({ task: "Review root", paths: ["."], budget: { tokens: 4096 } }));
+  try { run(["prepare", "--request", requestFile]); }
+  catch (e) {
+    assert.doesNotMatch(String(e.stderr), /ERR_MODULE_NOT_FOUND|Cannot find package|internal error/);
+    assert.match(String(e.stderr), /AGENTDOC_CONTEXT_COMPILE/);
+  }
+  const listedTasks = JSON.parse(execFileSync("node", [path.join(prefix, "lib/node_modules/agent-doc-system/evals/agent/run.mjs"), "--list"], { encoding: "utf8" }));
+  assert.equal(listedTasks.length, 30);
 });
 
 test("packaging: every shipped source file is greppable text (no NUL bytes)", () => {

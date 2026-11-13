@@ -1,0 +1,222 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "agentdoc.dev/context/v1"
+    },
+    "packet": {
+      "type": "string"
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputHash": {
+          "type": "string"
+        },
+        "compiler": {
+          "type": "object"
+        },
+        "graphHash": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "inputHash",
+        "compiler",
+        "graphHash"
+      ]
+    },
+    "task": {
+      "type": "string"
+    },
+    "intent": {
+      "enum": [
+        "implement",
+        "change-contract",
+        "debug-runtime",
+        "review"
+      ]
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unmatched": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "staleObservations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "unmatched",
+        "limitations",
+        "staleObservations"
+      ]
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {},
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "critical": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "kind",
+          "subject",
+          "key",
+          "value",
+          "evidence",
+          "critical"
+        ]
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "criticalOmitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "offset",
+        "total",
+        "omitted",
+        "criticalOmitted",
+        "partial"
+      ]
+    },
+    "continuation": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "packet": {
+              "type": "string"
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "packet",
+            "offset"
+          ]
+        }
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "encoding": {
+          "enum": [
+            "o200k_base",
+            "cl100k_base"
+          ]
+        },
+        "tokenizerVersion": {
+          "const": "js-tiktoken@1.0.21"
+        }
+      },
+      "required": [
+        "limit",
+        "used",
+        "encoding",
+        "tokenizerVersion"
+      ]
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "packet",
+    "snapshot",
+    "task",
+    "intent",
+    "scope",
+    "coverage",
+    "records",
+    "delivery",
+    "continuation",
+    "budget"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentdoc.dev/schema/context.schema.json"
+}

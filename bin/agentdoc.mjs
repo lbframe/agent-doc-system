@@ -188,7 +188,16 @@ try {
     process.stdout.write(commandHelp(cmd));
     process.exit(0);
   }
-  if (cmd === "validate") {
+  if (["prepare", "expand", "refresh"].includes(cmd)) {
+    if (positional.length) throw new UsageError("context operations accept JSON via --request or stdin");
+    const file = opt("request");
+    const raw = fs.readFileSync(!file || file === "-" ? 0 : file, "utf8");
+    if (Buffer.byteLength(raw) > 1024 * 1024) throw new UsageError("context request exceeds 1 MiB");
+    const request = JSON.parse(raw);
+    const { prepare, expand, refresh, serializePacket } = await import("../core/context/index.mjs");
+    const result = ({ prepare, expand, refresh })[cmd](ROOT, request);
+    process.stdout.write(serializePacket(result));
+  } else if (cmd === "validate") {
     const res = compile(ROOT);
     printDiagnostics(res);
     if (res.errors.length) fail(res.errors, res.stats);
@@ -492,6 +501,12 @@ try {
     usage(2);
   }
 } catch (e) {
+  if (e instanceof UsageError || e instanceof SyntaxError && ["prepare", "expand", "refresh"].includes(cmd)) {
+    console.error("ERROR " + CODES.CONTEXT_REQUEST + ": " + e.message); process.exit(2);
+  }
+  if (Object.values(CODES).includes(e.code)) {
+    console.error("ERROR " + e.code + ": " + e.message); process.exit(1);
+  }
   if (e instanceof AgentDocError) {
     console.error("ERROR " + e.format());
     process.exit(1);

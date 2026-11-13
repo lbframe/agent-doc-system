@@ -130,7 +130,7 @@ function contractsOf(graph) {
 
 export function queryContext(graph, needle, opts = {}) {
   const budget = { ...DEFAULT_BUDGET, ...(opts.budget || {}) };
-  const idx = new ContextIndex(graph);
+  const idx = opts.index || new ContextIndex(graph);
   const entity = idx.resolve(needle);
   if (!entity) {
     throw new AgentDocError(
@@ -379,8 +379,21 @@ export function renderContext(ctx, opts = {}) {
   if (ctx.placement.domains.length) L.push("- domain: " + ctx.placement.domains.join(", "));
   if (ctx.apis.provided.length) L.push("- provides: " + ctx.apis.provided.map((a) => a.api).join(", "));
   if (ctx.apis.consumed.length) L.push("- consumes: " + ctx.apis.consumed.map((a) => a.api + " (via " + a.provider + ")").join(", "));
+  if (ctx.apis.provider) L.push("- API provider: " + ctx.apis.provider);
+  if (ctx.apis.consumers.length) L.push("- API consumers: " + ctx.apis.consumers.join(", "));
+  if (ctx.apis.contract) L.push("- API contract: " + JSON.stringify(ctx.apis.contract));
   if (ctx.resources.used.length) L.push("- uses resource: " + ctx.resources.used.join(", "));
-  if (ctx.events.items.length) L.push("- events: " + ctx.events.items.map((x) => x.pattern + " [" + x.resolution + "]").join(", "));
+  if (ctx.resources.usedBy.length) L.push("- resource users: " + ctx.resources.usedBy.join(", "));
+  if (ctx.relations.items.length) {
+    L.push("- relations:");
+    for (const r of ctx.relations.items) {
+      L.push("  - " + r.direction + " " + r.type + " " + r.other + " [" + r.evidenceClass + "]" +
+        (r.attributes ? " " + JSON.stringify(r.attributes) : ""));
+    }
+  }
+  if (ctx.events.items.length) L.push("- events: " + ctx.events.items.map((x) => x.pattern + " [" + x.resolution + "]" +
+    " producers=" + JSON.stringify(x.producers) + " consumers=" + JSON.stringify(x.consumers) +
+    (x.contract ? " contract=" + JSON.stringify(x.contract) : "")).join(", "));
   if (ctx.externalDependencies.items.length) L.push("- external: " + ctx.externalDependencies.items.map((x) => x.name + " (" + x.role + ")").join(", "));
   if (ctx.capabilities.items.length) L.push("- capabilities: " + ctx.capabilities.items.map((x) => x.name).join(", "));
   for (const key of ["constraints", "docs", "runbooks"]) {
@@ -395,13 +408,36 @@ export function renderContext(ctx, opts = {}) {
   }
   if (ctx.verification.items.length) {
     L.push("- verify:");
-    for (const v of ctx.verification.items) L.push("  - [" + v.tier + "] " + v.command);
+    for (const v of ctx.verification.items) L.push("  - [" + v.tier + "] " + v.command + " (" + v.id +
+      (v.configPaths?.length ? "; config: " + v.configPaths.join(", ") : "") + ")");
+  }
+  if (ctx.globalGates.length) {
+    L.push("- repository gates (required in addition to scoped checks):");
+    for (const v of ctx.globalGates) L.push("  - [" + v.tier + "] " + v.command + " (" + v.id + ")");
   }
   if (ctx.journeys.items.length) L.push("- journeys: " + ctx.journeys.items.map((j) => j.id).join(", "));
-  if (ctx.authority.conflicts.items.length) {
-    L.push("- CONFLICTS (do not assume one is true):");
-    for (const c of ctx.authority.conflicts.items) {
+  if (ctx.journeyPeers.length) L.push("- journey peers: " + ctx.journeyPeers.join(", "));
+  if (ctx.contracts.items.length) {
+    L.push("- contracts:");
+    for (const c of ctx.contracts.items) L.push("  - " + JSON.stringify(c));
+  }
+  if (ctx.authority.assertions.items.length) {
+    L.push("- assertions:");
+    for (const a of ctx.authority.assertions.items) {
+      L.push("  - " + a.key + " [" + a.evidenceClass + "/" + a.confidence + "/" + a.status + "]: " +
+        JSON.stringify(a.value) + (a.semantics ? " (" + a.semantics + ")" : ""));
+    }
+  }
+  for (const [settled, title] of [
+    [false, "CONFLICTS (do not assume one is true)"],
+    [true, "RESOLVED CONFLICTS (use the recorded election; re-check its review condition)"],
+  ]) {
+    const conflicts = ctx.authority.conflicts.items.filter((c) => (c.status !== "unresolved") === settled);
+    if (!conflicts.length) continue;
+    L.push("- " + title + ":");
+    for (const c of conflicts) {
       L.push("  - " + c.key + " [" + c.kind + "/" + c.status + "] " + (c.detail || ""));
+      if (c.election) L.push("    - election: " + JSON.stringify(c.election));
       for (const a of c.assertions) L.push("    - " + a.evidenceClass + "/" + a.confidence + ": " + JSON.stringify(a.value));
     }
   }
@@ -421,9 +457,24 @@ export function renderContext(ctx, opts = {}) {
   const obs = ctx.authority.observations;
   if (obs.length) {
     L.push("- RUNTIME OBSERVATIONS:");
-    for (const o of obs) L.push("  - " + o.environment + " via " + o.sourceSystem + " at " + o.capturedAt + " (evidence " + o.evidenceBundle + ")");
+    for (const o of obs) {
+      L.push("  - " + o.environment + " via " + o.sourceSystem + " at " + o.capturedAt + " (evidence " + o.evidenceBundle + ")");
+      for (const f of o.facts) L.push("    - " + f.key + ": " + JSON.stringify(f.value) +
+        (f.semantics ? " (" + f.semantics + ")" : ""));
+    }
   }
   const neighbours = ctx.neighbours.filter((n) => n.ref !== e.ref);
   if (neighbours.length) L.push("- neighbours: " + neighbours.map((n) => n.ref).join(", "));
+  if (ctx.provenance.items.length) {
+    L.push("- evidence:");
+    for (const p of ctx.provenance.items) L.push("  - " + p.id + " " + p.path + " [" + p.class + "] " + p.contentHash);
+  }
+  if (ctx.truncated.length) {
+    L.push("- INCOMPLETE CONTEXT (request a larger --budget before treating these sections as complete):");
+    for (const name of ctx.truncated) {
+      const section = name.split(".").reduce((value, key) => value[key], ctx);
+      L.push("  - " + name + " [truncated: " + section.items.length + " of " + section.total + "]");
+    }
+  }
   return L.join("\n");
 }

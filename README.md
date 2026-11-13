@@ -45,6 +45,10 @@ AgentDoc gives them a map.
 
 ![AgentDoc in action — query, impact, check](docs/assets/readme/agentdoc-in-action.webp)
 
+## Task context for agents
+
+Use `agentdoc prepare` with a JSON task request to obtain a versioned context packet with an exact token budget. `expand` continues a partial packet; `refresh` updates retained context after edits. [Protocol and examples](docs/CONTEXT.md).
+
 ## Three commands, one workflow
 
 ```bash
@@ -102,7 +106,7 @@ Measured, reproducible, and with no model in the loop. Method and caveats are in
 - **Seconds to map a real repository.** A fresh `init` → `scaffold` → `compile` takes 1.0–4.6 s on four public repositories, from 141 to 5,142 files (axum, pydantic-ai, full-stack-fastapi-template, create-t3-turbo). No edit was needed beyond choosing each component's placement.
 - **A briefing, not a dump.** A `query` answer is about 100–260 tokens: what the change reaches, what to read, and which checks to run.
 - **The same graph every time.** Compiles are byte-identical, and CI can verify it.
-- **Small and strict.** Zero runtime dependencies, a package of about 285 kB packed, 21 adapters, and 709/709 cases on the official TOML 1.0 conformance suite.
+- **Small and strict.** A pinned tokenizer dependency, 21 adapters, and 709/709 cases on the official TOML 1.0 conformance suite.
 
 ## Install manually
 

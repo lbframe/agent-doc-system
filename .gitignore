@@ -3,3 +3,7 @@ node_modules/
 *.tgz
 *.log
 /.agentdoc/
+**/.agentdoc/cache/
+**/.agentdoc/context/
+**/.agentdoc/sessions/
+**/.agentdoc/executions/

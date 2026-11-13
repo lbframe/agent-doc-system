@@ -1,6 +1,6 @@
 {
   "name": "agent-doc-system",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "description": "Portable documentation and software-catalog system with an explicit authority model, for AI coding agents",
   "keywords": [
@@ -27,10 +27,13 @@
     "test": "node --test tests/*.test.mjs",
     "eval": "node evals/run-all.mjs",
     "selfcheck": "node bin/agentdoc.mjs doctor",
-    "compare": "python3 scripts/compare-koda.py"
+    "compare": "python3 scripts/compare-koda.py",
+    "eval:agent": "node evals/agent/run.mjs",
+    "bench:context": "node scripts/bench/context.mjs"
   },
-  "dependencies": {},
-  "devDependencies": {},
+  "dependencies": {
+    "js-tiktoken": "1.0.21"
+  },
   "files": [
     "adapters",
     "bin",
@@ -45,7 +48,8 @@
     "skills",
     "templates",
     "CHANGELOG.md",
-    "INSTALL_FOR_AGENTS.md"
+    "INSTALL_FOR_AGENTS.md",
+    "evals/agent"
   ],
   "license": "MIT"
 }

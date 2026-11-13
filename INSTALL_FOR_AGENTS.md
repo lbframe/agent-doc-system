@@ -37,7 +37,7 @@ npm install -g github:lbframe/agent-doc-system
 The command is idempotent: run it again to upgrade to the latest `main`.
 If a specific ref is required, append it: `github:lbframe/agent-doc-system#<ref>`.
 
-The package has zero runtime dependencies. If `npm install -g` fails on
+The task context commands use a pinned tokenizer dependency. If `npm install -g` fails on
 permissions, do **not** use `sudo`; fix the npm global prefix instead
 (`npm config set prefix ~/.npm-global` and add `~/.npm-global/bin` to `PATH`),
 or report the blocker.
