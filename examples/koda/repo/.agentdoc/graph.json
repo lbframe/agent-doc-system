@@ -1,13 +1,13 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "b5b38ca5c17a83637aaef1a27d072e17725d7f4b",
+    "commit": "c2fc53bb38a404f7dfaa101c2ea2a4ca929b6256",
     "dirty": false,
-    "inputHash": "sha256:08a57c62fd60e379694536130a08f5a5d9715681833d9bb599a741ca3a5f1d67"
+    "inputHash": "sha256:9a7cdf18e32c8c1213356aacd0e737eb34177bc7fd3e4001ff81dec5c938c1eb"
   },
   "compiler": {
     "name": "agentdoc-compiler",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "adapters": [
       {
         "name": "database",
@@ -329,7 +329,7 @@
             "logicalResourceRef": "resource:default/calendar-postgres",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0072"
+              "p-0073"
             ]
           }
         ],
@@ -340,7 +340,7 @@
               "directory-name"
             ],
             "provenanceIds": [
-              "p-0072"
+              "p-0073"
             ]
           }
         ],
@@ -505,7 +505,7 @@
             },
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0171"
+              "p-0173"
             ]
           },
           {
@@ -516,7 +516,7 @@
             },
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0171"
+              "p-0173"
             ]
           }
         ],
@@ -666,7 +666,7 @@
             "logicalResourceRef": "resource:default/notifications-postgres",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0106"
+              "p-0107"
             ]
           }
         ],
@@ -677,7 +677,7 @@
               "directory-name"
             ],
             "provenanceIds": [
-              "p-0106"
+              "p-0107"
             ]
           }
         ],
@@ -1099,7 +1099,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0073"
+        "p-0074"
       ]
     },
     {
@@ -1113,7 +1113,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0074"
+        "p-0075"
       ]
     },
     {
@@ -1127,7 +1127,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0105"
+        "p-0106"
       ]
     },
     {
@@ -1141,7 +1141,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0097"
+        "p-0098"
       ]
     },
     {
@@ -1196,7 +1196,7 @@
         "package": "@koda/authz-catalog"
       },
       "provenanceIds": [
-        "p-0151"
+        "p-0152"
       ]
     },
     {
@@ -1211,7 +1211,7 @@
         "package": "@koda/lesson-canon"
       },
       "provenanceIds": [
-        "p-0169"
+        "p-0171"
       ]
     },
     {
@@ -1226,7 +1226,7 @@
         "package": "@koda/lesson-canon"
       },
       "provenanceIds": [
-        "p-0117"
+        "p-0118"
       ]
     },
     {
@@ -1240,7 +1240,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0096"
+        "p-0097"
       ]
     },
     {
@@ -1255,7 +1255,7 @@
         "package": "@koda/lesson-canon"
       },
       "provenanceIds": [
-        "p-0169"
+        "p-0171"
       ]
     },
     {
@@ -1269,7 +1269,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0096"
+        "p-0097"
       ]
     },
     {
@@ -1284,7 +1284,7 @@
         "package": "@koda/authz-catalog"
       },
       "provenanceIds": [
-        "p-0151"
+        "p-0152"
       ]
     },
     {
@@ -1299,7 +1299,7 @@
         "package": "@koda/lesson-canon"
       },
       "provenanceIds": [
-        "p-0117"
+        "p-0118"
       ]
     },
     {
@@ -1313,7 +1313,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0073"
+        "p-0074"
       ]
     },
     {
@@ -1327,7 +1327,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0074"
+        "p-0075"
       ]
     },
     {
@@ -1341,7 +1341,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0097"
+        "p-0098"
       ]
     },
     {
@@ -1355,7 +1355,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0105"
+        "p-0106"
       ]
     },
     {
@@ -1415,7 +1415,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0082"
+        "p-0083"
       ]
     },
     {
@@ -1425,7 +1425,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0127"
+        "p-0128"
       ]
     },
     {
@@ -1445,7 +1445,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0051"
+        "p-0052"
       ]
     },
     {
@@ -1455,7 +1455,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0100"
+        "p-0101"
       ]
     },
     {
@@ -1485,7 +1485,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0092"
+        "p-0093"
       ]
     },
     {
@@ -1495,7 +1495,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0147"
+        "p-0148"
       ]
     },
     {
@@ -1505,7 +1505,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0113"
+        "p-0114"
       ]
     },
     {
@@ -1515,7 +1515,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0165"
+        "p-0167"
       ]
     },
     {
@@ -1525,7 +1525,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0064"
+        "p-0065"
       ]
     },
     {
@@ -1545,7 +1545,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0051"
+        "p-0052"
       ]
     },
     {
@@ -1555,7 +1555,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0064"
+        "p-0065"
       ]
     },
     {
@@ -1565,7 +1565,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0082"
+        "p-0083"
       ]
     },
     {
@@ -1575,7 +1575,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0165"
+        "p-0167"
       ]
     },
     {
@@ -1585,7 +1585,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0092"
+        "p-0093"
       ]
     },
     {
@@ -1595,7 +1595,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0147"
+        "p-0148"
       ]
     },
     {
@@ -1605,7 +1605,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0100"
+        "p-0101"
       ]
     },
     {
@@ -1615,7 +1615,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0113"
+        "p-0114"
       ]
     },
     {
@@ -1625,7 +1625,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0127"
+        "p-0128"
       ]
     },
     {
@@ -1769,7 +1769,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0072"
+        "p-0073"
       ]
     },
     {
@@ -1783,7 +1783,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0106"
+        "p-0107"
       ]
     },
     {
@@ -1798,8 +1798,8 @@
         "route": "/api/internal/calendar/pending-approval"
       },
       "provenanceIds": [
-        "p-0071",
-        "p-0172"
+        "p-0072",
+        "p-0174"
       ]
     },
     {
@@ -1814,8 +1814,8 @@
         "route": "/api/internal/notifications/digest-flush"
       },
       "provenanceIds": [
-        "p-0107",
-        "p-0173"
+        "p-0108",
+        "p-0175"
       ]
     },
     {
@@ -1830,8 +1830,8 @@
         "route": "/api/internal/calendar/pending-approval"
       },
       "provenanceIds": [
-        "p-0071",
-        "p-0172"
+        "p-0072",
+        "p-0174"
       ]
     },
     {
@@ -1846,8 +1846,8 @@
         "route": "/api/internal/notifications/digest-flush"
       },
       "provenanceIds": [
-        "p-0107",
-        "p-0173"
+        "p-0108",
+        "p-0175"
       ]
     },
     {
@@ -1861,7 +1861,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0072"
+        "p-0073"
       ]
     },
     {
@@ -1875,7 +1875,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0106"
+        "p-0107"
       ]
     }
   ],
@@ -1893,7 +1893,7 @@
         },
         "resolution": "unresolved",
         "provenanceIds": [
-          "p-0140"
+          "p-0141"
         ]
       },
       {
@@ -1908,7 +1908,7 @@
         },
         "resolution": "unresolved",
         "provenanceIds": [
-          "p-0140"
+          "p-0141"
         ]
       },
       {
@@ -1924,9 +1924,9 @@
         },
         "resolution": "resolved",
         "provenanceIds": [
-          "p-0119",
-          "p-0152",
-          "p-0153"
+          "p-0120",
+          "p-0153",
+          "p-0154"
         ]
       },
       {
@@ -1941,7 +1941,7 @@
         },
         "resolution": "unresolved",
         "provenanceIds": [
-          "p-0140"
+          "p-0141"
         ]
       }
     ]
@@ -1988,7 +1988,7 @@
         "apps/learning-event-relay/go.mod"
       ],
       "provenanceIds": [
-        "p-0096"
+        "p-0097"
       ]
     },
     {
@@ -2002,7 +2002,7 @@
         "apps/learning-event-relay/go.mod"
       ],
       "provenanceIds": [
-        "p-0096"
+        "p-0097"
       ]
     },
     {
@@ -2016,7 +2016,7 @@
         "apps/notifications/go.mod"
       ],
       "provenanceIds": [
-        "p-0104"
+        "p-0105"
       ]
     },
     {
@@ -2030,7 +2030,7 @@
         "apps/notifications/go.mod"
       ],
       "provenanceIds": [
-        "p-0104"
+        "p-0105"
       ]
     },
     {
@@ -2044,7 +2044,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0154"
+        "p-0155"
       ]
     },
     {
@@ -2058,7 +2058,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0154"
+        "p-0155"
       ]
     },
     {
@@ -2072,7 +2072,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0154"
+        "p-0155"
       ]
     },
     {
@@ -2086,7 +2086,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0155"
+        "p-0156"
       ]
     },
     {
@@ -2100,7 +2100,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0155"
+        "p-0156"
       ]
     },
     {
@@ -2114,7 +2114,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0155"
+        "p-0156"
       ]
     },
     {
@@ -2128,7 +2128,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0156"
+        "p-0157"
       ]
     },
     {
@@ -2142,7 +2142,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0156"
+        "p-0157"
       ]
     },
     {
@@ -2156,7 +2156,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0156"
+        "p-0157"
       ]
     },
     {
@@ -2170,7 +2170,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0157"
+        "p-0158"
       ]
     },
     {
@@ -2184,7 +2184,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0158"
+        "p-0159"
       ]
     },
     {
@@ -2198,7 +2198,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0158"
+        "p-0159"
       ]
     },
     {
@@ -2212,7 +2212,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0158"
+        "p-0159"
       ]
     },
     {
@@ -2226,7 +2226,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0159"
+        "p-0160"
       ]
     },
     {
@@ -2240,7 +2240,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0159"
+        "p-0160"
       ]
     },
     {
@@ -2254,7 +2254,7 @@
         "turbo.json"
       ],
       "provenanceIds": [
-        "p-0159"
+        "p-0160"
       ]
     }
   ],
@@ -2304,7 +2304,7 @@
       ],
       "title": "Accounts M2M",
       "provenanceIds": [
-        "p-0135"
+        "p-0136"
       ]
     },
     {
@@ -2324,7 +2324,7 @@
       ],
       "title": "Calendar Cron",
       "provenanceIds": [
-        "p-0136"
+        "p-0137"
       ]
     },
     {
@@ -2344,7 +2344,7 @@
       ],
       "title": "Teacher Ingest",
       "provenanceIds": [
-        "p-0137"
+        "p-0138"
       ]
     }
   ],
@@ -2358,9 +2358,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0046",
-        "p-0054",
-        "p-0057"
+        "p-0047",
+        "p-0055",
+        "p-0058"
       ]
     },
     {
@@ -2372,9 +2372,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0046",
-        "p-0054",
-        "p-0057"
+        "p-0047",
+        "p-0055",
+        "p-0058"
       ]
     },
     {
@@ -2386,9 +2386,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0060",
-        "p-0067",
-        "p-0075"
+        "p-0061",
+        "p-0068",
+        "p-0076"
       ]
     },
     {
@@ -2400,9 +2400,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0060",
-        "p-0067",
-        "p-0075"
+        "p-0061",
+        "p-0068",
+        "p-0076"
       ]
     },
     {
@@ -2414,7 +2414,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0072"
+        "p-0073"
       ],
       "semantics": "migration and connection authority in this root resolve to the authored logical database"
     },
@@ -2427,9 +2427,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0078",
-        "p-0085",
-        "p-0088"
+        "p-0079",
+        "p-0086",
+        "p-0089"
       ]
     },
     {
@@ -2441,9 +2441,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0078",
-        "p-0085",
-        "p-0088"
+        "p-0079",
+        "p-0086",
+        "p-0089"
       ]
     },
     {
@@ -2455,7 +2455,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -2467,7 +2467,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0095"
+        "p-0096"
       ]
     },
     {
@@ -2479,7 +2479,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0103"
+        "p-0104"
       ]
     },
     {
@@ -2491,7 +2491,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0103"
+        "p-0104"
       ]
     },
     {
@@ -2503,7 +2503,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0106"
+        "p-0107"
       ],
       "semantics": "migration and connection authority in this root resolve to the authored logical database"
     },
@@ -2516,9 +2516,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0109",
-        "p-0116",
-        "p-0120"
+        "p-0110",
+        "p-0117",
+        "p-0121"
       ]
     },
     {
@@ -2530,9 +2530,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0109",
-        "p-0116",
-        "p-0120"
+        "p-0110",
+        "p-0117",
+        "p-0121"
       ]
     },
     {
@@ -2544,9 +2544,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0123",
-        "p-0130",
-        "p-0133"
+        "p-0124",
+        "p-0131",
+        "p-0134"
       ]
     },
     {
@@ -2558,9 +2558,9 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0123",
-        "p-0130",
-        "p-0133"
+        "p-0124",
+        "p-0131",
+        "p-0134"
       ]
     },
     {
@@ -2572,7 +2572,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0142"
+        "p-0143"
       ]
     },
     {
@@ -2584,7 +2584,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0142"
+        "p-0143"
       ]
     },
     {
@@ -2596,7 +2596,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0150"
+        "p-0151"
       ]
     },
     {
@@ -2608,7 +2608,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0150"
+        "p-0151"
       ]
     },
     {
@@ -2620,8 +2620,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0168",
-        "p-0170"
+        "p-0170",
+        "p-0172"
       ]
     },
     {
@@ -2633,8 +2633,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0168",
-        "p-0170"
+        "p-0170",
+        "p-0172"
       ]
     },
     {
@@ -2649,7 +2649,7 @@
       "confidence": "deterministic",
       "status": "contradicted",
       "provenanceIds": [
-        "p-0171"
+        "p-0173"
       ],
       "semantics": "the binding names the committed manifest declares for this component"
     },
@@ -2665,7 +2665,7 @@
       "confidence": "deterministic",
       "status": "contradicted",
       "provenanceIds": [
-        "p-0171"
+        "p-0173"
       ],
       "semantics": "the kinds of platform binding the committed manifest declares for this component"
     },
@@ -2678,7 +2678,7 @@
       "confidence": "deterministic",
       "status": "contradicted",
       "provenanceIds": [
-        "p-0171"
+        "p-0173"
       ],
       "semantics": "cron expressions the committed deployment manifest declares for this component"
     },
@@ -2691,7 +2691,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0171"
+        "p-0173"
       ],
       "semantics": "the manifest declares a trigger, i.e. the job is intended to be enabled"
     },
@@ -2707,7 +2707,7 @@
       "confidence": "deterministic",
       "status": "contradicted",
       "provenanceIds": [
-        "p-0171"
+        "p-0173"
       ],
       "semantics": "endpoints the committed manifest points scheduled triggers at"
     },
@@ -2720,7 +2720,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0052"
+        "p-0053"
       ]
     },
     {
@@ -2732,7 +2732,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0065"
+        "p-0066"
       ]
     },
     {
@@ -2744,7 +2744,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0083"
+        "p-0084"
       ]
     },
     {
@@ -2756,7 +2756,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0093"
+        "p-0094"
       ]
     },
     {
@@ -2768,7 +2768,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0101"
+        "p-0102"
       ]
     },
     {
@@ -2780,7 +2780,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0114"
+        "p-0115"
       ]
     },
     {
@@ -2792,7 +2792,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0128"
+        "p-0129"
       ]
     },
     {
@@ -2804,7 +2804,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0148"
+        "p-0149"
       ]
     },
     {
@@ -2816,7 +2816,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0166"
+        "p-0168"
       ]
     },
     {
@@ -3115,7 +3115,7 @@
       },
       "provenanceIds": [
         "p-0015",
-        "p-0171"
+        "p-0173"
       ]
     },
     {
@@ -3140,7 +3140,7 @@
       },
       "provenanceIds": [
         "p-0015",
-        "p-0171"
+        "p-0173"
       ]
     },
     {
@@ -3165,7 +3165,7 @@
       },
       "provenanceIds": [
         "p-0015",
-        "p-0171"
+        "p-0173"
       ]
     },
     {
@@ -3190,7 +3190,7 @@
       },
       "provenanceIds": [
         "p-0015",
-        "p-0171"
+        "p-0173"
       ]
     }
   ],
@@ -3985,6 +3985,19 @@
       "class": "observed",
       "path": "apps/accounts/CONSTRAINTS.md",
       "extractor": {
+        "name": "context-document-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:b125a0f4ee75ac0643df3db54684dbdefdf6cc2ca9b941d80a7cac02e7b89148",
+      "subjects": [
+        "/entities/4/entity/spec/context/constraints"
+      ]
+    },
+    {
+      "id": "p-0045",
+      "class": "observed",
+      "path": "apps/accounts/CONSTRAINTS.md",
+      "extractor": {
         "name": "docs-extractor",
         "version": "1.0.0"
       },
@@ -3994,7 +4007,7 @@
       ]
     },
     {
-      "id": "p-0045",
+      "id": "p-0046",
       "class": "observed",
       "path": "apps/accounts/Dockerfile",
       "extractor": {
@@ -4007,7 +4020,7 @@
       ]
     },
     {
-      "id": "p-0046",
+      "id": "p-0047",
       "class": "observed",
       "path": "apps/accounts/Dockerfile",
       "extractor": {
@@ -4022,7 +4035,7 @@
       ]
     },
     {
-      "id": "p-0047",
+      "id": "p-0048",
       "class": "observed",
       "path": "apps/accounts/README.md",
       "extractor": {
@@ -4035,7 +4048,7 @@
       ]
     },
     {
-      "id": "p-0048",
+      "id": "p-0049",
       "class": "observed",
       "path": "apps/accounts/catalog-info.yaml",
       "extractor": {
@@ -4048,7 +4061,7 @@
       ]
     },
     {
-      "id": "p-0049",
+      "id": "p-0050",
       "class": "declared",
       "path": "apps/accounts/catalog-info.yaml",
       "extractor": {
@@ -4061,7 +4074,7 @@
       ]
     },
     {
-      "id": "p-0050",
+      "id": "p-0051",
       "class": "declared",
       "path": "apps/accounts/catalog-info.yaml",
       "extractor": {
@@ -4080,7 +4093,7 @@
       ]
     },
     {
-      "id": "p-0051",
+      "id": "p-0052",
       "class": "declared",
       "path": "apps/accounts/catalog-info.yaml",
       "extractor": {
@@ -4094,7 +4107,7 @@
       ]
     },
     {
-      "id": "p-0052",
+      "id": "p-0053",
       "class": "declared",
       "path": "apps/accounts/catalog-info.yaml",
       "extractor": {
@@ -4107,7 +4120,7 @@
       ]
     },
     {
-      "id": "p-0053",
+      "id": "p-0054",
       "class": "observed",
       "path": "apps/accounts/package.json",
       "extractor": {
@@ -4120,7 +4133,7 @@
       ]
     },
     {
-      "id": "p-0054",
+      "id": "p-0055",
       "class": "observed",
       "path": "apps/accounts/package.json",
       "extractor": {
@@ -4135,7 +4148,7 @@
       ]
     },
     {
-      "id": "p-0055",
+      "id": "p-0056",
       "class": "observed",
       "path": "apps/accounts/package.json",
       "extractor": {
@@ -4150,7 +4163,7 @@
       ]
     },
     {
-      "id": "p-0056",
+      "id": "p-0057",
       "class": "observed",
       "path": "apps/accounts/src/app/api/health/route.ts",
       "extractor": {
@@ -4163,7 +4176,7 @@
       ]
     },
     {
-      "id": "p-0057",
+      "id": "p-0058",
       "class": "observed",
       "path": "apps/accounts/tsconfig.json",
       "extractor": {
@@ -4178,7 +4191,7 @@
       ]
     },
     {
-      "id": "p-0058",
+      "id": "p-0059",
       "class": "observed",
       "path": "apps/accounts/tsconfig.json",
       "extractor": {
@@ -4191,7 +4204,7 @@
       ]
     },
     {
-      "id": "p-0059",
+      "id": "p-0060",
       "class": "observed",
       "path": "apps/calendar/Dockerfile",
       "extractor": {
@@ -4204,7 +4217,7 @@
       ]
     },
     {
-      "id": "p-0060",
+      "id": "p-0061",
       "class": "observed",
       "path": "apps/calendar/Dockerfile",
       "extractor": {
@@ -4219,7 +4232,7 @@
       ]
     },
     {
-      "id": "p-0061",
+      "id": "p-0062",
       "class": "observed",
       "path": "apps/calendar/README.md",
       "extractor": {
@@ -4232,7 +4245,7 @@
       ]
     },
     {
-      "id": "p-0062",
+      "id": "p-0063",
       "class": "observed",
       "path": "apps/calendar/catalog-info.yaml",
       "extractor": {
@@ -4245,7 +4258,7 @@
       ]
     },
     {
-      "id": "p-0063",
+      "id": "p-0064",
       "class": "declared",
       "path": "apps/calendar/catalog-info.yaml",
       "extractor": {
@@ -4264,7 +4277,7 @@
       ]
     },
     {
-      "id": "p-0064",
+      "id": "p-0065",
       "class": "declared",
       "path": "apps/calendar/catalog-info.yaml",
       "extractor": {
@@ -4278,7 +4291,7 @@
       ]
     },
     {
-      "id": "p-0065",
+      "id": "p-0066",
       "class": "declared",
       "path": "apps/calendar/catalog-info.yaml",
       "extractor": {
@@ -4291,7 +4304,7 @@
       ]
     },
     {
-      "id": "p-0066",
+      "id": "p-0067",
       "class": "observed",
       "path": "apps/calendar/package.json",
       "extractor": {
@@ -4304,7 +4317,7 @@
       ]
     },
     {
-      "id": "p-0067",
+      "id": "p-0068",
       "class": "observed",
       "path": "apps/calendar/package.json",
       "extractor": {
@@ -4319,7 +4332,7 @@
       ]
     },
     {
-      "id": "p-0068",
+      "id": "p-0069",
       "class": "observed",
       "path": "apps/calendar/package.json",
       "extractor": {
@@ -4334,7 +4347,7 @@
       ]
     },
     {
-      "id": "p-0069",
+      "id": "p-0070",
       "class": "observed",
       "path": "apps/calendar/src/app/api/health/route.ts",
       "extractor": {
@@ -4347,7 +4360,7 @@
       ]
     },
     {
-      "id": "p-0070",
+      "id": "p-0071",
       "class": "observed",
       "path": "apps/calendar/src/app/api/internal/calendar/pending-approval/route.ts",
       "extractor": {
@@ -4360,7 +4373,7 @@
       ]
     },
     {
-      "id": "p-0071",
+      "id": "p-0072",
       "class": "observed",
       "path": "apps/calendar/src/app/api/internal/calendar/pending-approval/route.ts",
       "extractor": {
@@ -4374,7 +4387,7 @@
       ]
     },
     {
-      "id": "p-0072",
+      "id": "p-0073",
       "class": "observed",
       "path": "apps/calendar/src/db/migrations/0001_items.sql",
       "extractor": {
@@ -4391,7 +4404,7 @@
       ]
     },
     {
-      "id": "p-0073",
+      "id": "p-0074",
       "class": "observed",
       "path": "apps/calendar/src/lib/accounts-client.ts",
       "extractor": {
@@ -4405,7 +4418,7 @@
       ]
     },
     {
-      "id": "p-0074",
+      "id": "p-0075",
       "class": "validated",
       "path": "apps/calendar/src/lib/oidc/client.ts",
       "extractor": {
@@ -4419,7 +4432,7 @@
       ]
     },
     {
-      "id": "p-0075",
+      "id": "p-0076",
       "class": "observed",
       "path": "apps/calendar/tsconfig.json",
       "extractor": {
@@ -4434,7 +4447,7 @@
       ]
     },
     {
-      "id": "p-0076",
+      "id": "p-0077",
       "class": "observed",
       "path": "apps/calendar/tsconfig.json",
       "extractor": {
@@ -4447,7 +4460,7 @@
       ]
     },
     {
-      "id": "p-0077",
+      "id": "p-0078",
       "class": "observed",
       "path": "apps/document-ocr/Dockerfile",
       "extractor": {
@@ -4460,7 +4473,7 @@
       ]
     },
     {
-      "id": "p-0078",
+      "id": "p-0079",
       "class": "observed",
       "path": "apps/document-ocr/Dockerfile",
       "extractor": {
@@ -4475,7 +4488,7 @@
       ]
     },
     {
-      "id": "p-0079",
+      "id": "p-0080",
       "class": "observed",
       "path": "apps/document-ocr/README.md",
       "extractor": {
@@ -4488,7 +4501,7 @@
       ]
     },
     {
-      "id": "p-0080",
+      "id": "p-0081",
       "class": "observed",
       "path": "apps/document-ocr/catalog-info.yaml",
       "extractor": {
@@ -4501,7 +4514,7 @@
       ]
     },
     {
-      "id": "p-0081",
+      "id": "p-0082",
       "class": "declared",
       "path": "apps/document-ocr/catalog-info.yaml",
       "extractor": {
@@ -4520,7 +4533,7 @@
       ]
     },
     {
-      "id": "p-0082",
+      "id": "p-0083",
       "class": "declared",
       "path": "apps/document-ocr/catalog-info.yaml",
       "extractor": {
@@ -4534,7 +4547,7 @@
       ]
     },
     {
-      "id": "p-0083",
+      "id": "p-0084",
       "class": "declared",
       "path": "apps/document-ocr/catalog-info.yaml",
       "extractor": {
@@ -4547,7 +4560,7 @@
       ]
     },
     {
-      "id": "p-0084",
+      "id": "p-0085",
       "class": "observed",
       "path": "apps/document-ocr/package.json",
       "extractor": {
@@ -4560,7 +4573,7 @@
       ]
     },
     {
-      "id": "p-0085",
+      "id": "p-0086",
       "class": "observed",
       "path": "apps/document-ocr/package.json",
       "extractor": {
@@ -4575,7 +4588,7 @@
       ]
     },
     {
-      "id": "p-0086",
+      "id": "p-0087",
       "class": "observed",
       "path": "apps/document-ocr/package.json",
       "extractor": {
@@ -4590,7 +4603,7 @@
       ]
     },
     {
-      "id": "p-0087",
+      "id": "p-0088",
       "class": "observed",
       "path": "apps/document-ocr/src/app/api/health/route.ts",
       "extractor": {
@@ -4603,7 +4616,7 @@
       ]
     },
     {
-      "id": "p-0088",
+      "id": "p-0089",
       "class": "observed",
       "path": "apps/document-ocr/tsconfig.json",
       "extractor": {
@@ -4618,7 +4631,7 @@
       ]
     },
     {
-      "id": "p-0089",
+      "id": "p-0090",
       "class": "observed",
       "path": "apps/document-ocr/tsconfig.json",
       "extractor": {
@@ -4631,7 +4644,7 @@
       ]
     },
     {
-      "id": "p-0090",
+      "id": "p-0091",
       "class": "observed",
       "path": "apps/learning-event-relay/catalog-info.yaml",
       "extractor": {
@@ -4644,7 +4657,7 @@
       ]
     },
     {
-      "id": "p-0091",
+      "id": "p-0092",
       "class": "declared",
       "path": "apps/learning-event-relay/catalog-info.yaml",
       "extractor": {
@@ -4663,7 +4676,7 @@
       ]
     },
     {
-      "id": "p-0092",
+      "id": "p-0093",
       "class": "declared",
       "path": "apps/learning-event-relay/catalog-info.yaml",
       "extractor": {
@@ -4677,7 +4690,7 @@
       ]
     },
     {
-      "id": "p-0093",
+      "id": "p-0094",
       "class": "declared",
       "path": "apps/learning-event-relay/catalog-info.yaml",
       "extractor": {
@@ -4690,7 +4703,7 @@
       ]
     },
     {
-      "id": "p-0094",
+      "id": "p-0095",
       "class": "observed",
       "path": "apps/learning-event-relay/go.mod",
       "extractor": {
@@ -4703,7 +4716,7 @@
       ]
     },
     {
-      "id": "p-0095",
+      "id": "p-0096",
       "class": "observed",
       "path": "apps/learning-event-relay/go.mod",
       "extractor": {
@@ -4718,7 +4731,7 @@
       ]
     },
     {
-      "id": "p-0096",
+      "id": "p-0097",
       "class": "observed",
       "path": "apps/learning-event-relay/go.mod",
       "extractor": {
@@ -4734,7 +4747,7 @@
       ]
     },
     {
-      "id": "p-0097",
+      "id": "p-0098",
       "class": "observed",
       "path": "apps/learning-event-relay/internal/gen/teacher-ingest/teacher-ingest.gen.go",
       "extractor": {
@@ -4748,7 +4761,7 @@
       ]
     },
     {
-      "id": "p-0098",
+      "id": "p-0099",
       "class": "observed",
       "path": "apps/notifications/catalog-info.yaml",
       "extractor": {
@@ -4761,7 +4774,7 @@
       ]
     },
     {
-      "id": "p-0099",
+      "id": "p-0100",
       "class": "declared",
       "path": "apps/notifications/catalog-info.yaml",
       "extractor": {
@@ -4780,7 +4793,7 @@
       ]
     },
     {
-      "id": "p-0100",
+      "id": "p-0101",
       "class": "declared",
       "path": "apps/notifications/catalog-info.yaml",
       "extractor": {
@@ -4794,7 +4807,7 @@
       ]
     },
     {
-      "id": "p-0101",
+      "id": "p-0102",
       "class": "declared",
       "path": "apps/notifications/catalog-info.yaml",
       "extractor": {
@@ -4807,7 +4820,7 @@
       ]
     },
     {
-      "id": "p-0102",
+      "id": "p-0103",
       "class": "observed",
       "path": "apps/notifications/go.mod",
       "extractor": {
@@ -4820,7 +4833,7 @@
       ]
     },
     {
-      "id": "p-0103",
+      "id": "p-0104",
       "class": "observed",
       "path": "apps/notifications/go.mod",
       "extractor": {
@@ -4835,7 +4848,7 @@
       ]
     },
     {
-      "id": "p-0104",
+      "id": "p-0105",
       "class": "observed",
       "path": "apps/notifications/go.mod",
       "extractor": {
@@ -4849,7 +4862,7 @@
       ]
     },
     {
-      "id": "p-0105",
+      "id": "p-0106",
       "class": "validated",
       "path": "apps/notifications/internal/circle/circle.go",
       "extractor": {
@@ -4863,7 +4876,7 @@
       ]
     },
     {
-      "id": "p-0106",
+      "id": "p-0107",
       "class": "observed",
       "path": "apps/notifications/internal/db/migrations/0001_init.sql",
       "extractor": {
@@ -4880,7 +4893,7 @@
       ]
     },
     {
-      "id": "p-0107",
+      "id": "p-0108",
       "class": "observed",
       "path": "apps/notifications/internal/http/digest_flush.go",
       "extractor": {
@@ -4894,7 +4907,7 @@
       ]
     },
     {
-      "id": "p-0108",
+      "id": "p-0109",
       "class": "observed",
       "path": "apps/teacher/Dockerfile",
       "extractor": {
@@ -4907,7 +4920,7 @@
       ]
     },
     {
-      "id": "p-0109",
+      "id": "p-0110",
       "class": "observed",
       "path": "apps/teacher/Dockerfile",
       "extractor": {
@@ -4922,7 +4935,7 @@
       ]
     },
     {
-      "id": "p-0110",
+      "id": "p-0111",
       "class": "observed",
       "path": "apps/teacher/README.md",
       "extractor": {
@@ -4935,7 +4948,7 @@
       ]
     },
     {
-      "id": "p-0111",
+      "id": "p-0112",
       "class": "observed",
       "path": "apps/teacher/catalog-info.yaml",
       "extractor": {
@@ -4948,7 +4961,7 @@
       ]
     },
     {
-      "id": "p-0112",
+      "id": "p-0113",
       "class": "declared",
       "path": "apps/teacher/catalog-info.yaml",
       "extractor": {
@@ -4967,7 +4980,7 @@
       ]
     },
     {
-      "id": "p-0113",
+      "id": "p-0114",
       "class": "declared",
       "path": "apps/teacher/catalog-info.yaml",
       "extractor": {
@@ -4981,7 +4994,7 @@
       ]
     },
     {
-      "id": "p-0114",
+      "id": "p-0115",
       "class": "declared",
       "path": "apps/teacher/catalog-info.yaml",
       "extractor": {
@@ -4994,7 +5007,7 @@
       ]
     },
     {
-      "id": "p-0115",
+      "id": "p-0116",
       "class": "observed",
       "path": "apps/teacher/package.json",
       "extractor": {
@@ -5007,7 +5020,7 @@
       ]
     },
     {
-      "id": "p-0116",
+      "id": "p-0117",
       "class": "observed",
       "path": "apps/teacher/package.json",
       "extractor": {
@@ -5022,7 +5035,7 @@
       ]
     },
     {
-      "id": "p-0117",
+      "id": "p-0118",
       "class": "observed",
       "path": "apps/teacher/package.json",
       "extractor": {
@@ -5039,7 +5052,7 @@
       ]
     },
     {
-      "id": "p-0118",
+      "id": "p-0119",
       "class": "observed",
       "path": "apps/teacher/src/app/api/health/route.ts",
       "extractor": {
@@ -5052,7 +5065,7 @@
       ]
     },
     {
-      "id": "p-0119",
+      "id": "p-0120",
       "class": "observed",
       "path": "apps/teacher/src/lib/teacher-events.ts",
       "extractor": {
@@ -5065,7 +5078,7 @@
       ]
     },
     {
-      "id": "p-0120",
+      "id": "p-0121",
       "class": "observed",
       "path": "apps/teacher/tsconfig.json",
       "extractor": {
@@ -5080,7 +5093,7 @@
       ]
     },
     {
-      "id": "p-0121",
+      "id": "p-0122",
       "class": "observed",
       "path": "apps/teacher/tsconfig.json",
       "extractor": {
@@ -5093,7 +5106,7 @@
       ]
     },
     {
-      "id": "p-0122",
+      "id": "p-0123",
       "class": "observed",
       "path": "apps/uploads/Dockerfile",
       "extractor": {
@@ -5106,7 +5119,7 @@
       ]
     },
     {
-      "id": "p-0123",
+      "id": "p-0124",
       "class": "observed",
       "path": "apps/uploads/Dockerfile",
       "extractor": {
@@ -5121,7 +5134,7 @@
       ]
     },
     {
-      "id": "p-0124",
+      "id": "p-0125",
       "class": "observed",
       "path": "apps/uploads/README.md",
       "extractor": {
@@ -5134,7 +5147,7 @@
       ]
     },
     {
-      "id": "p-0125",
+      "id": "p-0126",
       "class": "observed",
       "path": "apps/uploads/catalog-info.yaml",
       "extractor": {
@@ -5147,7 +5160,7 @@
       ]
     },
     {
-      "id": "p-0126",
+      "id": "p-0127",
       "class": "declared",
       "path": "apps/uploads/catalog-info.yaml",
       "extractor": {
@@ -5166,7 +5179,7 @@
       ]
     },
     {
-      "id": "p-0127",
+      "id": "p-0128",
       "class": "declared",
       "path": "apps/uploads/catalog-info.yaml",
       "extractor": {
@@ -5180,7 +5193,7 @@
       ]
     },
     {
-      "id": "p-0128",
+      "id": "p-0129",
       "class": "declared",
       "path": "apps/uploads/catalog-info.yaml",
       "extractor": {
@@ -5193,7 +5206,7 @@
       ]
     },
     {
-      "id": "p-0129",
+      "id": "p-0130",
       "class": "observed",
       "path": "apps/uploads/package.json",
       "extractor": {
@@ -5206,7 +5219,7 @@
       ]
     },
     {
-      "id": "p-0130",
+      "id": "p-0131",
       "class": "observed",
       "path": "apps/uploads/package.json",
       "extractor": {
@@ -5221,7 +5234,7 @@
       ]
     },
     {
-      "id": "p-0131",
+      "id": "p-0132",
       "class": "observed",
       "path": "apps/uploads/package.json",
       "extractor": {
@@ -5236,7 +5249,7 @@
       ]
     },
     {
-      "id": "p-0132",
+      "id": "p-0133",
       "class": "observed",
       "path": "apps/uploads/src/app/api/health/route.ts",
       "extractor": {
@@ -5249,7 +5262,7 @@
       ]
     },
     {
-      "id": "p-0133",
+      "id": "p-0134",
       "class": "observed",
       "path": "apps/uploads/tsconfig.json",
       "extractor": {
@@ -5264,7 +5277,7 @@
       ]
     },
     {
-      "id": "p-0134",
+      "id": "p-0135",
       "class": "observed",
       "path": "apps/uploads/tsconfig.json",
       "extractor": {
@@ -5277,7 +5290,7 @@
       ]
     },
     {
-      "id": "p-0135",
+      "id": "p-0136",
       "class": "observed",
       "path": "contracts/accounts-m2m.openapi.yaml",
       "extractor": {
@@ -5290,7 +5303,7 @@
       ]
     },
     {
-      "id": "p-0136",
+      "id": "p-0137",
       "class": "observed",
       "path": "contracts/calendar-cron.openapi.yaml",
       "extractor": {
@@ -5303,7 +5316,7 @@
       ]
     },
     {
-      "id": "p-0137",
+      "id": "p-0138",
       "class": "observed",
       "path": "contracts/teacher-ingest.openapi.yaml",
       "extractor": {
@@ -5316,7 +5329,7 @@
       ]
     },
     {
-      "id": "p-0138",
+      "id": "p-0139",
       "class": "observed",
       "path": "packages/authz-catalog/catalog-info.yaml",
       "extractor": {
@@ -5329,7 +5342,7 @@
       ]
     },
     {
-      "id": "p-0139",
+      "id": "p-0140",
       "class": "declared",
       "path": "packages/authz-catalog/catalog-info.yaml",
       "extractor": {
@@ -5348,7 +5361,7 @@
       ]
     },
     {
-      "id": "p-0140",
+      "id": "p-0141",
       "class": "declared",
       "path": "packages/authz-catalog/notify.json",
       "extractor": {
@@ -5363,7 +5376,7 @@
       ]
     },
     {
-      "id": "p-0141",
+      "id": "p-0142",
       "class": "observed",
       "path": "packages/authz-catalog/package.json",
       "extractor": {
@@ -5376,7 +5389,7 @@
       ]
     },
     {
-      "id": "p-0142",
+      "id": "p-0143",
       "class": "observed",
       "path": "packages/authz-catalog/package.json",
       "extractor": {
@@ -5391,7 +5404,7 @@
       ]
     },
     {
-      "id": "p-0143",
+      "id": "p-0144",
       "class": "observed",
       "path": "packages/authz-catalog/package.json",
       "extractor": {
@@ -5406,7 +5419,7 @@
       ]
     },
     {
-      "id": "p-0144",
+      "id": "p-0145",
       "class": "observed",
       "path": "packages/lesson-canon/README.md",
       "extractor": {
@@ -5419,7 +5432,7 @@
       ]
     },
     {
-      "id": "p-0145",
+      "id": "p-0146",
       "class": "observed",
       "path": "packages/lesson-canon/catalog-info.yaml",
       "extractor": {
@@ -5432,7 +5445,7 @@
       ]
     },
     {
-      "id": "p-0146",
+      "id": "p-0147",
       "class": "declared",
       "path": "packages/lesson-canon/catalog-info.yaml",
       "extractor": {
@@ -5451,7 +5464,7 @@
       ]
     },
     {
-      "id": "p-0147",
+      "id": "p-0148",
       "class": "declared",
       "path": "packages/lesson-canon/catalog-info.yaml",
       "extractor": {
@@ -5465,7 +5478,7 @@
       ]
     },
     {
-      "id": "p-0148",
+      "id": "p-0149",
       "class": "declared",
       "path": "packages/lesson-canon/catalog-info.yaml",
       "extractor": {
@@ -5478,7 +5491,7 @@
       ]
     },
     {
-      "id": "p-0149",
+      "id": "p-0150",
       "class": "observed",
       "path": "packages/lesson-canon/package.json",
       "extractor": {
@@ -5491,7 +5504,7 @@
       ]
     },
     {
-      "id": "p-0150",
+      "id": "p-0151",
       "class": "observed",
       "path": "packages/lesson-canon/package.json",
       "extractor": {
@@ -5506,7 +5519,7 @@
       ]
     },
     {
-      "id": "p-0151",
+      "id": "p-0152",
       "class": "observed",
       "path": "packages/lesson-canon/package.json",
       "extractor": {
@@ -5523,7 +5536,7 @@
       ]
     },
     {
-      "id": "p-0152",
+      "id": "p-0153",
       "class": "observed",
       "path": "packages/lesson-canon/src/events.ts",
       "extractor": {
@@ -5536,7 +5549,7 @@
       ]
     },
     {
-      "id": "p-0153",
+      "id": "p-0154",
       "class": "observed",
       "path": "packages/lesson-canon/src/index.ts",
       "extractor": {
@@ -5549,7 +5562,7 @@
       ]
     },
     {
-      "id": "p-0154",
+      "id": "p-0155",
       "class": "observed",
       "path": "turbo.json",
       "extractor": {
@@ -5564,7 +5577,7 @@
       ]
     },
     {
-      "id": "p-0155",
+      "id": "p-0156",
       "class": "observed",
       "path": "turbo.json",
       "extractor": {
@@ -5579,7 +5592,7 @@
       ]
     },
     {
-      "id": "p-0156",
+      "id": "p-0157",
       "class": "observed",
       "path": "turbo.json",
       "extractor": {
@@ -5594,7 +5607,7 @@
       ]
     },
     {
-      "id": "p-0157",
+      "id": "p-0158",
       "class": "observed",
       "path": "turbo.json",
       "extractor": {
@@ -5607,7 +5620,7 @@
       ]
     },
     {
-      "id": "p-0158",
+      "id": "p-0159",
       "class": "observed",
       "path": "turbo.json",
       "extractor": {
@@ -5622,7 +5635,7 @@
       ]
     },
     {
-      "id": "p-0159",
+      "id": "p-0160",
       "class": "observed",
       "path": "turbo.json",
       "extractor": {
@@ -5637,7 +5650,20 @@
       ]
     },
     {
-      "id": "p-0160",
+      "id": "p-0161",
+      "class": "observed",
+      "path": "workers/koda-cron/CONSTRAINTS.md",
+      "extractor": {
+        "name": "context-document-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:17b782627a67a843b0b540998b5f8bc16e58d9085813967788db600fe137e1f8",
+      "subjects": [
+        "/entities/8/entity/spec/context/constraints"
+      ]
+    },
+    {
+      "id": "p-0162",
       "class": "observed",
       "path": "workers/koda-cron/CONSTRAINTS.md",
       "extractor": {
@@ -5650,7 +5676,7 @@
       ]
     },
     {
-      "id": "p-0161",
+      "id": "p-0163",
       "class": "observed",
       "path": "workers/koda-cron/README.md",
       "extractor": {
@@ -5663,7 +5689,7 @@
       ]
     },
     {
-      "id": "p-0162",
+      "id": "p-0164",
       "class": "observed",
       "path": "workers/koda-cron/catalog-info.yaml",
       "extractor": {
@@ -5676,7 +5702,7 @@
       ]
     },
     {
-      "id": "p-0163",
+      "id": "p-0165",
       "class": "declared",
       "path": "workers/koda-cron/catalog-info.yaml",
       "extractor": {
@@ -5689,7 +5715,7 @@
       ]
     },
     {
-      "id": "p-0164",
+      "id": "p-0166",
       "class": "declared",
       "path": "workers/koda-cron/catalog-info.yaml",
       "extractor": {
@@ -5708,7 +5734,7 @@
       ]
     },
     {
-      "id": "p-0165",
+      "id": "p-0167",
       "class": "declared",
       "path": "workers/koda-cron/catalog-info.yaml",
       "extractor": {
@@ -5722,7 +5748,7 @@
       ]
     },
     {
-      "id": "p-0166",
+      "id": "p-0168",
       "class": "declared",
       "path": "workers/koda-cron/catalog-info.yaml",
       "extractor": {
@@ -5735,7 +5761,7 @@
       ]
     },
     {
-      "id": "p-0167",
+      "id": "p-0169",
       "class": "observed",
       "path": "workers/koda-cron/package.json",
       "extractor": {
@@ -5748,7 +5774,7 @@
       ]
     },
     {
-      "id": "p-0168",
+      "id": "p-0170",
       "class": "observed",
       "path": "workers/koda-cron/package.json",
       "extractor": {
@@ -5763,7 +5789,7 @@
       ]
     },
     {
-      "id": "p-0169",
+      "id": "p-0171",
       "class": "observed",
       "path": "workers/koda-cron/package.json",
       "extractor": {
@@ -5780,7 +5806,7 @@
       ]
     },
     {
-      "id": "p-0170",
+      "id": "p-0172",
       "class": "observed",
       "path": "workers/koda-cron/wrangler.toml",
       "extractor": {
@@ -5795,7 +5821,7 @@
       ]
     },
     {
-      "id": "p-0171",
+      "id": "p-0173",
       "class": "observed",
       "path": "workers/koda-cron/wrangler.toml",
       "extractor": {
@@ -5814,7 +5840,7 @@
       ]
     },
     {
-      "id": "p-0172",
+      "id": "p-0174",
       "class": "observed",
       "path": "workers/koda-cron/wrangler.toml",
       "extractor": {
@@ -5828,7 +5854,7 @@
       ]
     },
     {
-      "id": "p-0173",
+      "id": "p-0175",
       "class": "observed",
       "path": "workers/koda-cron/wrangler.toml",
       "extractor": {

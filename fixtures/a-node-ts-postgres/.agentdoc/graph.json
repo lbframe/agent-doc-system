@@ -1,13 +1,13 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "b5b38ca5c17a83637aaef1a27d072e17725d7f4b",
+    "commit": "c2fc53bb38a404f7dfaa101c2ea2a4ca929b6256",
     "dirty": false,
-    "inputHash": "sha256:ac6125f0975233c845ad798fe5ce447f97128eb2844d14db28fcb70175b1d82b"
+    "inputHash": "sha256:416afd8059ebb79678b9a1506f151254c39d26c3e90f4900e589fc7f611b82f8"
   },
   "compiler": {
     "name": "agentdoc-compiler",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "adapters": [
       {
         "name": "database",
@@ -115,7 +115,7 @@
             "logicalResourceRef": "resource:default/orders-service-postgres",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0019"
+              "p-0020"
             ]
           }
         ],
@@ -126,7 +126,7 @@
               "directory-name"
             ],
             "provenanceIds": [
-              "p-0019"
+              "p-0020"
             ]
           }
         ],
@@ -136,7 +136,7 @@
             "route": "/healthz",
             "semantics": "liveness",
             "provenanceIds": [
-              "p-0027"
+              "p-0028"
             ]
           }
         ],
@@ -241,7 +241,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0017"
+        "p-0018"
       ]
     },
     {
@@ -261,7 +261,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0017"
+        "p-0018"
       ]
     },
     {
@@ -305,7 +305,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0019"
+        "p-0020"
       ]
     },
     {
@@ -319,7 +319,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0019"
+        "p-0020"
       ]
     }
   ],
@@ -368,7 +368,7 @@
         "service/package.json"
       ],
       "provenanceIds": [
-        "p-0023"
+        "p-0024"
       ]
     },
     {
@@ -382,7 +382,7 @@
         "service/package.json"
       ],
       "provenanceIds": [
-        "p-0024"
+        "p-0025"
       ]
     },
     {
@@ -396,7 +396,7 @@
         "service/package.json"
       ],
       "provenanceIds": [
-        "p-0025"
+        "p-0026"
       ]
     },
     {
@@ -410,7 +410,7 @@
         "service/package.json"
       ],
       "provenanceIds": [
-        "p-0026"
+        "p-0027"
       ]
     }
   ],
@@ -453,8 +453,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0021",
-        "p-0028"
+        "p-0022",
+        "p-0029"
       ]
     },
     {
@@ -466,8 +466,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0021",
-        "p-0028"
+        "p-0022",
+        "p-0029"
       ]
     },
     {
@@ -479,7 +479,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0019"
+        "p-0020"
       ],
       "semantics": "migration and connection authority in this root resolve to the authored logical database"
     },
@@ -492,7 +492,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0018"
+        "p-0019"
       ]
     },
     {
@@ -699,6 +699,19 @@
       "class": "observed",
       "path": "service/CONSTRAINTS.md",
       "extractor": {
+        "name": "context-document-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:71e14aa7fa30df9fed8d5136c16a57cfe78b02021991ebadf5640118c8dff7e0",
+      "subjects": [
+        "/entities/1/entity/spec/context/constraints"
+      ]
+    },
+    {
+      "id": "p-0013",
+      "class": "observed",
+      "path": "service/CONSTRAINTS.md",
+      "extractor": {
         "name": "docs-extractor",
         "version": "1.0.0"
       },
@@ -708,7 +721,7 @@
       ]
     },
     {
-      "id": "p-0013",
+      "id": "p-0014",
       "class": "observed",
       "path": "service/README.md",
       "extractor": {
@@ -721,7 +734,7 @@
       ]
     },
     {
-      "id": "p-0014",
+      "id": "p-0015",
       "class": "observed",
       "path": "service/agentdoc.yaml",
       "extractor": {
@@ -734,7 +747,7 @@
       ]
     },
     {
-      "id": "p-0015",
+      "id": "p-0016",
       "class": "declared",
       "path": "service/agentdoc.yaml",
       "extractor": {
@@ -747,7 +760,7 @@
       ]
     },
     {
-      "id": "p-0016",
+      "id": "p-0017",
       "class": "declared",
       "path": "service/agentdoc.yaml",
       "extractor": {
@@ -766,7 +779,7 @@
       ]
     },
     {
-      "id": "p-0017",
+      "id": "p-0018",
       "class": "declared",
       "path": "service/agentdoc.yaml",
       "extractor": {
@@ -780,7 +793,7 @@
       ]
     },
     {
-      "id": "p-0018",
+      "id": "p-0019",
       "class": "declared",
       "path": "service/agentdoc.yaml",
       "extractor": {
@@ -793,7 +806,7 @@
       ]
     },
     {
-      "id": "p-0019",
+      "id": "p-0020",
       "class": "observed",
       "path": "service/db/migrations/0001_orders.sql",
       "extractor": {
@@ -810,7 +823,7 @@
       ]
     },
     {
-      "id": "p-0020",
+      "id": "p-0021",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -823,7 +836,7 @@
       ]
     },
     {
-      "id": "p-0021",
+      "id": "p-0022",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -838,7 +851,7 @@
       ]
     },
     {
-      "id": "p-0022",
+      "id": "p-0023",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -853,7 +866,7 @@
       ]
     },
     {
-      "id": "p-0023",
+      "id": "p-0024",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -866,7 +879,7 @@
       ]
     },
     {
-      "id": "p-0024",
+      "id": "p-0025",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -879,7 +892,7 @@
       ]
     },
     {
-      "id": "p-0025",
+      "id": "p-0026",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -892,7 +905,7 @@
       ]
     },
     {
-      "id": "p-0026",
+      "id": "p-0027",
       "class": "observed",
       "path": "service/package.json",
       "extractor": {
@@ -905,7 +918,7 @@
       ]
     },
     {
-      "id": "p-0027",
+      "id": "p-0028",
       "class": "observed",
       "path": "service/src/routes/health.ts",
       "extractor": {
@@ -918,7 +931,7 @@
       ]
     },
     {
-      "id": "p-0028",
+      "id": "p-0029",
       "class": "observed",
       "path": "service/tsconfig.json",
       "extractor": {
@@ -933,7 +946,7 @@
       ]
     },
     {
-      "id": "p-0029",
+      "id": "p-0030",
       "class": "observed",
       "path": "service/tsconfig.json",
       "extractor": {

@@ -1,13 +1,13 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "b5b38ca5c17a83637aaef1a27d072e17725d7f4b",
+    "commit": "c2fc53bb38a404f7dfaa101c2ea2a4ca929b6256",
     "dirty": false,
-    "inputHash": "sha256:4de8f85e985b00b13ec0e8db90a08dd043cbb834acff82650734dac3d605834a"
+    "inputHash": "sha256:08d97857251fb31763c37c198e8b3c6147fe9bb343728c74d0fcb713d470bc2e"
   },
   "compiler": {
     "name": "agentdoc-compiler",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "adapters": [
       {
         "name": "database",
@@ -111,7 +111,7 @@
             "logicalResourceRef": "resource:default/gateway-postgres",
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0032"
+              "p-0033"
             ]
           }
         ],
@@ -122,7 +122,7 @@
               "directory-name"
             ],
             "provenanceIds": [
-              "p-0032"
+              "p-0033"
             ]
           }
         ],
@@ -342,7 +342,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0031"
+        "p-0032"
       ]
     },
     {
@@ -356,7 +356,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0040"
+        "p-0041"
       ]
     },
     {
@@ -370,7 +370,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0031"
+        "p-0032"
       ]
     },
     {
@@ -384,7 +384,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0040"
+        "p-0041"
       ]
     },
     {
@@ -418,7 +418,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0027"
+        "p-0028"
       ]
     },
     {
@@ -428,7 +428,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0036"
+        "p-0037"
       ]
     },
     {
@@ -458,7 +458,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0027"
+        "p-0028"
       ]
     },
     {
@@ -468,7 +468,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0036"
+        "p-0037"
       ]
     },
     {
@@ -522,7 +522,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0032"
+        "p-0033"
       ]
     },
     {
@@ -536,7 +536,7 @@
         ]
       },
       "provenanceIds": [
-        "p-0032"
+        "p-0033"
       ]
     }
   ],
@@ -557,7 +557,7 @@
         "services/gateway/go.mod"
       ],
       "provenanceIds": [
-        "p-0031"
+        "p-0032"
       ]
     },
     {
@@ -571,7 +571,7 @@
         "services/gateway/go.mod"
       ],
       "provenanceIds": [
-        "p-0031"
+        "p-0032"
       ]
     },
     {
@@ -585,7 +585,7 @@
         "services/ingest/go.mod"
       ],
       "provenanceIds": [
-        "p-0040"
+        "p-0041"
       ]
     },
     {
@@ -599,7 +599,7 @@
         "services/ingest/go.mod"
       ],
       "provenanceIds": [
-        "p-0040"
+        "p-0041"
       ]
     },
     {
@@ -706,7 +706,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0030"
+        "p-0031"
       ]
     },
     {
@@ -718,7 +718,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0030"
+        "p-0031"
       ]
     },
     {
@@ -730,7 +730,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0032"
+        "p-0033"
       ],
       "semantics": "migration and connection authority in this root resolve to the authored logical database"
     },
@@ -743,7 +743,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0039"
+        "p-0040"
       ]
     },
     {
@@ -755,7 +755,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0039"
+        "p-0040"
       ]
     },
     {
@@ -767,7 +767,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0028"
+        "p-0029"
       ]
     },
     {
@@ -779,7 +779,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0037"
+        "p-0038"
       ]
     },
     {
@@ -1144,6 +1144,19 @@
       "class": "observed",
       "path": "services/gateway/CONSTRAINTS.md",
       "extractor": {
+        "name": "context-document-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:fa4a6724e319d12a53bc75f2da0681d7e6f5fa18aa2a075969f0117469d81623",
+      "subjects": [
+        "/entities/1/entity/spec/context/constraints"
+      ]
+    },
+    {
+      "id": "p-0023",
+      "class": "observed",
+      "path": "services/gateway/CONSTRAINTS.md",
+      "extractor": {
         "name": "docs-extractor",
         "version": "1.0.0"
       },
@@ -1153,7 +1166,7 @@
       ]
     },
     {
-      "id": "p-0023",
+      "id": "p-0024",
       "class": "observed",
       "path": "services/gateway/README.md",
       "extractor": {
@@ -1166,7 +1179,7 @@
       ]
     },
     {
-      "id": "p-0024",
+      "id": "p-0025",
       "class": "observed",
       "path": "services/gateway/agentdoc.yaml",
       "extractor": {
@@ -1179,7 +1192,7 @@
       ]
     },
     {
-      "id": "p-0025",
+      "id": "p-0026",
       "class": "declared",
       "path": "services/gateway/agentdoc.yaml",
       "extractor": {
@@ -1192,7 +1205,7 @@
       ]
     },
     {
-      "id": "p-0026",
+      "id": "p-0027",
       "class": "declared",
       "path": "services/gateway/agentdoc.yaml",
       "extractor": {
@@ -1211,7 +1224,7 @@
       ]
     },
     {
-      "id": "p-0027",
+      "id": "p-0028",
       "class": "declared",
       "path": "services/gateway/agentdoc.yaml",
       "extractor": {
@@ -1225,7 +1238,7 @@
       ]
     },
     {
-      "id": "p-0028",
+      "id": "p-0029",
       "class": "declared",
       "path": "services/gateway/agentdoc.yaml",
       "extractor": {
@@ -1238,7 +1251,7 @@
       ]
     },
     {
-      "id": "p-0029",
+      "id": "p-0030",
       "class": "observed",
       "path": "services/gateway/go.mod",
       "extractor": {
@@ -1251,7 +1264,7 @@
       ]
     },
     {
-      "id": "p-0030",
+      "id": "p-0031",
       "class": "observed",
       "path": "services/gateway/go.mod",
       "extractor": {
@@ -1266,7 +1279,7 @@
       ]
     },
     {
-      "id": "p-0031",
+      "id": "p-0032",
       "class": "observed",
       "path": "services/gateway/go.mod",
       "extractor": {
@@ -1282,7 +1295,7 @@
       ]
     },
     {
-      "id": "p-0032",
+      "id": "p-0033",
       "class": "observed",
       "path": "services/gateway/internal/store/migrations/0001_ledger.sql",
       "extractor": {
@@ -1299,7 +1312,7 @@
       ]
     },
     {
-      "id": "p-0033",
+      "id": "p-0034",
       "class": "observed",
       "path": "services/ingest/README.md",
       "extractor": {
@@ -1312,7 +1325,7 @@
       ]
     },
     {
-      "id": "p-0034",
+      "id": "p-0035",
       "class": "observed",
       "path": "services/ingest/agentdoc.yaml",
       "extractor": {
@@ -1325,7 +1338,7 @@
       ]
     },
     {
-      "id": "p-0035",
+      "id": "p-0036",
       "class": "declared",
       "path": "services/ingest/agentdoc.yaml",
       "extractor": {
@@ -1344,7 +1357,7 @@
       ]
     },
     {
-      "id": "p-0036",
+      "id": "p-0037",
       "class": "declared",
       "path": "services/ingest/agentdoc.yaml",
       "extractor": {
@@ -1358,7 +1371,7 @@
       ]
     },
     {
-      "id": "p-0037",
+      "id": "p-0038",
       "class": "declared",
       "path": "services/ingest/agentdoc.yaml",
       "extractor": {
@@ -1371,7 +1384,7 @@
       ]
     },
     {
-      "id": "p-0038",
+      "id": "p-0039",
       "class": "observed",
       "path": "services/ingest/go.mod",
       "extractor": {
@@ -1384,7 +1397,7 @@
       ]
     },
     {
-      "id": "p-0039",
+      "id": "p-0040",
       "class": "observed",
       "path": "services/ingest/go.mod",
       "extractor": {
@@ -1399,7 +1412,7 @@
       ]
     },
     {
-      "id": "p-0040",
+      "id": "p-0041",
       "class": "observed",
       "path": "services/ingest/go.mod",
       "extractor": {

@@ -1,13 +1,13 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "b5b38ca5c17a83637aaef1a27d072e17725d7f4b",
+    "commit": "c2fc53bb38a404f7dfaa101c2ea2a4ca929b6256",
     "dirty": false,
-    "inputHash": "sha256:28ba9b5cd74560417ad57ed567ad4e55c82f026dc6b9b61465ff26cfee6b1438"
+    "inputHash": "sha256:3790aac2357eb5f434293fbccb0b195aeb020b935075163336c884c77b833ae9"
   },
   "compiler": {
     "name": "agentdoc-compiler",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "adapters": [
       {
         "name": "cache",
@@ -201,7 +201,7 @@
             },
             "resolution": "resolved",
             "provenanceIds": [
-              "p-0041"
+              "p-0042"
             ]
           }
         ],
@@ -470,7 +470,7 @@
         "package": "@corp/shared"
       },
       "provenanceIds": [
-        "p-0049"
+        "p-0050"
       ]
     },
     {
@@ -485,7 +485,7 @@
         "package": "@corp/shared"
       },
       "provenanceIds": [
-        "p-0038"
+        "p-0039"
       ]
     },
     {
@@ -500,7 +500,7 @@
         "package": "@corp/shared"
       },
       "provenanceIds": [
-        "p-0049"
+        "p-0050"
       ]
     },
     {
@@ -515,7 +515,7 @@
         "package": "@corp/shared"
       },
       "provenanceIds": [
-        "p-0038"
+        "p-0039"
       ]
     },
     {
@@ -545,7 +545,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0034"
+        "p-0035"
       ]
     },
     {
@@ -555,7 +555,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0045"
+        "p-0046"
       ]
     },
     {
@@ -565,7 +565,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0057"
+        "p-0059"
       ]
     },
     {
@@ -605,7 +605,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0045"
+        "p-0046"
       ]
     },
     {
@@ -615,7 +615,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0034"
+        "p-0035"
       ]
     },
     {
@@ -625,7 +625,7 @@
       "evidenceClass": "AUTHORED",
       "attributes": {},
       "provenanceIds": [
-        "p-0057"
+        "p-0059"
       ]
     },
     {
@@ -729,7 +729,7 @@
       },
       "provenanceIds": [
         "p-0022",
-        "p-0042"
+        "p-0043"
       ]
     },
     {
@@ -745,7 +745,7 @@
       },
       "provenanceIds": [
         "p-0022",
-        "p-0042"
+        "p-0043"
       ]
     },
     {
@@ -793,8 +793,8 @@
         },
         "resolution": "resolved",
         "provenanceIds": [
-          "p-0059",
-          "p-0060"
+          "p-0061",
+          "p-0062"
         ]
       }
     ]
@@ -813,7 +813,7 @@
         "frontend/package.json"
       ],
       "provenanceIds": [
-        "p-0050"
+        "p-0051"
       ]
     },
     {
@@ -827,7 +827,7 @@
         "frontend/package.json"
       ],
       "provenanceIds": [
-        "p-0051"
+        "p-0052"
       ]
     },
     {
@@ -841,7 +841,7 @@
         "edge/package.json"
       ],
       "provenanceIds": [
-        "p-0039"
+        "p-0040"
       ]
     },
     {
@@ -855,7 +855,7 @@
         "shared/package.json"
       ],
       "provenanceIds": [
-        "p-0064"
+        "p-0066"
       ]
     },
     {
@@ -919,7 +919,7 @@
       ],
       "title": "Telemetry Ingest",
       "provenanceIds": [
-        "p-0065"
+        "p-0067"
       ]
     }
   ],
@@ -983,8 +983,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0037",
-        "p-0040"
+        "p-0038",
+        "p-0041"
       ]
     },
     {
@@ -996,8 +996,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0037",
-        "p-0040"
+        "p-0038",
+        "p-0041"
       ]
     },
     {
@@ -1011,7 +1011,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0041"
+        "p-0042"
       ],
       "semantics": "the binding names the committed manifest declares for this component"
     },
@@ -1026,7 +1026,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0041"
+        "p-0042"
       ],
       "semantics": "the kinds of platform binding the committed manifest declares for this component"
     },
@@ -1039,7 +1039,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0041"
+        "p-0042"
       ],
       "semantics": "cron expressions the committed deployment manifest declares for this component"
     },
@@ -1052,7 +1052,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0041"
+        "p-0042"
       ],
       "semantics": "the manifest declares a trigger, i.e. the job is intended to be enabled"
     },
@@ -1067,7 +1067,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0041"
+        "p-0042"
       ],
       "semantics": "endpoints the committed manifest points scheduled triggers at"
     },
@@ -1080,8 +1080,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0048",
-        "p-0053"
+        "p-0049",
+        "p-0054"
       ]
     },
     {
@@ -1093,8 +1093,8 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0048",
-        "p-0053"
+        "p-0049",
+        "p-0054"
       ]
     },
     {
@@ -1106,7 +1106,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0062"
+        "p-0064"
       ]
     },
     {
@@ -1118,7 +1118,7 @@
       "confidence": "deterministic",
       "status": "elected",
       "provenanceIds": [
-        "p-0062"
+        "p-0064"
       ]
     },
     {
@@ -1142,7 +1142,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0035"
+        "p-0036"
       ]
     },
     {
@@ -1154,7 +1154,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0046"
+        "p-0047"
       ]
     },
     {
@@ -1166,7 +1166,7 @@
       "confidence": "declared",
       "status": "elected",
       "provenanceIds": [
-        "p-0058"
+        "p-0060"
       ]
     },
     {
@@ -1662,6 +1662,19 @@
       "class": "observed",
       "path": "edge/CONSTRAINTS.md",
       "extractor": {
+        "name": "context-document-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:82fcb8552b2802ff3224e156c8df3b31222238f7119b7d6f22e5326e91b2c9a6",
+      "subjects": [
+        "/entities/2/entity/spec/context/constraints"
+      ]
+    },
+    {
+      "id": "p-0031",
+      "class": "observed",
+      "path": "edge/CONSTRAINTS.md",
+      "extractor": {
         "name": "docs-extractor",
         "version": "1.0.0"
       },
@@ -1671,7 +1684,7 @@
       ]
     },
     {
-      "id": "p-0031",
+      "id": "p-0032",
       "class": "observed",
       "path": "edge/agentdoc.yaml",
       "extractor": {
@@ -1684,7 +1697,7 @@
       ]
     },
     {
-      "id": "p-0032",
+      "id": "p-0033",
       "class": "declared",
       "path": "edge/agentdoc.yaml",
       "extractor": {
@@ -1697,7 +1710,7 @@
       ]
     },
     {
-      "id": "p-0033",
+      "id": "p-0034",
       "class": "declared",
       "path": "edge/agentdoc.yaml",
       "extractor": {
@@ -1716,7 +1729,7 @@
       ]
     },
     {
-      "id": "p-0034",
+      "id": "p-0035",
       "class": "declared",
       "path": "edge/agentdoc.yaml",
       "extractor": {
@@ -1730,7 +1743,7 @@
       ]
     },
     {
-      "id": "p-0035",
+      "id": "p-0036",
       "class": "declared",
       "path": "edge/agentdoc.yaml",
       "extractor": {
@@ -1743,7 +1756,7 @@
       ]
     },
     {
-      "id": "p-0036",
+      "id": "p-0037",
       "class": "observed",
       "path": "edge/package.json",
       "extractor": {
@@ -1756,7 +1769,7 @@
       ]
     },
     {
-      "id": "p-0037",
+      "id": "p-0038",
       "class": "observed",
       "path": "edge/package.json",
       "extractor": {
@@ -1771,7 +1784,7 @@
       ]
     },
     {
-      "id": "p-0038",
+      "id": "p-0039",
       "class": "observed",
       "path": "edge/package.json",
       "extractor": {
@@ -1788,7 +1801,7 @@
       ]
     },
     {
-      "id": "p-0039",
+      "id": "p-0040",
       "class": "observed",
       "path": "edge/package.json",
       "extractor": {
@@ -1801,7 +1814,7 @@
       ]
     },
     {
-      "id": "p-0040",
+      "id": "p-0041",
       "class": "observed",
       "path": "edge/wrangler.toml",
       "extractor": {
@@ -1816,7 +1829,7 @@
       ]
     },
     {
-      "id": "p-0041",
+      "id": "p-0042",
       "class": "observed",
       "path": "edge/wrangler.toml",
       "extractor": {
@@ -1835,7 +1848,7 @@
       ]
     },
     {
-      "id": "p-0042",
+      "id": "p-0043",
       "class": "observed",
       "path": "edge/wrangler.toml",
       "extractor": {
@@ -1849,7 +1862,7 @@
       ]
     },
     {
-      "id": "p-0043",
+      "id": "p-0044",
       "class": "observed",
       "path": "frontend/agentdoc.yaml",
       "extractor": {
@@ -1862,7 +1875,7 @@
       ]
     },
     {
-      "id": "p-0044",
+      "id": "p-0045",
       "class": "declared",
       "path": "frontend/agentdoc.yaml",
       "extractor": {
@@ -1881,7 +1894,7 @@
       ]
     },
     {
-      "id": "p-0045",
+      "id": "p-0046",
       "class": "declared",
       "path": "frontend/agentdoc.yaml",
       "extractor": {
@@ -1895,7 +1908,7 @@
       ]
     },
     {
-      "id": "p-0046",
+      "id": "p-0047",
       "class": "declared",
       "path": "frontend/agentdoc.yaml",
       "extractor": {
@@ -1908,7 +1921,7 @@
       ]
     },
     {
-      "id": "p-0047",
+      "id": "p-0048",
       "class": "observed",
       "path": "frontend/package.json",
       "extractor": {
@@ -1921,7 +1934,7 @@
       ]
     },
     {
-      "id": "p-0048",
+      "id": "p-0049",
       "class": "observed",
       "path": "frontend/package.json",
       "extractor": {
@@ -1936,7 +1949,7 @@
       ]
     },
     {
-      "id": "p-0049",
+      "id": "p-0050",
       "class": "observed",
       "path": "frontend/package.json",
       "extractor": {
@@ -1953,7 +1966,7 @@
       ]
     },
     {
-      "id": "p-0050",
+      "id": "p-0051",
       "class": "observed",
       "path": "frontend/package.json",
       "extractor": {
@@ -1966,7 +1979,7 @@
       ]
     },
     {
-      "id": "p-0051",
+      "id": "p-0052",
       "class": "observed",
       "path": "frontend/package.json",
       "extractor": {
@@ -1979,7 +1992,7 @@
       ]
     },
     {
-      "id": "p-0052",
+      "id": "p-0053",
       "class": "observed",
       "path": "frontend/src/app/api/health/route.ts",
       "extractor": {
@@ -1992,7 +2005,7 @@
       ]
     },
     {
-      "id": "p-0053",
+      "id": "p-0054",
       "class": "observed",
       "path": "frontend/tsconfig.json",
       "extractor": {
@@ -2007,7 +2020,7 @@
       ]
     },
     {
-      "id": "p-0054",
+      "id": "p-0055",
       "class": "observed",
       "path": "frontend/tsconfig.json",
       "extractor": {
@@ -2020,7 +2033,20 @@
       ]
     },
     {
-      "id": "p-0055",
+      "id": "p-0056",
+      "class": "observed",
+      "path": "legacy-docs/backend.md",
+      "extractor": {
+        "name": "context-document-reader",
+        "version": "1.0.0"
+      },
+      "contentHash": "sha256:e1563c77dc2bebda86d5b96789f9a8da36adb1da261473e9ee546d17f031b202",
+      "subjects": [
+        "/entities/4/entity/spec/context/docs"
+      ]
+    },
+    {
+      "id": "p-0057",
       "class": "observed",
       "path": "shared/agentdoc.yaml",
       "extractor": {
@@ -2033,7 +2059,7 @@
       ]
     },
     {
-      "id": "p-0056",
+      "id": "p-0058",
       "class": "declared",
       "path": "shared/agentdoc.yaml",
       "extractor": {
@@ -2052,7 +2078,7 @@
       ]
     },
     {
-      "id": "p-0057",
+      "id": "p-0059",
       "class": "declared",
       "path": "shared/agentdoc.yaml",
       "extractor": {
@@ -2066,7 +2092,7 @@
       ]
     },
     {
-      "id": "p-0058",
+      "id": "p-0060",
       "class": "declared",
       "path": "shared/agentdoc.yaml",
       "extractor": {
@@ -2079,7 +2105,7 @@
       ]
     },
     {
-      "id": "p-0059",
+      "id": "p-0061",
       "class": "declared",
       "path": "shared/index.js",
       "extractor": {
@@ -2092,7 +2118,7 @@
       ]
     },
     {
-      "id": "p-0060",
+      "id": "p-0062",
       "class": "observed",
       "path": "shared/index.js",
       "extractor": {
@@ -2105,7 +2131,7 @@
       ]
     },
     {
-      "id": "p-0061",
+      "id": "p-0063",
       "class": "observed",
       "path": "shared/package.json",
       "extractor": {
@@ -2118,7 +2144,7 @@
       ]
     },
     {
-      "id": "p-0062",
+      "id": "p-0064",
       "class": "observed",
       "path": "shared/package.json",
       "extractor": {
@@ -2133,7 +2159,7 @@
       ]
     },
     {
-      "id": "p-0063",
+      "id": "p-0065",
       "class": "observed",
       "path": "shared/package.json",
       "extractor": {
@@ -2148,7 +2174,7 @@
       ]
     },
     {
-      "id": "p-0064",
+      "id": "p-0066",
       "class": "observed",
       "path": "shared/package.json",
       "extractor": {
@@ -2161,7 +2187,7 @@
       ]
     },
     {
-      "id": "p-0065",
+      "id": "p-0067",
       "class": "observed",
       "path": "wire/telemetry.openapi.yaml",
       "extractor": {

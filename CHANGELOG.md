@@ -9,6 +9,16 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-11-14
+
+### Fixed
+
+- Explicit context documents now have content provenance, allowing task-context delivery to verify linked files outside conventional document locations.
+- Component, System and Resource context lists now accept more than twelve documentation, constraint or runbook references. Projects no longer need to omit applicable decisions or reclassify them to satisfy schema validation. Markdown display budgets remain adjustable and report truncation; task context delivery uses token budgets and continuation.
+- Agent guidance distinguishes document-path navigation from content delivery and documents the current component-level applicability boundary.
+
+Recompile committed graphs after upgrading, as the compiler version is now 1.5.2 and the schema input hash changes.
+
 ## [1.5.1] - 2026-11-13
 
 ### Fixed
@@ -449,7 +459,8 @@ First public release.
   for project health.
 - An Agent Skill under `skills/agent-doc-system/`.
 
-[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/lbframe/agent-doc-system/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/lbframe/agent-doc-system/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/lbframe/agent-doc-system/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/lbframe/agent-doc-system/compare/v1.3.0...v1.4.0

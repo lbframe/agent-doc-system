@@ -8,6 +8,12 @@ printf '%s\n' '{"task":"Change the engine API","paths":["crates/engine"],"intent
 
 Intents are `implement` (default), `change-contract`, `debug-runtime` and `review`. The first implementation conservatively retains the same obligation closure across intents. The packet contains typed, versioned records, evidence references, selected checks, analysis limitations and stale runtime observation IDs. It does not infer that unsupported or dynamic dependencies are absent.
 
+Document selection currently follows component ownership and impact, rather
+than file-specific document filters. All declared references remain eligible,
+including lists longer than twelve entries; the token budget governs delivery,
+not what the repository may declare. Constraints are critical obligations;
+ordinary documentation and runbooks remain available through continuation.
+
 ## Budget and continuation
 
 The exact serialized output, including its final newline, metadata and continuation, is counted using pinned `js-tiktoken@1.0.21`. Select `o200k_base` or `cl100k_base` explicitly to match the encoding used by your model; AgentDoc does not guess model tokenization. The supported budget is 256–1,000,000 tokens. A budget too small for the envelope or next indivisible record fails with `AGENTDOC_CONTEXT_BUDGET` and must be increased.

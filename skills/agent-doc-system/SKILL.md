@@ -59,12 +59,19 @@ another. If the graph reports a conflict or an unresolved fact, say so.
 | CREATE | no `agentdoc/` config exists | `agentdoc init`, then `scaffold --write` |
 | MIGRATE | established repo, scattered or stale docs | `agentdoc audit`, then work the report |
 | VALIDATE | before committing, in CI | `agentdoc validate` → `compile` → `check` |
-| QUERY | before and during a change | `agentdoc query <path-or-ref>` |
+| QUERY | navigate a path or entity | `agentdoc query <path-or-ref>` |
+| TASK CONTEXT | receive document contents for a change | `agentdoc prepare` → `expand` → `refresh` |
 | MAINTAIN | after a change | `agentdoc impact <paths>` |
 
 CREATE versus MIGRATE is not about size: a repository whose existing docs make
 *claims* is a migration, because those claims must be verified. Details:
 [references/create-migrate.md](references/create-migrate.md).
+
+`query` returns document paths, not their contents. Open the applicable files
+and resolve any reported truncation, or use the task context protocol below to
+receive their contents under a token budget. Context lists have no declaration
+count cap: preserve every applicable reference and classify by role, never by
+remaining capacity. A link or a delivered record is not proof of implementation.
 
 ## The normal loop
 

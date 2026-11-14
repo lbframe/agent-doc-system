@@ -170,6 +170,19 @@ documentation, constraints and runbooks appear under `docs`, `CONSTRAINTS` and
 `runbooks`, respectively. Components also include conventional files discovered
 in their source root. API and Domain schemas do not allow `context`.
 
+Authored `context.docs`, `context.constraints` and `context.runbooks` have no
+item-count cap. Declare every applicable reference; do not move a document to
+another category or split a component to fit a display budget. Choose the
+category by its role: supporting documentation, active obligations, or operating
+procedures. An ADR may be the source of an active obligation.
+
+These links are component-level context, not file-specific applicability.
+Linking a document to one component does not establish coverage of every other
+component that needs it. `query` returns document paths; use `prepare` and
+`expand` when the consumer needs their contents with a token budget and explicit
+continuation (see [CONTEXT.md](CONTEXT.md)). Neither delivery nor a link proves
+that an obligation has been understood or implemented.
+
 Markdown docs and runbooks default to 12 paths each. Constraints are uncapped by
 default so critical routing context is preserved. Set an explicit cap with, for
 example, `--budget docs=1,constraints=5,runbooks=1`. A shortened line ends with

@@ -527,6 +527,16 @@ function compileOnce(root, opts = {}) {
     prov.add("declared", e.file, "descriptor-reader", subjects);
   }
 
+  // Pin linked document contents as well as the descriptor that declares the
+  // link. Task-context delivery verifies these bytes against graph provenance.
+  for (const e of sources.entities) {
+    for (const [kind, paths] of Object.entries(e.doc.spec?.context || {})) {
+      for (const p of paths) {
+        prov.add("observed", p, "context-document-reader", ["entf:" + e.ref + ":/spec/context/" + kind]);
+      }
+    }
+  }
+
   // ── contract adapters run once, after every unit is known ───────────────
   const contractOut = [];
   ctx.addContract = (rec) => {
