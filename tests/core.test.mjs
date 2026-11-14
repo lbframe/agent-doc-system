@@ -269,7 +269,7 @@ function contextFixture(t, kind) {
   const dir = baseFixture(t);
   const context = {};
   for (const key of ["docs", "constraints", "runbooks"]) {
-    context[key] = ["docs/" + key + "-a.md", "docs/" + key + "-b.md"];
+    context[key] = Array.from({ length: 15 }, (_, i) => "docs/" + key + "-" + String(i).padStart(2, "0") + ".md");
     for (const p of context[key]) write(dir, p, "# " + key + "\n");
   }
   write(dir, descriptor, read(dir, descriptor).replace(/  context:[\s\S]*/, "").trimEnd() +
@@ -292,7 +292,7 @@ for (const [kind, ref] of [
     cli(dir, ["compile"]);
     const ctx = JSON.parse(cli(dir, ["query", ref, "--json"]));
     assert.deepEqual(ctx.entity.spec.context, context);
-    const md = cli(dir, ["query", ref]);
+    const md = cli(dir, ["query", ref, "--budget", "docs=100,runbooks=100"]);
     const limited = cli(dir, ["query", ref, "--md", "--budget", "docs=1,constraints=1,runbooks=1"]);
     assert.ok(!md.includes("[truncated:"));
     for (const [key, paths] of Object.entries(context)) {
@@ -309,7 +309,7 @@ for (const [kind, ref] of [
     if (kind === "Component") {
       assert.ok(md.includes("service/README.md"));
       assert.ok(md.includes("service/CONSTRAINTS.md"));
-      assert.equal(md.split("docs/docs-a.md").length - 1, 1, "authored and derived context must not duplicate links");
+      assert.equal(md.split("docs/docs-00.md").length - 1, 1, "authored and derived context must not duplicate links");
     }
   });
 

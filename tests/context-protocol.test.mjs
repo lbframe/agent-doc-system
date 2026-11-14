@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Repo } from '../core/fsx.mjs';
 import { loadSchemaBundle } from '../core/descriptors.mjs';
-import { baseFixture, write } from './helpers.mjs';
+import { baseFixture, read, write } from './helpers.mjs';
 import { prepare, expand, refresh, serializePacket, countTokens, validateRequest, forget } from '../core/context/index.mjs';
 
 test('task context accounts exact serialized tokens, preserves critical facts and rejects stale continuation', t => {
@@ -88,4 +88,45 @@ test('cached evidence uses captured bytes even when a constraint changes during 
   assert.ok(injected);
   assert.equal(packet.records.find(r => r.kind === 'requirement').value.text, original);
   assert.equal(expand(dir, { packet: packet.packet, tokens: 20000 }).snapshot.graphHash, packet.snapshot.graphHash);
+});
+
+
+test('more than twelve documents per category survive compilation and paginated delivery', t => {
+  const dir = baseFixture(t);
+  const expected = new Map();
+  const context = ['docs', 'constraints', 'runbooks'].map(kind => {
+    const paths = Array.from({ length: 15 }, (_, i) => `docs/${kind}-${i}.md`);
+    for (const p of paths) {
+      const text = `# ${p}\nUnique obligation for ${p}.\n`;
+      write(dir, p, text);
+      expected.set(p, { text: read(dir, p), critical: kind === 'constraints' });
+    }
+    return `    ${kind}: [${paths.join(', ')}]`;
+  }).join('\n');
+  const descriptor = 'service/agentdoc.yaml';
+  write(dir, descriptor, read(dir, descriptor).replace(/  context:[\s\S]*/, '') + '  context:\n' + context + '\n');
+  const request = { task: 'Review all applicable obligations', paths: ['service/src/index.ts'] };
+  let packet = prepare(dir, { ...request, budget: { tokens: 2000 } });
+  assert.ok(packet.delivery.partial);
+  assert.ok(packet.delivery.criticalOmitted > 0);
+  const records = [];
+  let pages = 0;
+  while (true) {
+    assert.ok(++pages < 100, 'pagination must terminate');
+    assert.ok(packet.budget.used <= 2000);
+    assert.equal(packet.budget.used, countTokens(serializePacket(packet)));
+    records.push(...packet.records);
+    if (!packet.continuation) break;
+    packet = expand(dir, { ...packet.continuation, tokens: 2000 });
+  }
+  const full = prepare(dir, { ...request, budget: { tokens: 100000 } });
+  assert.equal(full.delivery.partial, false);
+  assert.deepEqual(records, full.records);
+  assert.equal(new Set(records.map(r => r.id)).size, records.length);
+  for (const [p, value] of expected) {
+    const record = records.find(r => r.key === p);
+    assert.ok(record, `${p} must be delivered`);
+    assert.equal(record.value.text, value.text);
+    assert.equal(record.critical, value.critical);
+  }
 });
