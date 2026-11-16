@@ -93,7 +93,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | adapter | recognises | contributes |
 |---|---|---|
 | `generic` | — | health-route literals, a single-port fact |
-| `node` | `package.json` | importability, npm dependency edges, script tiers, import edges between components (relative, tsconfig/jsconfig, Vite/webpack, `package.json` `imports`) |
+| `node` | `package.json` | importability, npm dependency edges, script tiers, import edges between components (relative, tsconfig/jsconfig, Vite/Vitest/webpack/Rollup/Babel aliases, `package.json` `imports`, dynamic imports) |
 | `pnpm` | `pnpm-workspace.yaml` | workspace member roots |
 | `turborepo` | `turbo.json` (nearest ancestor) | per-package task commands |
 | `typescript` | `tsconfig.json` | language, project references, file-router routes |
@@ -134,12 +134,17 @@ selects the importer's unit checks, as a safe regression-test selection must.
 |---|---|---|
 | `relative-import` | `./x`, `../db` | the importing file's directory |
 | `path-alias` | `@/db` | `compilerOptions.paths` of the nearest `tsconfig.json` or `jsconfig.json` |
-| `bundler-alias` | `@/db`, `~db` | `resolve.alias` of the nearest `vite.config.*` or `webpack.config.*`, read statically |
+| `bundler-alias` | `@/db`, `~db` | the aliases of the nearest Vite/Vitest, webpack, Rollup and Babel configs, read statically |
 | `subpath-import` | `#db`, `#lib/*` | the `imports` map of the nearest `package.json` |
+| `bundler-alias` | `db/index` | Babel module-resolver `root` directories |
 | `path-alias` | `db/schema` | `compilerOptions.baseUrl` |
+| `dynamic-import` | `` import(`./locales/${l}.ts`) ``, `import.meta.glob("./pages/*.tsx")` | every file the pattern matches, through the routes above |
 
 Non-relative specifiers try those sources in the order of the table, and the
-first that resolves wins. A specifier counts only when it resolves to a file in
+first that resolves wins. Each tool's config is looked up on its own (the
+nearest `vite.config.*`/`vitest.config.*`, `webpack.config.*`,
+`rollup.config.*`, `.babelrc*`/`babel.config.*`), so a nested `.babelrc` does
+not hide a root `vite.config.ts`. A specifier counts only when it resolves to a file in
 a unit's input set, by the rules TypeScript and bundlers apply: the exact file,
 then the `.ts`, `.tsx`, `.d.ts`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs`
 extensions, then a `.js` specifier naming its `.ts` source, then `index.*` in a
@@ -149,12 +154,18 @@ invalidates the graph.
 - **tsconfig/jsconfig.** For `paths`, an exact key wins, then the pattern with
   the longest prefix, and its targets are tried in order. `baseUrl` is relative
   to the config that sets it; `paths` are relative to the effective `baseUrl`,
-  or else to the config that sets them. `extends` is followed when it is a
-  repository-relative path (a string or a list); a package parent lives in
-  `node_modules`, which is not an input, and is not read.
-- **Vite and webpack.** The config is code and is never executed. `alias` is
-  read only when it is an object literal (webpack's `key$` is an exact match) or
-  a Vite array of `{ find: "…", replacement: … }`, and each value is one of
+  or else to the config that sets them. `extends` (a string or a list) is
+  followed when it is a repository-relative path, or a package that is a unit
+  of this repository: it is read at that unit's root, through the package's
+  `exports` for a subpath, else the path itself, else its `tsconfig` field or
+  `tsconfig.json` for the bare name. It is never read through `node_modules`,
+  which is not an input, so a third-party parent (`@tsconfig/node20`) is not
+  read; those define no `paths`, which are specific to each repository.
+- **Vite, Vitest, webpack and Rollup.** The config is code and is never
+  executed. `alias` (Vite's `resolve.alias`, Vitest's `test.alias`, webpack's
+  `resolve.alias`) or `entries` (`@rollup/plugin-alias`) is read only when it
+  is an object literal (webpack's `key$` is an exact match) or an array of
+  `{ find: "…", replacement: … }`, and each value is one of
   `path.resolve(__dirname, "…")` / `path.join(…)` (also `import.meta.dirname`),
   `fileURLToPath(new URL("…", import.meta.url))`,
   `new URL("…", import.meta.url).pathname`, or in a Vite config a
@@ -163,6 +174,23 @@ invalidates the graph.
   guessed: those aliases are skipped, the literal ones are still used, and the
   config is reported once with `AGENTDOC_IMPORT_ALIAS_UNRESOLVED`, a warning
   that can be accepted.
+- **Babel `module-resolver`.** In `.babelrc`, `.babelrc.json` and
+  `babel.config.json` (JSON with comments), the plugin's `alias` and `root`
+  options, including under `env`. A relative value (`"./src"`) is resolved
+  against the config's directory; a bare value (`"lodash"`) names another
+  package and is left to the manifest routes. In `babel.config.js` and
+  `.babelrc.js`, `alias` is read with the literal rules above, plus relative
+  strings. A regular-expression key (`"^@x/(.+)"`), a glob `root` or a
+  non-literal value is reported the same way.
+- **Dynamic imports.** A template literal given to `import()` or `require()`
+  becomes a pattern (`` `./locales/${lang}.ts` `` → `./locales/*.ts`), where
+  `*` can span directories and the extension or `index` file is optional, as
+  in webpack's context modules. `import.meta.glob` (and `globEager`) takes its
+  string globs as written, with `!` exclusions ignored. The pattern goes through
+  the same routes as a specifier (relative, aliases, `#imports`, `baseUrl`), and
+  every repository file it matches is a dependency, as the bundler that packages
+  it assumes. A pattern with no literal part before its first wildcard, such as
+  `import(name)`, names nothing and is not read.
 - **package.json `imports`.** Exact keys and `*` patterns, as Node resolves
   them. A conditional target (`{ "types": …, "default": … }`) can select any
   of its branches at runtime, so every branch that resolves to a repository
@@ -185,9 +213,12 @@ nothing from `pg` get neither, and neither does a component whose only use is
 connection. A type-only import of another component is still a build
 dependency, because the compiler needs it.
 
-**What it cannot see:** aliases that are not literals (see above), a Vitest,
-Rollup, esbuild or Babel alias configuration, `paths` inherited from a package
-`extends`, and imports built from expressions.
+**What it cannot see:** aliases that are not literals (reported, see above);
+`paths` from a third-party `extends` read through `node_modules`; esbuild
+aliases, which have no conventional config file to read or report; Babel
+`root` in a JavaScript config; and an import whose path is only an
+expression (`import(name)`, `require(mod)`), which no static reading can
+resolve.
 
 ### `github-actions`
 
