@@ -441,7 +441,10 @@ comments are removed, and resolved against the config's directory. An `out`
 that is an expression, an environment variable, a shorthand property, set more
 than once, or possibly brought in by a spread is not guessed: the adapter
 records nothing and reports `AGENTDOC_MIGRATION_DIR_UNRESOLVED`, a warning that
-can be accepted. An `out` outside the unit is reported the same way. An `out`
+can be accepted. An `out` outside the unit is reported the same way, unless a
+logical-database Resource already declares that directory, or a directory
+enclosing it, in `spec.migrationPaths`: the declaration routes it, so there is
+nothing left to report. An `out`
 directory that does not exist yet records nothing; the existence probe is an
 input, so generating the first migration invalidates the graph.
 

@@ -19,6 +19,7 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ### Fixed
 
+- `AGENTDOC_MIGRATION_DIR_UNRESOLVED` no longer fires when a Drizzle `out` directory belongs to another unit and a logical-database Resource already declares it, or a directory enclosing it, in `spec.migrationPaths`. The declaration already routes `impact`, so projects no longer need an accepted warning for it. An undeclared `out` outside the unit still warns ([#66]).
 - `impact` on a database change (a migration or a `spec.migrationPaths` file) now lists every component that imports the database component in the same package, not only the owning component ([#70]).
 
 The `node` adapter version is now 1.1.0, so recompile committed graphs.
@@ -511,4 +512,5 @@ First public release.
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
 [#59]: https://github.com/lbframe/agent-doc-system/issues/59
 [#63]: https://github.com/lbframe/agent-doc-system/issues/63
+[#66]: https://github.com/lbframe/agent-doc-system/issues/66
 [#70]: https://github.com/lbframe/agent-doc-system/issues/70
