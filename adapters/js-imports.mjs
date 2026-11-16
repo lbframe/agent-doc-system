@@ -3,16 +3,20 @@
 // A package split into several components (one descriptor per directory) has
 // no manifest edge between them: they share one package.json. The only
 // evidence of `lib` depending on `db` is a source file in `lib` importing a
-// file in `db`, by a relative path (`../db`) or through a tsconfig/jsconfig
-// path alias (`@/db`). This module resolves those specifiers to repository
-// files and the files to their owning components.
+// file in `db`. This module resolves import specifiers to repository files and
+// the files to their owning components.
 //
 // Resolution never guesses. A specifier counts only when it resolves to a file
 // that is in a unit's input set, with the extension and index rules TypeScript
-// and bundlers apply. An alias is read from `compilerOptions.paths` (and
-// `baseUrl`) of the nearest tsconfig.json or jsconfig.json, following
-// repository-relative `extends`. Aliases defined in code (Vite, webpack) are not
-// read: that would mean executing configuration.
+// and bundlers apply. Four sources of non-relative specifiers are read, in this
+// order, and the first that resolves wins:
+//   - `compilerOptions.paths` of the nearest tsconfig.json or jsconfig.json,
+//     following repository-relative `extends`;
+//   - `resolve.alias` of the nearest Vite or webpack config, read statically:
+//     configuration is code and is never executed, so only literal shapes are
+//     understood and anything else is reported;
+//   - the `imports` map (`#x`) of the nearest package.json;
+//   - `compilerOptions.baseUrl`.
 import path from "node:path";
 import { canonicalPath, joinPath, longestOwner, REPO_ROOT } from "../core/paths.mjs";
 
@@ -21,19 +25,41 @@ const EXTENSIONS = [".ts", ".tsx", ".d.ts", ".js", ".jsx", ".mts", ".cts", ".mjs
 // TypeScript lets an ESM import name the emitted file (`./x.js`) for a source
 // file that is `./x.ts`.
 const EMITTED = { ".js": [".ts", ".tsx"], ".jsx": [".tsx"], ".mjs": [".mts"], ".cjs": [".cts"] };
-const CONFIG_NAMES = ["tsconfig.json", "jsconfig.json"];
+const TS_CONFIGS = ["tsconfig.json", "jsconfig.json"];
+const BUNDLER_CONFIGS = [
+  "vite.config.ts", "vite.config.mts", "vite.config.js", "vite.config.mjs", "vite.config.cjs",
+  "webpack.config.js", "webpack.config.ts", "webpack.config.mjs", "webpack.config.cjs",
+];
+export const ALIAS_UNRESOLVED = "AGENTDOC_IMPORT_ALIAS_UNRESOLVED";
 
-// Module specifiers named by import statements: static and type-only imports,
-// re-exports, side-effect imports, dynamic import() and require(). Comments are
-// removed first, so a commented-out import is not evidence.
-export function jsImportSpecifiers(text) {
+// ── import statements ───────────────────────────────────────────────────────
+
+// Module specifiers named by import statements, each with whether every
+// statement naming it is type-only (`import type`, `export type`, or braces in
+// which every name is `type X`). Static imports, re-exports, side-effect
+// imports, dynamic import() and require() are read after comments are removed,
+// so a commented-out import is not evidence.
+export function jsImports(text) {
   const code = stripComments(text);
-  const out = new Set();
-  const STATIC = /(?:^|[;\s}])(?:import|export)\s+(?:type\s+)?(?:[^'"`;]*?\bfrom\s*)?(["'])([^"'\n]+)\1/g;
+  const out = new Map();
+  const note = (spec, typeOnly) => out.set(spec, out.has(spec) ? out.get(spec) && typeOnly : typeOnly);
+  const STATIC = /(?:^|[;\s}])(?:import|export)\s+(type\s+)?(?:([^'"`;]*?)\bfrom\s*)?(["'])([^"'\n]+)\3/g;
   const CALL = /\b(?:import|require)\s*\(\s*(["'])([^"'\n]+)\1\s*\)/g;
-  for (const m of code.matchAll(STATIC)) out.add(m[2]);
-  for (const m of code.matchAll(CALL)) out.add(m[2]);
+  for (const m of code.matchAll(STATIC)) {
+    let typeOnly = Boolean(m[1]);
+    if (!typeOnly && m[2]) {
+      const braces = /^\s*\{([^}]*)\}\s*$/.exec(m[2]);
+      const names = braces ? braces[1].split(",").map((s) => s.trim()).filter(Boolean) : [];
+      typeOnly = names.length > 0 && names.every((n) => /^type\s/.test(n));
+    }
+    note(m[4], typeOnly);
+  }
+  for (const m of code.matchAll(CALL)) note(m[2], false);
   return out;
+}
+
+export function jsImportSpecifiers(text) {
+  return new Set(jsImports(text).keys());
 }
 
 function stripComments(text) {
@@ -91,8 +117,10 @@ export function parseJsonc(text) {
   return JSON.parse(out.replace(/,(\s*[}\]])/g, "$1"));
 }
 
-// Per-compile state, shared by every unit: the input files of all units, which
-// components own them, and the path-alias configuration of each directory.
+// ── per-compile state ───────────────────────────────────────────────────────
+
+// Shared by every unit: the input files of all units, which components own
+// them, and the configuration that governs each directory.
 const STATE = new WeakMap();
 
 function state(ctx) {
@@ -105,8 +133,10 @@ function state(ctx) {
     discovery: ctx.discovery,
     files,
     byRoot: new Map(owned.map((u) => [canonicalPath(u.root), u])),
-    configForDir: new Map(),
-    configs: new Map(),
+    nearest: new Map(),
+    tsconfigs: new Map(),
+    bundlers: new Map(),
+    manifests: new Map(),
   };
   STATE.set(ctx.repo, s);
   return s;
@@ -118,6 +148,27 @@ export function owningUnit(ctx, file) {
   const s = state(ctx);
   const root = longestOwner(s.byRoot.keys(), file);
   return root === null ? null : s.byRoot.get(root);
+}
+
+// Whether a configuration file exists. A path inside a unit is answered from
+// the unit walks at no cost; a path outside every unit is probed, and the
+// probe is an input.
+function present(ctx, s, p) {
+  return s.files.has(p) || (!owningUnit(ctx, p) && ctx.repo.exists(p));
+}
+
+const parentDir = (dir) => (dir === REPO_ROOT ? null : path.posix.dirname(dir) === "." ? REPO_ROOT : path.posix.dirname(dir));
+
+// The configuration files of `kind` that govern `dir`: those in the nearest
+// directory, at or above it, that holds at least one of `names`.
+function nearest(ctx, s, kind, names, dir) {
+  const key = kind + "|" + dir;
+  if (s.nearest.has(key)) return s.nearest.get(key);
+  const here = names.map((n) => joinPath(dir, n)).filter((p) => present(ctx, s, p));
+  const parent = parentDir(dir);
+  const found = here.length ? here : parent === null ? [] : nearest(ctx, s, kind, names, parent);
+  s.nearest.set(key, found);
+  return found;
 }
 
 // The file a resolved base path names, by TypeScript's and bundlers' rules.
@@ -135,39 +186,20 @@ function resolveFile(files, base) {
   return null;
 }
 
-// The alias configuration that governs files in `dir`: the nearest
-// tsconfig.json or jsconfig.json, merged with what it extends. Directories are
-// looked up in the unit walks, so a config inside a unit costs no probe; a
-// directory outside every unit is probed, and the probe is an input.
-function configFor(ctx, s, dir) {
-  const key = dir || REPO_ROOT;
-  if (s.configForDir.has(key)) return s.configForDir.get(key);
-  let found = null;
-  for (const name of CONFIG_NAMES) {
-    const p = joinPath(key, name);
-    const known = s.files.has(p) || (!owningUnit(ctx, p) && ctx.repo.exists(p));
-    if (known) {
-      found = loadConfig(ctx, s, p, new Set());
-      break;
-    }
-  }
-  if (!found && key !== REPO_ROOT) found = configFor(ctx, s, path.posix.dirname(key) === "." ? REPO_ROOT : path.posix.dirname(key));
-  s.configForDir.set(key, found);
-  return found;
-}
+// ── tsconfig.json / jsconfig.json ───────────────────────────────────────────
 
 // { baseUrl, paths, pathsBase } with every directory repository-relative.
 // baseUrl is relative to the config that sets it; paths are relative to the
 // effective baseUrl, or to the config that sets them when there is none.
-function loadConfig(ctx, s, file, seen) {
-  if (s.configs.has(file)) return s.configs.get(file);
+function loadTsconfig(ctx, s, file, seen = new Set()) {
+  if (s.tsconfigs.has(file)) return s.tsconfigs.get(file);
   if (seen.has(file)) return null;
   seen.add(file);
   let json;
   try {
     json = parseJsonc(ctx.repo.readText(file));
   } catch {
-    s.configs.set(file, null);
+    s.tsconfigs.set(file, null);
     return null;
   }
   const dir = path.posix.dirname(file);
@@ -179,8 +211,8 @@ function loadConfig(ctx, s, file, seen) {
     if (typeof ext !== "string" || !/^\.\.?\//.test(ext)) continue;
     let target = canonicalPath(path.posix.join(dir, ext));
     if (target && !target.endsWith(".json") && !s.files.has(target)) target += ".json";
-    if (!target || !(s.files.has(target) || ctx.repo.exists(target))) continue;
-    const parent = loadConfig(ctx, s, target, seen);
+    if (!target || !present(ctx, s, target)) continue;
+    const parent = loadTsconfig(ctx, s, target, seen);
     if (!parent) continue;
     merged = {
       baseUrl: parent.baseUrl ?? merged.baseUrl,
@@ -194,19 +226,18 @@ function loadConfig(ctx, s, file, seen) {
     merged.paths = opts.paths;
     merged.pathsBase = dir;
   }
-  s.configs.set(file, merged);
+  s.tsconfigs.set(file, merged);
   return merged;
 }
 
-// The pattern of `paths` that matches `spec`, the one with the longest prefix
-// before its `*`, as TypeScript chooses.
-function matchPaths(paths, spec) {
+// The pattern of a `paths` or `imports` map that matches `spec`: an exact key,
+// or the `*` pattern with the longest prefix, as TypeScript and Node choose.
+function matchPattern(map, spec) {
   let best = null;
-  for (const [pattern, targets] of Object.entries(paths)) {
-    if (!Array.isArray(targets)) continue;
+  for (const [pattern, targets] of Object.entries(map)) {
     const star = pattern.indexOf("*");
     if (star < 0) {
-      if (pattern === spec && (!best || pattern.length > best.prefix.length)) best = { prefix: pattern, targets, capture: "" };
+      if (pattern === spec) return { targets, capture: "" };
       continue;
     }
     const prefix = pattern.slice(0, star);
@@ -219,39 +250,290 @@ function matchPaths(paths, spec) {
   return best;
 }
 
-// Resolve one specifier written in `fromFile`. Returns { file, via } or null.
-export function resolveImport(ctx, fromFile, spec) {
-  const s = state(ctx);
-  const fromDir = path.posix.dirname(fromFile);
-  if (spec.startsWith("./") || spec.startsWith("../") || spec === "." || spec === "..") {
-    const file = resolveFile(s.files, path.posix.join(fromDir, spec));
-    return file ? { file, via: "relative-import" } : null;
-  }
-  if (spec.startsWith("/") || /^[a-z]+:/i.test(spec)) return null;
-  const cfg = configFor(ctx, s, fromDir === "." ? REPO_ROOT : fromDir);
-  if (!cfg) return null;
-  if (cfg.paths) {
-    const hit = matchPaths(cfg.paths, spec);
-    if (hit) {
-      const base = cfg.baseUrl ?? cfg.pathsBase;
-      for (const t of hit.targets) {
-        if (typeof t !== "string") continue;
-        const file = resolveFile(s.files, path.posix.join(base, t.replace("*", hit.capture)));
-        if (file) return { file, via: "path-alias" };
-      }
-      return null;
+// ── Vite / webpack resolve.alias, read statically ───────────────────────────
+
+// Strings are set aside as \0N\0 placeholders and comments removed, so neither
+// can be mistaken for code. A template literal with a substitution is not a
+// literal and is recorded as null.
+function lex(text) {
+  const strings = [];
+  let code = "";
+  for (let i = 0; i < text.length; ) {
+    const c = text[i];
+    if (c === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+      continue;
     }
+    if (c === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      i = end < 0 ? text.length : end + 2;
+      code += " ";
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      let value = "";
+      let closed = false;
+      while (j < text.length) {
+        if (text[j] === "\\") { value += text[j + 1] ?? ""; j += 2; continue; }
+        if (text[j] === c) { closed = true; break; }
+        if (c !== "`" && text[j] === "\n") break;
+        value += text[j++];
+      }
+      if (!closed) return null;
+      strings.push(c === "`" && value.includes("${") ? null : value);
+      code += "\u0000" + (strings.length - 1) + "\u0000";
+      i = j + 1;
+      continue;
+    }
+    code += c;
+    i++;
   }
-  if (cfg.baseUrl) {
-    const file = resolveFile(s.files, path.posix.join(cfg.baseUrl, spec));
-    if (file) return { file, via: "path-alias" };
+  return { code, strings };
+}
+
+const OPEN = { "{": "}", "[": "]", "(": ")" };
+
+// The balanced bracket expression starting at `start`, or null.
+function balanced(code, start) {
+  const stack = [];
+  for (let i = start; i < code.length; i++) {
+    const c = code[i];
+    if (OPEN[c]) stack.push(OPEN[c]);
+    else if (c === "}" || c === "]" || c === ")") {
+      if (stack.pop() !== c) return null;
+      if (!stack.length) return code.slice(start, i + 1);
+    }
   }
   return null;
 }
 
+// Top-level comma-separated parts of a bracket body.
+function splitTop(body) {
+  const parts = [];
+  let depth = 0;
+  let cur = "";
+  for (const c of body) {
+    if (OPEN[c]) depth++;
+    else if (c === "}" || c === "]" || c === ")") depth--;
+    if (c === "," && depth === 0) {
+      parts.push(cur);
+      cur = "";
+    } else cur += c;
+  }
+  parts.push(cur);
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+
+// `key: value` of an object-literal part, or null for a computed key, a
+// shorthand or a spread.
+function property(part, strings) {
+  const m = /^(?:([A-Za-z_$][\w$]*)|\u0000(\d+)\u0000)\s*:\s*([\s\S]+)$/.exec(part);
+  if (!m) return null;
+  const key = m[1] ?? strings[Number(m[2])];
+  return typeof key === "string" ? { key, value: m[3].trim() } : null;
+}
+
+// A replacement directory, from the literal shapes bundler configs use:
+// path.resolve/join(__dirname, "…"), fileURLToPath(new URL("…", import.meta.url)),
+// new URL("…", import.meta.url).pathname, and (Vite) a root-relative "/src".
+function aliasTarget(value, strings, configDir, vite) {
+  const lit = (s) => {
+    const m = /^\u0000(\d+)\u0000$/.exec(s.trim());
+    return m ? strings[Number(m[1])] : undefined;
+  };
+  // Inside the repository, or null: path.posix.join keeps a leading "..",
+  // which canonicalPath refuses.
+  const inside = (rel) => canonicalPath(path.posix.join(configDir, rel));
+  const direct = lit(value);
+  if (typeof direct === "string") return vite && direct.startsWith("/") ? inside("." + direct) : null;
+  let m = /^(?:path\.)?(?:resolve|join)\(\s*(?:__dirname|import\.meta\.dirname)\s*((?:,\s*\u0000\d+\u0000\s*)*)\)$/.exec(value);
+  if (m) {
+    const segs = [...m[1].matchAll(/\u0000(\d+)\u0000/g)].map((x) => strings[Number(x[1])]);
+    if (segs.some((x) => typeof x !== "string" || x.startsWith("/"))) return null;
+    return inside(segs.join("/") || ".");
+  }
+  m = /^(?:(?:url\.)?fileURLToPath\(\s*new\s+URL\(\s*(\u0000\d+\u0000)\s*,\s*import\.meta\.url\s*\)\s*\)|new\s+URL\(\s*(\u0000\d+\u0000)\s*,\s*import\.meta\.url\s*\)\.pathname)$/.exec(value);
+  if (m) {
+    const rel = lit(m[1] || m[2]);
+    return typeof rel === "string" && !rel.startsWith("/") ? inside(rel) : null;
+  }
+  return null;
+}
+
+// The aliases a Vite or webpack config states with literals, and why any other
+// alias could not be read. Exported for tests.
+export function bundlerAliases(text, configPath) {
+  const vite = /(^|\/)vite\.config\./.test(configPath);
+  const configDir = path.posix.dirname(configPath) === "." ? REPO_ROOT : path.posix.dirname(configPath);
+  const lexed = lex(text);
+  if (!lexed) return { entries: [], unresolved: ["the config could not be read statically"] };
+  const { code, strings } = lexed;
+  const entries = [];
+  const unresolved = [];
+  for (const m of code.matchAll(/(?:^|[{,\s])(?:alias|\u0000(\d+)\u0000)\s*(:|[,}])/g)) {
+    if (m[1] !== undefined && strings[Number(m[1])] !== "alias") continue;
+    if (m[2] !== ":") {
+      unresolved.push("alias is a shorthand property, not a literal");
+      continue;
+    }
+    let at = m.index + m[0].length;
+    while (/\s/.test(code[at] || "")) at++;
+    const expr = OPEN[code[at]] && code[at] !== "(" ? balanced(code, at) : null;
+    if (!expr) {
+      unresolved.push("alias is not an object or array literal");
+      continue;
+    }
+    const body = expr.slice(1, -1);
+    if (expr[0] === "{") {
+      for (const part of splitTop(body)) {
+        const prop = property(part, strings);
+        if (!prop) { unresolved.push("an alias entry is computed, spread or shorthand"); continue; }
+        const dir = aliasTarget(prop.value, strings, configDir, vite);
+        if (dir === null) { unresolved.push("alias " + JSON.stringify(prop.key) + " is not a literal path"); continue; }
+        const exact = !vite && prop.key.endsWith("$");
+        entries.push({ find: exact ? prop.key.slice(0, -1) : prop.key, exact, dir });
+      }
+    } else {
+      for (const part of splitTop(body)) {
+        const obj = part.startsWith("{") ? balanced(part, 0) : null;
+        const props = obj === part ? splitTop(obj.slice(1, -1)).map((p) => property(p, strings)) : null;
+        const find = props?.find((p) => p?.key === "find");
+        const repl = props?.find((p) => p?.key === "replacement");
+        const findLit = find && /^\u0000(\d+)\u0000$/.exec(find.value);
+        const key = findLit ? strings[Number(findLit[1])] : null;
+        if (typeof key !== "string" || !repl) { unresolved.push("an alias entry's find is not a string literal"); continue; }
+        const dir = aliasTarget(repl.value, strings, configDir, vite);
+        if (dir === null) { unresolved.push("alias " + JSON.stringify(key) + " is not a literal path"); continue; }
+        entries.push({ find: key, exact: false, dir });
+      }
+    }
+  }
+  return { entries, unresolved };
+}
+
+function loadBundler(ctx, s, file) {
+  if (s.bundlers.has(file)) return s.bundlers.get(file);
+  let parsed;
+  try {
+    parsed = bundlerAliases(ctx.repo.readText(file), file);
+  } catch {
+    parsed = { entries: [], unresolved: ["the config could not be read"] };
+  }
+  if (parsed.unresolved.length) {
+    // Reported once, on the component that owns the config. The aliases that
+    // were read are still used: each one is a literal the config states.
+    const owner = owningUnit(ctx, file)?.component?.ref;
+    ctx.diagnostics.push({
+      severity: "warning",
+      code: ALIAS_UNRESOLVED,
+      subject: owner || file,
+      refs: owner ? [owner] : [],
+      message:
+        "import aliases in '" + file + "' are not fully read: " + [...new Set(parsed.unresolved)].sort().join("; ") + ". " +
+        "Imports through them create no dependency; state them as tsconfig paths, package.json imports, " +
+        "or literal path.resolve(__dirname, \"…\") values",
+      paths: [file],
+    });
+  }
+  s.bundlers.set(file, parsed.entries);
+  return parsed.entries;
+}
+
+function matchAlias(entries, spec) {
+  for (const e of entries) {
+    if (spec === e.find) return e.dir;
+    if (e.exact) continue;
+    if (e.find.endsWith("/") ? spec.startsWith(e.find) : spec.startsWith(e.find + "/")) {
+      return e.dir + "/" + spec.slice(e.find.length).replace(/^\//, "");
+    }
+  }
+  return null;
+}
+
+// ── package.json imports ────────────────────────────────────────────────────
+
+function loadManifest(ctx, s, file) {
+  if (s.manifests.has(file)) return s.manifests.get(file);
+  let imports = null;
+  try {
+    const json = ctx.repo.readJson(file);
+    if (json && typeof json.imports === "object" && json.imports !== null) imports = json.imports;
+  } catch {
+    imports = null;
+  }
+  s.manifests.set(file, imports);
+  return imports;
+}
+
+// Every string a conditional target can select. Which condition applies is a
+// fact of the runtime, not of the checkout, so each is a possible dependency.
+function targetStrings(t) {
+  if (typeof t === "string") return [t];
+  if (Array.isArray(t)) return t.flatMap(targetStrings);
+  if (t && typeof t === "object") return Object.keys(t).sort().flatMap((k) => targetStrings(t[k]));
+  return [];
+}
+
+// ── resolution ──────────────────────────────────────────────────────────────
+
+// Resolve one specifier written in `fromFile`. Returns every { file, via } it
+// can name (several only for a conditional package import), or [].
+export function resolveImport(ctx, fromFile, spec) {
+  const s = state(ctx);
+  const fromDir = path.posix.dirname(fromFile) === "." ? REPO_ROOT : path.posix.dirname(fromFile);
+  const one = (base, via) => {
+    const file = resolveFile(s.files, base);
+    return file ? [{ file, via }] : [];
+  };
+  if (spec.startsWith("./") || spec.startsWith("../") || spec === "." || spec === "..") {
+    return one(path.posix.join(fromDir, spec), "relative-import");
+  }
+  if (spec.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(spec)) return [];
+
+  const [tsFile] = nearest(ctx, s, "ts", TS_CONFIGS, fromDir);
+  const ts = tsFile ? loadTsconfig(ctx, s, tsFile) : null;
+  if (ts?.paths) {
+    const hit = matchPattern(ts.paths, spec);
+    if (hit && Array.isArray(hit.targets)) {
+      const base = ts.baseUrl ?? ts.pathsBase;
+      for (const t of hit.targets) {
+        if (typeof t !== "string") continue;
+        const r = one(path.posix.join(base, t.replace("*", hit.capture)), "path-alias");
+        if (r.length) return r;
+      }
+    }
+  }
+  for (const file of nearest(ctx, s, "bundler", BUNDLER_CONFIGS, fromDir)) {
+    const target = matchAlias(loadBundler(ctx, s, file), spec);
+    if (target === null) continue;
+    const r = one(target, "bundler-alias");
+    if (r.length) return r;
+  }
+  if (spec.startsWith("#")) {
+    const [manifest] = nearest(ctx, s, "pkg", ["package.json"], fromDir);
+    const imports = manifest ? loadManifest(ctx, s, manifest) : null;
+    const hit = imports ? matchPattern(imports, spec) : null;
+    if (hit) {
+      const dir = path.posix.dirname(manifest);
+      const out = [];
+      for (const t of targetStrings(hit.targets)) {
+        // A bare target maps to another package, which the manifest routes cover.
+        if (!t.startsWith("./")) continue;
+        for (const r of one(path.posix.join(dir, t.split("*").join(hit.capture)), "subpath-import")) {
+          if (!out.some((x) => x.file === r.file)) out.push(r);
+        }
+      }
+      if (out.length) return out;
+    }
+  }
+  if (ts?.baseUrl) return one(path.posix.join(ts.baseUrl, spec), "path-alias");
+  return [];
+}
+
 // The package name a bare specifier imports (`pg`, `@scope/pkg`), or null.
 export function packageOf(spec) {
-  if (spec.startsWith(".") || spec.startsWith("/") || /^[a-z]+:/i.test(spec)) return null;
+  if (spec.startsWith(".") || spec.startsWith("/") || spec.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(spec)) return null;
   const parts = spec.split("/");
   return spec.startsWith("@") ? (parts.length > 1 ? parts.slice(0, 2).join("/") : null) : parts[0];
 }

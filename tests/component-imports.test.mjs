@@ -11,7 +11,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { write, git, cli, compile, commitAll } from "./helpers.mjs";
 import { impact } from "../core/impact.mjs";
-import { jsImportSpecifiers, parseJsonc } from "../adapters/js-imports.mjs";
+import { jsImportSpecifiers, jsImports, parseJsonc, bundlerAliases } from "../adapters/js-imports.mjs";
+import { verificationForChange } from "../core/dependents.mjs";
 
 const ref = (name) => "component:fx/" + name;
 const DB = "resource:fx/app-postgres";
@@ -231,4 +232,168 @@ test("IMPORTS: the import reader takes import statements only", () => {
     'const url = "http://x/y"; import j from "./j";',
   ].join("\n")), ["../b", "./a", "./d", "./e", "./f", "./g", "./j", "./side-effect", "@/types"]);
   assert.deepEqual(parseJsonc('{ "paths": { "@/*": ["src/*"] }, /* c */ "x": "a//b", }'), { paths: { "@/*": ["src/*"] }, x: "a//b" });
+});
+
+// ── review follow-ups: test imports, type-only clients, package imports,
+//    bundler aliases, distance ─────────────────────────────────────────────
+
+const withoutTsconfig = (extra) => {
+  const files = { ...ISSUE_FILES, ...extra };
+  delete files["tsconfig.json"];
+  return files;
+};
+
+test("IMPORTS: a test file's import is a test dependency, and a production import wins", (t) => {
+  const files = {
+    ...ISSUE_FILES,
+    "src/lib/user.ts": "export const u = 1;\n",
+    "src/lib/user.test.ts": 'import { db } from "@/db";\nimport pg from "pg";\nexport const t = [db, pg];\n',
+    "src/billing/payment.test.ts": 'import { db } from "../db";\nexport const t = db;\n',
+  };
+  const { graph } = compiled(fixture(t, { files }));
+  assert.deepEqual(deps(graph), [
+    { type: "buildDependsOn", from: ref("billing"), to: ref("db"), attributes: { via: ["relative-import"] } },
+    { type: "testDependsOn", from: ref("lib"), to: ref("db"), attributes: { via: ["path-alias"] } },
+  ]);
+  // A test importing the database client does not make the component a client.
+  assert.ok(!graph.relations.some((r) => r.type === "usesResource" && r.sourceRef === ref("lib")));
+  // The test-only dependent is reached, and only its unit checks would apply.
+  assert.ok(refs(impact(graph, ["src/db/schema.ts"])).includes(ref("lib")));
+});
+
+test("IMPORTS: a type-only import is a build dependency but binds no client", (t) => {
+  const files = {
+    ...ISSUE_FILES,
+    "src/lib/user.ts": 'import type { Pool } from "pg";\nimport { type QueryResult } from "pg";\nimport type { db } from "@/db";\nexport type U = [Pool, QueryResult, typeof db];\n',
+  };
+  const { graph } = compiled(fixture(t, { files }));
+  assert.ok(deps(graph).some((d) => d.from === ref("lib") && d.to === ref("db") && d.type === "buildDependsOn"));
+  assert.ok(!graph.relations.some((r) => r.type === "usesResource" && r.sourceRef === ref("lib")));
+  assert.ok(!graph.externalDependencies.some((e) => e.componentRef === ref("lib")));
+  assert.ok(graph.relations.some((r) => r.type === "usesResource" && r.sourceRef === ref("db")));
+});
+
+test("IMPORTS: package.json imports (#x) resolve, including patterns and conditions", (t) => {
+  const files = withoutTsconfig({
+    "package.json": JSON.stringify({
+      name: "fx", private: true, dependencies: { pg: "8.13.1" },
+      imports: {
+        "#db": { types: "./src/db/index.ts", default: "./dist/db/index.js" },
+        "#billing/*": "./src/billing/*.ts",
+        "#ext": "pg",
+      },
+    }),
+    "src/lib/user.ts": 'import { db } from "#db";\nexport const u = db;\n',
+    "src/billing/payment.ts": 'import pg from "#ext";\nexport const p = pg;\n',
+  });
+  files["src/db/index.ts"] = 'import { p } from "#billing/payment";\nimport { Pool } from "pg";\nexport const db = new Pool(p);\n';
+  const { graph } = compiled(fixture(t, { files }));
+  assert.deepEqual(deps(graph).map((d) => [d.from, d.to, d.attributes.via[0]]), [
+    [ref("db"), ref("billing"), "subpath-import"],
+    [ref("lib"), ref("db"), "subpath-import"],
+  ]);
+});
+
+test("IMPORTS: Vite and webpack aliases stated with literals resolve", async (t) => {
+  await t.test("Vite object form: fileURLToPath(new URL(...)) and a root-relative string", (st) => {
+    const files = withoutTsconfig({
+      "vite.config.ts": [
+        'import { fileURLToPath, URL } from "node:url";',
+        'import { defineConfig } from "vite";',
+        "export default defineConfig({",
+        "  resolve: {",
+        "    alias: {",
+        '      "@": fileURLToPath(new URL("./src", import.meta.url)),',
+        '      "~db": "/src/db",',
+        "    },",
+        "  },",
+        "});",
+      ].join("\n"),
+      "src/billing/payment.ts": 'import { db } from "~db";\nexport const p = db;\n',
+    });
+    const res = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(res.graph).map((d) => [d.from, d.to, d.attributes.via[0]]), [
+      [ref("billing"), ref("db"), "bundler-alias"],
+      [ref("lib"), ref("db"), "bundler-alias"],
+    ]);
+    assert.deepEqual(res.diagnostics.filter((d) => d.code === "AGENTDOC_IMPORT_ALIAS_UNRESOLVED"), []);
+  });
+  await t.test("webpack: path.resolve(__dirname, ...) and an exact $ key", (st) => {
+    const files = withoutTsconfig({
+      "webpack.config.js": 'const path = require("path");\nmodule.exports = { resolve: { alias: { Db$: path.resolve(__dirname, "src/db/index.ts"), Src: path.resolve(__dirname, "src") } } };\n',
+      "src/lib/user.ts": 'import { db } from "Db";\nexport const u = db;\n',
+      "src/billing/payment.ts": 'import { db } from "Src/db";\nexport const p = db;\n',
+    });
+    const { graph } = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(graph).map((d) => [d.from, d.to]), [[ref("billing"), ref("db")], [ref("lib"), ref("db")]]);
+  });
+  await t.test("an alias that is not a literal is reported, and the rest still resolves", (st) => {
+    const files = withoutTsconfig({
+      "vite.config.ts": 'export default {\n  resolve: {\n    alias: [\n      { find: "@", replacement: "/src" },\n      { find: /^~(.*)$/, replacement: "/src/$1" },\n      { find: "#env", replacement: process.env.ENV_DIR },\n    ],\n  },\n};\n',
+      "src/billing/payment.ts": 'import { db } from "~db";\nexport const p = db;\n',
+    });
+    const res = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(res.graph).map((d) => [d.from, d.to]), [[ref("lib"), ref("db")]]);
+    const warn = res.diagnostics.filter((d) => d.code === "AGENTDOC_IMPORT_ALIAS_UNRESOLVED");
+    assert.equal(warn.length, 1, JSON.stringify(res.diagnostics));
+    assert.deepEqual(warn[0].paths, ["vite.config.ts"]);
+    assert.deepEqual(warn[0].refs, [ref("app")]);
+  });
+});
+
+test("IMPORTS: the bundler alias reader accepts only literal shapes", () => {
+  const read = (text, file = "vite.config.ts") => bundlerAliases(text, file);
+  assert.deepEqual(read('export default { resolve: { alias: { "@": "/src" } } };'), { entries: [{ find: "@", exact: false, dir: "src" }], unresolved: [] });
+  assert.deepEqual(read("export default { plugins: [] };"), { entries: [], unresolved: [] });
+  assert.deepEqual(read('// alias: { "@": "/x" }\nexport default {};'), { entries: [], unresolved: [] });
+  assert.deepEqual(read('module.exports = { resolve: { alias: { "@": path.join(__dirname, "lib", "a") } } };', "app/webpack.config.js").entries,
+    [{ find: "@", exact: false, dir: "app/lib/a" }]);
+  for (const bad of [
+    "export default { resolve: { alias } };",
+    "export default { resolve: { alias: aliases } };",
+    'export default { resolve: { alias: { ...base, "@": "/src" } } };',
+    'export default { resolve: { alias: { "@": path.resolve(process.cwd(), "src") } } };',
+    'export default { resolve: { alias: { "@": "./src" } } };',
+    'export default { resolve: { alias: { "@": path.resolve(__dirname, "../outside") } } };',
+  ]) assert.ok(read(bad).unresolved.length > 0, "must not guess: " + bad);
+  // A webpack absolute string is a filesystem path, not the project root.
+  assert.ok(read('module.exports = { resolve: { alias: { "@": "/src" } } };', "webpack.config.js").unresolved.length > 0);
+});
+
+test("IMPORTS: impact names the distance to the nearest changed component", (t) => {
+  const files = {
+    ...ISSUE_FILES,
+    "src/api/handler.ts": 'import { u } from "@/lib/user";\nexport const h = u;\n',
+  };
+  const { graph } = compiled(fixture(t, { files, units: ["db", "lib", "billing", "api"] }));
+  const im = impact(graph, ["src/db/schema.ts"]);
+  const reasons = (name) => im.affectedComponents.find((c) => c.ref === ref(name)).reasons;
+  assert.deepEqual(reasons("lib"), ["depends on a changed component: " + ref("db") + " (1 hop)"]);
+  assert.deepEqual(reasons("api"), ["depends on a changed component: " + ref("db") + " (2 hops, through " + ref("lib") + ")"]);
+});
+
+test("IMPORTS: verification is ordered by distance, and nothing is dropped for being far", () => {
+  const r = (n) => "component:default/" + n;
+  const graph = {
+    relations: [
+      { type: "buildDependsOn", sourceRef: r("aa-far"), targetRef: r("zz-near") },
+      { type: "buildDependsOn", sourceRef: r("zz-near"), targetRef: r("lib") },
+    ],
+    verification: ["aa-far", "zz-near", "lib"].map((n) => ({ id: n + ":unit", componentRefs: [r(n)], tier: "unit" })),
+  };
+  assert.deepEqual(verificationForChange(graph, [r("lib")]).map((v) => v.id), ["lib:unit", "zz-near:unit", "aa-far:unit"]);
+  assert.deepEqual(verificationForChange({ ...graph, relations: [...graph.relations].reverse() }, [r("lib")]).map((v) => v.id),
+    ["lib:unit", "zz-near:unit", "aa-far:unit"]);
+});
+
+test("IMPORTS: the import reader marks type-only statements", () => {
+  const m = jsImports([
+    'import type { A } from "a";',
+    'import { type B, type C } from "b";',
+    'import { type D, E } from "d";',
+    'export type { F } from "f";',
+    'import type { G } from "g"; import { g } from "g";',
+    'import H, { type I } from "h";',
+  ].join("\n"));
+  assert.deepEqual(Object.fromEntries(m), { a: true, b: true, d: false, f: true, g: false, h: false });
 });

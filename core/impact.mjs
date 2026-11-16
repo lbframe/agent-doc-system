@@ -4,7 +4,7 @@
 // "what must I keep consistent, and which gate proves it". This answers that
 // from the graph alone, so the answer is available before any exploration.
 import { ContextIndex } from "./query.mjs";
-import { dependentScope, verificationForChange } from "./dependents.mjs";
+import { dependentScope, dependentDistances, verificationForChange } from "./dependents.mjs";
 import { canonicalPath, ownsPath, longestOwner } from "./paths.mjs";
 
 // Changed paths are compared in the graph's canonical form (git's: no "./").
@@ -215,8 +215,14 @@ export function impact(graph, changedPaths) {
     }
   }
   const seeds = [...affectedComponents.keys()];
+  // The reason names the nearest changed component and the distance to it, so
+  // an agent can check close dependents first without any being left out.
+  const distances = dependentDistances(graph, seeds);
   for (const ref of dependentScope(graph, seeds).keys()) {
-    if (!affectedComponents.has(ref)) add(ref, "depends on a changed component");
+    if (affectedComponents.has(ref)) continue;
+    const d = distances.get(ref);
+    add(ref, "depends on a changed component: " + d.seed + " (" +
+      (d.distance === 1 ? "1 hop" : d.distance + " hops, through " + d.next) + ")");
   }
 
   const refs = [...affectedComponents.keys()].sort();

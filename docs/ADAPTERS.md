@@ -93,7 +93,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | adapter | recognises | contributes |
 |---|---|---|
 | `generic` | — | health-route literals, a single-port fact |
-| `node` | `package.json` | importability, npm dependency edges, script tiers, import edges between components of one package |
+| `node` | `package.json` | importability, npm dependency edges, script tiers, import edges between components (relative, tsconfig/jsconfig, Vite/webpack, `package.json` `imports`) |
 | `pnpm` | `pnpm-workspace.yaml` | workspace member roots |
 | `turborepo` | `turbo.json` (nearest ancestor) | per-package task commands |
 | `typescript` | `tsconfig.json` | language, project references, file-router routes |
@@ -120,30 +120,54 @@ an unknown name is `AGENTDOC_CONFIG`, not a silent no-op.
 
 Besides the manifest (`dependencies` → `buildDependsOn`, `devDependencies` →
 `testDependsOn`, scripts → checks), the adapter reads the import statements of
-every JavaScript and TypeScript production source in a unit, including a unit
-that has a descriptor but no `package.json` of its own: one component per
-directory inside one package.
+every JavaScript and TypeScript source in a unit, including a unit that has a
+descriptor but no `package.json` of its own: one component per directory inside
+one package.
 
-An import that resolves to a file another component owns is a `buildDependsOn`
-edge to that component, with the importing files as evidence:
+An import that resolves to a file another component owns is a dependency on
+that component, with the importing files as evidence. From a production source
+it is `buildDependsOn`; when only test files (`*.test.*`, `*.spec.*`, `test/`, `spec/`,
+`tests/`, `__tests__/`) import the component it is `testDependsOn`, which
+selects the importer's unit checks, as a safe regression-test selection must.
 
-| `via` | specifier | resolved |
+| `via` | specifier | resolved through |
 |---|---|---|
-| `relative-import` | `./x`, `../db` | against the importing file's directory |
-| `path-alias` | `@/db`, `#db`, `db/schema` | `compilerOptions.paths`, then `baseUrl`, of the nearest `tsconfig.json` or `jsconfig.json` |
+| `relative-import` | `./x`, `../db` | the importing file's directory |
+| `path-alias` | `@/db` | `compilerOptions.paths` of the nearest `tsconfig.json` or `jsconfig.json` |
+| `bundler-alias` | `@/db`, `~db` | `resolve.alias` of the nearest `vite.config.*` or `webpack.config.*`, read statically |
+| `subpath-import` | `#db`, `#lib/*` | the `imports` map of the nearest `package.json` |
+| `path-alias` | `db/schema` | `compilerOptions.baseUrl` |
 
-Statements read: `import … from`, `import type`, side-effect `import "…"`,
-`export … from`, `import("…")` and `require("…")`, after comments are removed.
-A specifier counts only when it resolves to a file in a unit's input set, by the
-rules TypeScript and bundlers apply: the exact file, then the `.ts`, `.tsx`,
-`.d.ts`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs` extensions, then a `.js`
-specifier naming its `.ts` source, then `index.*` in a directory. For `paths`,
-the pattern with the longest prefix wins and its targets are tried in order.
-`baseUrl` is relative to the config that sets it; `paths` are relative to the
-effective `baseUrl`, or else to the config that sets them. `extends` is followed
-when it is a repository-relative path (a string or a list); a package parent
-lives in `node_modules`, which is not an input, and is not read. The configs
-are compiler inputs, so changing an alias invalidates the graph.
+Non-relative specifiers try those sources in the order of the table, and the
+first that resolves wins. A specifier counts only when it resolves to a file in
+a unit's input set, by the rules TypeScript and bundlers apply: the exact file,
+then the `.ts`, `.tsx`, `.d.ts`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs`
+extensions, then a `.js` specifier naming its `.ts` source, then `index.*` in a
+directory. Every configuration read is a compiler input, so changing an alias
+invalidates the graph.
+
+- **tsconfig/jsconfig.** For `paths`, an exact key wins, then the pattern with
+  the longest prefix, and its targets are tried in order. `baseUrl` is relative
+  to the config that sets it; `paths` are relative to the effective `baseUrl`,
+  or else to the config that sets them. `extends` is followed when it is a
+  repository-relative path (a string or a list); a package parent lives in
+  `node_modules`, which is not an input, and is not read.
+- **Vite and webpack.** The config is code and is never executed. `alias` is
+  read only when it is an object literal (webpack's `key$` is an exact match) or
+  a Vite array of `{ find: "…", replacement: … }`, and each value is one of
+  `path.resolve(__dirname, "…")` / `path.join(…)` (also `import.meta.dirname`),
+  `fileURLToPath(new URL("…", import.meta.url))`,
+  `new URL("…", import.meta.url).pathname`, or in a Vite config a
+  root-relative `"/src"`. Anything else (a variable, a spread, a regex `find`,
+  `process.cwd()`, a relative string, a path outside the repository) is not
+  guessed: those aliases are skipped, the literal ones are still used, and the
+  config is reported once with `AGENTDOC_IMPORT_ALIAS_UNRESOLVED`, a warning
+  that can be accepted.
+- **package.json `imports`.** Exact keys and `*` patterns, as Node resolves
+  them. A conditional target (`{ "types": …, "default": … }`) can select any
+  of its branches at runtime, so every branch that resolves to a repository
+  file is a dependency. A bare target (another package) is left to the
+  manifest routes.
 
 Into another package, the edge carries `package` and merges with the manifest
 and bare-import edges for that package. Inside one package it carries no
@@ -151,18 +175,19 @@ and bare-import edges for that package. Inside one package it carries no
 
 A component with no manifest of its own also depends on the declared external
 services of its enclosing package (the nearest unit with a `package.json`),
-limited to those its own sources import. In the usual layout, `src/db` imports
-`pg` and the package declares it. `src/db` then gets the external dependency
-and, through `externalDependencies[].resourceType`, the same `usesResource`
-binding a manifest would give it (`via: declared-client`). Its siblings that
-import nothing from `pg` get neither. `impact` on the database then reaches
-`src/db` and, through the reverse dependency closure, every component that
-imports it.
+limited to those its own production sources import with a value import. In the
+usual layout, `src/db` imports `pg` and the package declares it. `src/db` then
+gets the external dependency and, through
+`externalDependencies[].resourceType`, the same `usesResource` binding a
+manifest would give it (`via: declared-client`). Its siblings that import
+nothing from `pg` get neither, and neither does a component whose only use is
+`import type` (or `import { type X }`) or a test file: a type opens no
+connection. A type-only import of another component is still a build
+dependency, because the compiler needs it.
 
-**What it cannot see:** aliases defined in code (Vite `resolve.alias`, webpack
-`resolve.alias`, Babel module-resolver), a `package.json` `imports` map
-(`#x`), `paths` inherited from a package `extends`, imports built from
-expressions, and imports in test files, which are not production sources.
+**What it cannot see:** aliases that are not literals (see above), a Vitest,
+Rollup, esbuild or Babel alias configuration, `paths` inherited from a package
+`extends`, and imports built from expressions.
 
 ### `github-actions`
 

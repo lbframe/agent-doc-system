@@ -11,12 +11,17 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ### Added
 
-- The `node` adapter derives `buildDependsOn` edges from imports between components of one package. A relative import (`../db`) or a `tsconfig.json`/`jsconfig.json` path alias (`@/db`, with `baseUrl` and repository-relative `extends`) that resolves to a file owned by another component now creates the dependency, with the importing files as evidence. Previously a single-package app split into one component per directory had no relation between its components ([#70]).
-- A component without its own `package.json` takes the declared external services of its enclosing package that its sources import, including the `usesResource` binding of a client mapped with `resourceType` ([#70]).
+- The `node` adapter derives dependencies from imports between components, including components of one package. An import that resolves to a file another component owns creates the edge, with the importing files as evidence. Resolved specifiers: relative paths, `tsconfig.json`/`jsconfig.json` `paths` and `baseUrl` (with repository-relative `extends`), Vite and webpack `resolve.alias` stated with literals, and `package.json` `imports` (`#x`, with patterns and conditions). Previously a single-package app split into one component per directory had no relation between its components ([#70]).
+- Imports in test files create `testDependsOn` edges, so a component whose tests import a changed component gets its unit checks recommended ([#70]).
+- A component without its own `package.json` takes the declared external services of its enclosing package that its production sources import with a value import, including the `usesResource` binding of a client mapped with `resourceType`. Type-only imports bind nothing ([#70]).
+- `impact` names, for each dependent, the nearest changed component and the distance to it, and recommended verification is ordered by that distance after the changed components' own checks. Nothing is dropped for being far ([#70]).
+- New warning `AGENTDOC_IMPORT_ALIAS_UNRESOLVED` for a Vite or webpack alias that cannot be read without executing the config. It can be accepted ([#70]).
 
 ### Fixed
 
 - `impact` on a database change (a migration or a `spec.migrationPaths` file) now lists every component that imports the database component in the same package, not only the owning component ([#70]).
+
+The `node` adapter version is now 1.1.0, so recompile committed graphs.
 
 ## [1.5.2] - 2026-11-14
 

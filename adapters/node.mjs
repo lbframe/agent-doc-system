@@ -2,7 +2,7 @@
 import { Adapter } from "./registry.mjs";
 import { joinPath, longestOwner, canonicalPath } from "../core/paths.mjs";
 import { sourceFiles } from "../core/sourcescan.mjs";
-import { JS_SOURCE, jsImportSpecifiers, resolveImport, owningUnit, packageOf } from "./js-imports.mjs";
+import { JS_SOURCE, jsImports, resolveImport, owningUnit, packageOf } from "./js-imports.mjs";
 import { resolveClientResources } from "./resource-client.mjs";
 
 // A script name maps to a verification tier. Deliberately conservative and
@@ -21,7 +21,7 @@ const IGNORED_SCRIPT = /^(dev|start|serve|watch|preview|clean|postinstall|preins
 export class NodeAdapter extends Adapter {
   static adapterName = "node";
   constructor() {
-    super({ name: "node", version: "1.0.0", kind: "unit-marker" });
+    super({ name: "node", version: "1.1.0", kind: "unit-marker" });
   }
   detect(ctx, root) {
     const p = joinPath(root, "package.json");
@@ -119,41 +119,51 @@ export class NodeAdapter extends Adapter {
 
 // ── imports between components ──────────────────────────────────────────────
 //
-// A relative or path-alias import that resolves to a file another component
-// owns is a build dependency on that component, with the importing files as
-// evidence. Bare package specifiers that resolve to no repository file are
-// returned for client resolution.
+// A relative or aliased import that resolves to a file another component owns
+// is a dependency on that component, with the importing files as evidence:
+// `buildDependsOn` from a production source, `testDependsOn` when only test
+// files import it. Bare package specifiers that resolve to no repository file
+// are returned for client resolution, except type-only ones: a type opens no
+// connection.
 function componentImports(ctx, unit) {
   const { repo, prov, compRef } = ctx;
   const own = governingPackage(ctx, unit);
-  const edges = new Map(); // targetRoot|via -> { target, via, files }
+  const edges = new Map(); // kind|targetRoot|via -> { kind, target, via, files }
   const packages = new Map(); // package name -> Set(files)
-  for (const f of sourceFiles(repo, unit.root, { test: false, extensions: JS_SOURCE })) {
-    for (const spec of jsImportSpecifiers(repo.readText(f))) {
-      const hit = resolveImport(ctx, f, spec);
-      if (!hit) {
-        const pkg = packageOf(spec);
-        if (pkg) {
-          if (!packages.has(pkg)) packages.set(pkg, new Set());
-          packages.get(pkg).add(f);
+  for (const kind of ["build", "test"]) {
+    for (const f of sourceFiles(repo, unit.root, { test: kind === "test", extensions: JS_SOURCE })) {
+      for (const [spec, typeOnly] of [...jsImports(repo.readText(f))].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+        const hits = resolveImport(ctx, f, spec);
+        if (!hits.length) {
+          const pkg = packageOf(spec);
+          if (pkg && kind === "build" && !typeOnly) {
+            if (!packages.has(pkg)) packages.set(pkg, new Set());
+            packages.get(pkg).add(f);
+          }
+          continue;
         }
-        continue;
+        for (const hit of hits) {
+          const target = owningUnit(ctx, hit.file);
+          if (!target || target === unit || !target.component || target.component.ref === compRef) continue;
+          const key = kind + "|" + target.root + "|" + hit.via;
+          if (!edges.has(key)) edges.set(key, { kind, target, via: hit.via, files: new Set() });
+          edges.get(key).files.add(f);
+        }
       }
-      const target = owningUnit(ctx, hit.file);
-      if (!target || target === unit || !target.component || target.component.ref === compRef) continue;
-      const key = target.root + "|" + hit.via;
-      if (!edges.has(key)) edges.set(key, { target, via: hit.via, files: new Set() });
-      edges.get(key).files.add(f);
     }
   }
+  // A production import already selects every tier of the importer's checks,
+  // so a test import of the same component adds nothing.
+  const built = new Set([...edges.values()].filter((e) => e.kind === "build").map((e) => e.target));
   for (const key of [...edges.keys()].sort()) {
-    const { target, via, files } = edges.get(key);
+    const { kind, target, via, files } = edges.get(key);
+    if (kind === "test" && built.has(target)) continue;
     const provs = [...files].sort().map((f) => prov.add("observed", f, "import-extractor", ["rel:pending"]));
     // Into another package, the edge names it, as the manifest and the bare
     // import routes do, so the routes merge into one relation. Inside its own
     // package there is no package to name.
     const attrs = target.pkgName && target.pkgName !== own?.pkgName ? { via, package: target.pkgName } : { via };
-    ctx.addEdge("buildDependsOn", compRef, target.component.ref, attrs, provs, "DERIVED");
+    ctx.addEdge(kind === "build" ? "buildDependsOn" : "testDependsOn", compRef, target.component.ref, attrs, provs, "DERIVED");
   }
   return { packages };
 }
