@@ -46,7 +46,7 @@ const PG_CLIENT = `  externalDependencies:
 
 // `webDeps`/`workerDeps` decide which units are bound to the database; nothing
 // else in the fixture creates a binding.
-function fixture(t, { files = {}, resources, webDeps = { pg: "^8.13.1" }, workerDeps = { pg: "^8.13.1" } } = {}) {
+function fixture(t, { files = {}, resources, webDeps = { pg: "^8.13.1" }, workerDeps = { pg: "^8.13.1" }, descriptors = [] } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), "agentdoc-migrations-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   git(dir, ["init", "-q", "-b", "main"]);
@@ -59,7 +59,7 @@ discovery:
   componentDescriptors:
     - agentdoc.yaml
     - worker/agentdoc.yaml
-  centralDescriptors:
+${descriptors.map((d) => "    - " + d + "\n").join("")}  centralDescriptors:
     - agentdoc/domains.yaml
     - agentdoc/systems.yaml
     - agentdoc/resources.yaml
@@ -175,6 +175,41 @@ test("MIGRATIONS: a dynamic Drizzle out is not guessed", (t) => {
   assert.equal(warn.length, 1, JSON.stringify(res.diagnostics));
   assert.deepEqual(warn[0].paths, ["drizzle.config.ts"]);
   assert.ok(!impact(res.graph, ["drizzle/0001_x.sql"]).affectedResources.includes(DB));
+});
+
+// Issue #66: Drizzle's `out` is its own nested unit, so the adapter cannot
+// record it on the unit that holds the config. When a Resource already declares
+// that directory, the warning has nothing left to ask for.
+test("MIGRATIONS: an out directory outside the unit warns only when no Resource declares it", async (t) => {
+  const nested = (st, migrationPaths) => fixture(st, {
+    descriptors: ["drizzle/agentdoc.yaml"],
+    resources: resource("app-db", "logical-database", migrationPaths ? "  migrationPaths:\n" + migrationPaths.map((p) => "    - " + p + "\n").join("") : ""),
+    files: {
+      ...DRIZZLE_FILES,
+      "drizzle/agentdoc.yaml": component("web-migrations"),
+      "drizzle.config.ts": 'export default { schema: "./src/schema.ts", out: "./drizzle", dialect: "postgresql" };\n',
+    },
+  });
+  const unresolved = (res) => res.diagnostics.filter((d) => d.code === "AGENTDOC_MIGRATION_DIR_UNRESOLVED");
+
+  await t.test("declared: no warning, and impact routes through the declaration", (st) => {
+    const res = compiled(nested(st, ["drizzle"]));
+    assert.deepEqual(unresolved(res), []);
+    assert.equal(derivedOf(res.graph, "web").migrationDirs, undefined);
+    const im = impact(res.graph, ["drizzle/0001_x.sql"]);
+    assert.deepEqual(im.affectedResources, [DB]);
+    assert.deepEqual(refs(im), [ref("web"), ref("web-migrations"), ref("worker")]);
+  });
+  await t.test("a declared subdirectory does not cover out", (st) => {
+    const res = compiled(nested(st, ["drizzle/meta"]));
+    assert.equal(unresolved(res).length, 1, JSON.stringify(res.diagnostics));
+  });
+  await t.test("undeclared: the warning stays", (st) => {
+    const res = compiled(nested(st, null));
+    const warn = unresolved(res);
+    assert.equal(warn.length, 1, JSON.stringify(res.diagnostics));
+    assert.match(warn[0].message, /outside the unit/);
+  });
 });
 
 test("MIGRATIONS: a declared migration path on the Resource is authoritative whichever component owns it", (t) => {
