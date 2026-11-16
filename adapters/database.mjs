@@ -9,7 +9,7 @@
 //     library shipped migrations but explicitly did not own a database.
 import { Adapter } from "./registry.mjs";
 import { firstExistingFile, findMigrationDirs } from "../core/sourcescan.mjs";
-import { canonicalPath, joinPath } from "../core/paths.mjs";
+import { canonicalPath, joinPath, ownsPath } from "../core/paths.mjs";
 
 const ORM_CONFIG = [
   "drizzle.config.ts", "drizzle.config.js", "drizzle.config.mjs",
@@ -206,12 +206,27 @@ function drizzleOutDir(ctx, unit, configPath) {
     return unresolved("out " + JSON.stringify(value) + " is not a directory inside the unit at '" + unit.root + "'");
   }
   if (!repo.ownsUnitPath(unit.root, dir)) {
+    // Another unit owns the directory, so recording it here would attribute
+    // authority across an ownership boundary. A Resource that declares it in
+    // spec.migrationPaths already routes it, and the warning would ask for
+    // exactly what is there (issue #66).
+    if (declaredMigrationPath(ctx, dir)) return null;
     return unresolved("out " + JSON.stringify(value) + " is outside the unit at '" + unit.root + "'");
   }
   // Not generated yet: nothing to classify. The probe is an input, so the
   // first generated migration invalidates the graph.
   if (!repo.isDir(dir)) return null;
   return dir;
+}
+
+// The declared migration path that covers `dir`, by whole segments, if any.
+// Read from the authored descriptors, which are loaded before any adapter runs.
+function declaredMigrationPath(ctx, dir) {
+  for (const e of ctx.sources.entities) {
+    if (e.kind !== "Resource" || e.doc.spec?.type !== "logical-database") continue;
+    for (const p of e.doc.spec.migrationPaths || []) if (ownsPath(p, dir)) return p;
+  }
+  return null;
 }
 
 // Static read of `out` from a Drizzle config. Comments are removed and string

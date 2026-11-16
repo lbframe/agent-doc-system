@@ -9,6 +9,10 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+### Fixed
+
+- `AGENTDOC_MIGRATION_DIR_UNRESOLVED` no longer fires when a Drizzle `out` directory belongs to another unit and a logical-database Resource already declares it, or a directory enclosing it, in `spec.migrationPaths`. The declaration already routes `impact`, so projects no longer need an accepted warning for it. An undeclared `out` outside the unit still warns ([#66]).
+
 ## [1.5.2] - 2026-11-14
 
 ### Fixed
@@ -497,3 +501,4 @@ First public release.
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
 [#59]: https://github.com/lbframe/agent-doc-system/issues/59
 [#63]: https://github.com/lbframe/agent-doc-system/issues/63
+[#66]: https://github.com/lbframe/agent-doc-system/issues/66
