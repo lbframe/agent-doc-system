@@ -273,7 +273,16 @@ binding: a detected directory whose component has no binding reaches no
 Resource, and a declaration routes changes without creating a relation.
 
 A component change reaches its reverse build/test dependency closure, plus
-direct runtime-call and schedule peers. Dependencies are not affected just
+direct runtime-call and schedule peers. Those dependencies include imports
+between components of one package (relative paths and aliases, see the `node`
+adapter in `ADAPTERS.md`), so a change to the database component of a
+single-package app reaches every component that imports it. A dependent's
+reason names the nearest changed component and the distance to it:
+`depends on a changed component: component:fx/db (1 hop)`, or
+`… (2 hops, through component:fx/lib)`. Recommended verification lists the
+changed components' checks first, then the others by that distance, so the
+25-entry cap keeps the nearest; distance orders the list and never removes a
+dependent. Dependencies are not affected just
 because the changed component uses them; they remain explicitly typed context
 in query's `relations`. The dependent closure has no hop cutoff, so a long chain
 cannot silently omit an affected consumer.

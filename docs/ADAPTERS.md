@@ -93,7 +93,7 @@ cannot name the file a fact came from, you cannot add the fact.
 | adapter | recognises | contributes |
 |---|---|---|
 | `generic` | — | health-route literals, a single-port fact |
-| `node` | `package.json` | importability, npm dependency edges, script tiers |
+| `node` | `package.json` | importability, npm dependency edges, script tiers, import edges between components (relative, tsconfig/jsconfig, Vite/Vitest/webpack/Rollup/Babel aliases, `package.json` `imports`, dynamic imports) |
 | `pnpm` | `pnpm-workspace.yaml` | workspace member roots |
 | `turborepo` | `turbo.json` (nearest ancestor) | per-package task commands |
 | `typescript` | `tsconfig.json` | language, project references, file-router routes |
@@ -115,6 +115,111 @@ cannot name the file a fact came from, you cannot add the fact.
 
 `generic` is always on. Everything else is opt-in through `adapters: [...]`, and
 an unknown name is `AGENTDOC_CONFIG`, not a silent no-op.
+
+### `node`
+
+Besides the manifest (`dependencies` → `buildDependsOn`, `devDependencies` →
+`testDependsOn`, scripts → checks), the adapter reads the import statements of
+every JavaScript and TypeScript source in a unit, including a unit that has a
+descriptor but no `package.json` of its own: one component per directory inside
+one package.
+
+An import that resolves to a file another component owns is a dependency on
+that component, with the importing files as evidence. From a production source
+it is `buildDependsOn`; when only test files (`*.test.*`, `*.spec.*`, `test/`, `spec/`,
+`tests/`, `__tests__/`) import the component it is `testDependsOn`, which
+selects the importer's unit checks, as a safe regression-test selection must.
+
+| `via` | specifier | resolved through |
+|---|---|---|
+| `relative-import` | `./x`, `../db` | the importing file's directory |
+| `path-alias` | `@/db` | `compilerOptions.paths` of the nearest `tsconfig.json` or `jsconfig.json` |
+| `bundler-alias` | `@/db`, `~db` | the aliases of the nearest Vite/Vitest, webpack, Rollup and Babel configs, read statically |
+| `subpath-import` | `#db`, `#lib/*` | the `imports` map of the nearest `package.json` |
+| `bundler-alias` | `db/index` | Babel module-resolver `root` directories |
+| `path-alias` | `db/schema` | `compilerOptions.baseUrl` |
+| `dynamic-import` | `` import(`./locales/${l}.ts`) ``, `import.meta.glob("./pages/*.tsx")` | every file the pattern matches, through the routes above |
+
+Non-relative specifiers try those sources in the order of the table, and the
+first that resolves wins. Each tool's config is looked up on its own (the
+nearest `vite.config.*`/`vitest.config.*`, `webpack.config.*`,
+`rollup.config.*`, `.babelrc*`/`babel.config.*`), so a nested `.babelrc` does
+not hide a root `vite.config.ts`. A specifier counts only when it resolves to a file in
+a unit's input set, by the rules TypeScript and bundlers apply: the exact file,
+then the `.ts`, `.tsx`, `.d.ts`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs`
+extensions, then a `.js` specifier naming its `.ts` source, then `index.*` in a
+directory. Every configuration read is a compiler input, so changing an alias
+invalidates the graph.
+
+- **tsconfig/jsconfig.** For `paths`, an exact key wins, then the pattern with
+  the longest prefix, and its targets are tried in order. `baseUrl` is relative
+  to the config that sets it; `paths` are relative to the effective `baseUrl`,
+  or else to the config that sets them. `extends` (a string or a list) is
+  followed when it is a repository-relative path, or a package that is a unit
+  of this repository: it is read at that unit's root, through the package's
+  `exports` for a subpath, else the path itself, else its `tsconfig` field or
+  `tsconfig.json` for the bare name. It is never read through `node_modules`,
+  which is not an input, so a third-party parent (`@tsconfig/node20`) is not
+  read; those define no `paths`, which are specific to each repository.
+- **Vite, Vitest, webpack and Rollup.** The config is code and is never
+  executed. `alias` (Vite's `resolve.alias`, Vitest's `test.alias`, webpack's
+  `resolve.alias`) or `entries` (`@rollup/plugin-alias`) is read only when it
+  is an object literal (webpack's `key$` is an exact match) or an array of
+  `{ find: "…", replacement: … }`, and each value is one of
+  `path.resolve(__dirname, "…")` / `path.join(…)` (also `import.meta.dirname`),
+  `fileURLToPath(new URL("…", import.meta.url))`,
+  `new URL("…", import.meta.url).pathname`, or in a Vite config a
+  root-relative `"/src"`. Anything else (a variable, a spread, a regex `find`,
+  `process.cwd()`, a relative string, a path outside the repository) is not
+  guessed: those aliases are skipped, the literal ones are still used, and the
+  config is reported once with `AGENTDOC_IMPORT_ALIAS_UNRESOLVED`, a warning
+  that can be accepted.
+- **Babel `module-resolver`.** In `.babelrc`, `.babelrc.json` and
+  `babel.config.json` (JSON with comments), the plugin's `alias` and `root`
+  options, including under `env`. A relative value (`"./src"`) is resolved
+  against the config's directory; a bare value (`"lodash"`) names another
+  package and is left to the manifest routes. In `babel.config.js` and
+  `.babelrc.js`, `alias` is read with the literal rules above, plus relative
+  strings. A regular-expression key (`"^@x/(.+)"`), a glob `root` or a
+  non-literal value is reported the same way.
+- **Dynamic imports.** A template literal given to `import()` or `require()`
+  becomes a pattern (`` `./locales/${lang}.ts` `` → `./locales/*.ts`), where
+  `*` can span directories and the extension or `index` file is optional, as
+  in webpack's context modules. `import.meta.glob` (and `globEager`) takes its
+  string globs as written, with `!` exclusions ignored. The pattern goes through
+  the same routes as a specifier (relative, aliases, `#imports`, `baseUrl`), and
+  every repository file it matches is a dependency, as the bundler that packages
+  it assumes. A pattern with no literal part before its first wildcard, such as
+  `import(name)`, names nothing and is not read, and neither is one with more
+  than six wildcards, whose matching cost grows with each.
+- **package.json `imports`.** Exact keys and `*` patterns, as Node resolves
+  them. A conditional target (`{ "types": …, "default": … }`) can select any
+  of its branches at runtime, so every branch that resolves to a repository
+  file is a dependency. A bare target (another package) is left to the
+  manifest routes.
+
+Into another package, the edge carries `package` and merges with the manifest
+and bare-import edges for that package. Inside one package it carries no
+`package`, since there is none to name.
+
+A component with no manifest of its own also depends on the declared external
+services of its enclosing package (the nearest unit with a `package.json`),
+limited to those its own production sources import with a value import. In the
+usual layout, `src/db` imports `pg` and the package declares it. `src/db` then
+gets the external dependency and, through
+`externalDependencies[].resourceType`, the same `usesResource` binding a
+manifest would give it (`via: declared-client`). Its siblings that import
+nothing from `pg` get neither, and neither does a component whose only use is
+`import type` (or `import { type X }`) or a test file: a type opens no
+connection. A type-only import of another component is still a build
+dependency, because the compiler needs it.
+
+**What it cannot see:** aliases that are not literals (reported, see above);
+`paths` from a third-party `extends` read through `node_modules`; esbuild
+aliases, which have no conventional config file to read or report; Babel
+`root` in a JavaScript config; and an import whose path is only an
+expression (`import(name)`, `require(mod)`), which no static reading can
+resolve.
 
 ### `github-actions`
 

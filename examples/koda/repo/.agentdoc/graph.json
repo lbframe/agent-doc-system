@@ -1,9 +1,9 @@
 {
   "schemaVersion": "agentdoc.dev/graph/v1",
   "source": {
-    "commit": "c2fc53bb38a404f7dfaa101c2ea2a4ca929b6256",
+    "commit": "d4b371522ab55e9a721dff45fbe41765459de143",
     "dirty": false,
-    "inputHash": "sha256:9a7cdf18e32c8c1213356aacd0e737eb34177bc7fd3e4001ff81dec5c938c1eb"
+    "inputHash": "sha256:dd12326b4d5cdd5f6bf9baa85f1089da4e2eb0f6d88acf2700ad477d3ad16b74"
   },
   "compiler": {
     "name": "agentdoc-compiler",
@@ -39,7 +39,7 @@
       },
       {
         "name": "node",
-        "version": "1.0.0"
+        "version": "1.1.0"
       },
       {
         "name": "oidc",

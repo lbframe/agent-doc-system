@@ -95,6 +95,7 @@ YAML or schema error names its file and line and needs no table.
 | `AGENTDOC_VERIFICATION_UNTIERED` | a check task has no recognisable tier | name the task, or extend the adapter |
 | `AGENTDOC_MIGRATION_PATH` | a Resource's `spec.migrationPaths` is a glob, is on a non-database Resource, or is shared by two Resources | declare the directory itself, once, on the logical database it migrates |
 | `AGENTDOC_MIGRATION_DIR_UNRESOLVED` | a Drizzle config's `out` is not a single string literal inside the unit (an `out` in another unit that a Resource declares in `spec.migrationPaths` is not reported) | declare the directory with `spec.migrationPaths`, or accept the warning |
+| `AGENTDOC_IMPORT_ALIAS_UNRESOLVED` | a Vite, Vitest, webpack, Rollup or Babel config states an alias that is not a literal path (a variable, spread, regular expression, `process.cwd()`, glob `root`) | state it as a literal `path.resolve(__dirname, "…")`, as tsconfig `paths` or as `package.json` `imports`, or accept the warning |
 
 ## Ordering inside `check`
 
