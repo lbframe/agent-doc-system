@@ -12,12 +12,16 @@
 
 const POOL_HINT = /(createPool|new Pool|pg\.Pool|PgPool|pgxpool|psycopg2?\.connect|asyncpg\.(?:connect|create_pool)|sql\.Open|mysql\.createConnection|Pool\(|DataSource|prisma\.(datasource|client)|DATABASE_URL|DB_DSN|redis\.Redis|redis|minio|Client\(|sqlx::migrate!|tokio_postgres|tokio-postgres|deadpool|sea_orm|sea-orm|diesel::|create_engine\s*\(|\bDATABASES\s*=)/;
 
-export function resolveClientResources(ctx, unit, compRef, provRec) {
+// `deps` defaults to the unit's own production dependencies. A component with
+// no manifest of its own passes the dependencies of its enclosing package that
+// its sources import (see the node adapter). `provRec` may be one record or a
+// list of them.
+export function resolveClientResources(ctx, unit, compRef, provRec, deps = ctx.productionDependencies(compRef)) {
   const declared = ctx.externalMatchers().filter((x) => x.resourceType);
   if (!declared.length) return [];
+  const provRecs = Array.isArray(provRec) ? provRec : [provRec];
   // The rule is "this unit depends on this service", so it is tested against
   // the unit's production dependency names, not against its source text.
-  const deps = ctx.productionDependencies(compRef);
   if (!deps.length) return [];
   const out = [];
   for (const x of declared) {
@@ -46,11 +50,11 @@ export function resolveClientResources(ctx, unit, compRef, provRec) {
     // identity, so a component depending on two matchers of the same Resource type
     // would merge into one edge and the graph would state the dependency once
     // instead of twice. `via` names the mechanism; `client` names the instance.
-    ctx.addEdge("usesResource", compRef, target.ref, { via: "declared-client", client: x.name }, [provRec], "DERIVED");
+    ctx.addEdge("usesResource", compRef, target.ref, { via: "declared-client", client: x.name }, provRecs, "DERIVED");
     ctx.addFact(compRef, "resource.ownership", target.name, {
       evidenceClass: "DERIVED",
       confidence: "deterministic",
-      provRecs: [provRec],
+      provRecs,
       semantics: "the component depends on " + x.name + ", declared as a client of the " + x.resourceType + " Resource",
     });
     out.push(target.ref);

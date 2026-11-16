@@ -1,6 +1,9 @@
 // Node adapter: package.json as the unit marker and manifest authority.
 import { Adapter } from "./registry.mjs";
-import { joinPath } from "../core/paths.mjs";
+import { joinPath, longestOwner, canonicalPath } from "../core/paths.mjs";
+import { sourceFiles } from "../core/sourcescan.mjs";
+import { JS_SOURCE, jsImportSpecifiers, resolveImport, owningUnit, packageOf } from "./js-imports.mjs";
+import { resolveClientResources } from "./resource-client.mjs";
 
 // A script name maps to a verification tier. Deliberately conservative and
 // project-neutral: a script that does not look like a check is not a check.
@@ -36,7 +39,13 @@ export class NodeAdapter extends Adapter {
     const { repo, prov, compRef } = ctx;
     const root = unit.root;
     const manifestPath = joinPath(root, "package.json");
-    if (!repo.exists(manifestPath)) return {};
+    // Imports between components of one package. They run before the manifest
+    // check: a component inside a package usually has no manifest of its own.
+    const imports = componentImports(ctx, unit);
+    if (!repo.exists(manifestPath)) {
+      inheritClients(ctx, unit, imports.packages);
+      return {};
+    }
     const derived = { languages: new Set(["javascript"]), runtimes: new Set(["node"]) };
     const pkg = unit.pkg || repo.readJson(manifestPath);
 
@@ -106,6 +115,87 @@ export class NodeAdapter extends Adapter {
     }
     return derived;
   }
+}
+
+// ── imports between components ──────────────────────────────────────────────
+//
+// A relative or path-alias import that resolves to a file another component
+// owns is a build dependency on that component, with the importing files as
+// evidence. Bare package specifiers that resolve to no repository file are
+// returned for client resolution.
+function componentImports(ctx, unit) {
+  const { repo, prov, compRef } = ctx;
+  const own = governingPackage(ctx, unit);
+  const edges = new Map(); // targetRoot|via -> { target, via, files }
+  const packages = new Map(); // package name -> Set(files)
+  for (const f of sourceFiles(repo, unit.root, { test: false, extensions: JS_SOURCE })) {
+    for (const spec of jsImportSpecifiers(repo.readText(f))) {
+      const hit = resolveImport(ctx, f, spec);
+      if (!hit) {
+        const pkg = packageOf(spec);
+        if (pkg) {
+          if (!packages.has(pkg)) packages.set(pkg, new Set());
+          packages.get(pkg).add(f);
+        }
+        continue;
+      }
+      const target = owningUnit(ctx, hit.file);
+      if (!target || target === unit || !target.component || target.component.ref === compRef) continue;
+      const key = target.root + "|" + hit.via;
+      if (!edges.has(key)) edges.set(key, { target, via: hit.via, files: new Set() });
+      edges.get(key).files.add(f);
+    }
+  }
+  for (const key of [...edges.keys()].sort()) {
+    const { target, via, files } = edges.get(key);
+    const provs = [...files].sort().map((f) => prov.add("observed", f, "import-extractor", ["rel:pending"]));
+    // Into another package, the edge names it, as the manifest and the bare
+    // import routes do, so the routes merge into one relation. Inside its own
+    // package there is no package to name.
+    const attrs = target.pkgName && target.pkgName !== own?.pkgName ? { via, package: target.pkgName } : { via };
+    ctx.addEdge("buildDependsOn", compRef, target.component.ref, attrs, provs, "DERIVED");
+  }
+  return { packages };
+}
+
+// The unit whose package.json governs this unit's sources: the unit itself
+// when it has a manifest, otherwise the nearest enclosing unit that has one.
+function governingPackage(ctx, unit) {
+  if (unit.pkg) return unit;
+  const withManifest = ctx.discovery.eligible.filter((u) => u.pkg && u !== unit);
+  const root = longestOwner(withManifest.map((u) => u.root), canonicalPath(unit.root));
+  return root === null ? null : withManifest.find((u) => u.root === root);
+}
+
+// A component without a manifest depends on the services its enclosing package
+// declares, but only on those its own sources import. That is the evidence a
+// manifest gives a package (a declared dependency), narrowed by the import that
+// shows this component, not a sibling, is the one using it.
+function inheritClients(ctx, unit, packages) {
+  const { prov, compRef } = ctx;
+  const owner = governingPackage(ctx, unit);
+  if (!owner) return;
+  const pkg = owner.pkg;
+  const declared = new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.optionalDependencies || {})]);
+  const used = [...packages.keys()].filter((d) => declared.has(d)).sort();
+  if (!used.length) return;
+  const manifestPath = joinPath(owner.root, "package.json");
+  const clientDeps = [];
+  const clientProvs = [];
+  for (const d of used) {
+    const matchers = ctx.externalMatchers().filter((x) => x.re.test(d));
+    if (!matchers.length) continue;
+    const recs = [
+      prov.add("observed", manifestPath, "manifest-extractor", ["rel:pending"]),
+      ...[...packages.get(d)].sort().map((f) => prov.add("observed", f, "import-extractor", ["rel:pending"])),
+    ];
+    for (const x of matchers) for (const r of recs) ctx.addExternal(compRef, x.name, x.mechanism, x.role, r, "DERIVED");
+    if (matchers.some((x) => x.resourceType)) {
+      clientDeps.push(d);
+      clientProvs.push(...recs);
+    }
+  }
+  if (clientDeps.length) resolveClientResources(ctx, unit, compRef, clientProvs, clientDeps);
 }
 
 // Normalise a package name into a graph-safe external dependency name.

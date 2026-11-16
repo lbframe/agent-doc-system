@@ -9,6 +9,15 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+### Added
+
+- The `node` adapter derives `buildDependsOn` edges from imports between components of one package. A relative import (`../db`) or a `tsconfig.json`/`jsconfig.json` path alias (`@/db`, with `baseUrl` and repository-relative `extends`) that resolves to a file owned by another component now creates the dependency, with the importing files as evidence. Previously a single-package app split into one component per directory had no relation between its components ([#70]).
+- A component without its own `package.json` takes the declared external services of its enclosing package that its sources import, including the `usesResource` binding of a client mapped with `resourceType` ([#70]).
+
+### Fixed
+
+- `impact` on a database change (a migration or a `spec.migrationPaths` file) now lists every component that imports the database component in the same package, not only the owning component ([#70]).
+
 ## [1.5.2] - 2026-11-14
 
 ### Fixed
@@ -497,3 +506,4 @@ First public release.
 [#55]: https://github.com/lbframe/agent-doc-system/issues/55
 [#59]: https://github.com/lbframe/agent-doc-system/issues/59
 [#63]: https://github.com/lbframe/agent-doc-system/issues/63
+[#70]: https://github.com/lbframe/agent-doc-system/issues/70
