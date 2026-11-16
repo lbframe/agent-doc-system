@@ -2,7 +2,7 @@
 import { Adapter } from "./registry.mjs";
 import { joinPath, longestOwner, canonicalPath } from "../core/paths.mjs";
 import { sourceFiles } from "../core/sourcescan.mjs";
-import { JS_SOURCE, jsImports, resolveImport, owningUnit, packageOf } from "./js-imports.mjs";
+import { JS_SOURCE, jsImports, jsImportPatterns, resolveImport, resolvePattern, owningUnit, packageOf } from "./js-imports.mjs";
 import { resolveClientResources } from "./resource-client.mjs";
 
 // A script name maps to a verification tier. Deliberately conservative and
@@ -132,7 +132,20 @@ function componentImports(ctx, unit) {
   const packages = new Map(); // package name -> Set(files)
   for (const kind of ["build", "test"]) {
     for (const f of sourceFiles(repo, unit.root, { test: kind === "test", extensions: JS_SOURCE })) {
-      for (const [spec, typeOnly] of [...jsImports(repo.readText(f))].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+      const text = repo.readText(f);
+      const record = (hits) => {
+        for (const hit of hits) {
+          const target = owningUnit(ctx, hit.file);
+          if (!target || target === unit || !target.component || target.component.ref === compRef) continue;
+          const key = kind + "|" + target.root + "|" + hit.via;
+          if (!edges.has(key)) edges.set(key, { kind, target, via: hit.via, files: new Set() });
+          edges.get(key).files.add(f);
+        }
+      };
+      // A dynamic import with a static part can load any file its pattern
+      // matches, as the bundler that packages it assumes.
+      for (const { pattern, kind: pk } of jsImportPatterns(text)) record(resolvePattern(ctx, f, pattern, pk));
+      for (const [spec, typeOnly] of [...jsImports(text)].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
         const hits = resolveImport(ctx, f, spec);
         if (!hits.length) {
           const pkg = packageOf(spec);
@@ -142,13 +155,7 @@ function componentImports(ctx, unit) {
           }
           continue;
         }
-        for (const hit of hits) {
-          const target = owningUnit(ctx, hit.file);
-          if (!target || target === unit || !target.component || target.component.ref === compRef) continue;
-          const key = kind + "|" + target.root + "|" + hit.via;
-          if (!edges.has(key)) edges.set(key, { kind, target, via: hit.via, files: new Set() });
-          edges.get(key).files.add(f);
-        }
+        record(hits);
       }
     }
   }

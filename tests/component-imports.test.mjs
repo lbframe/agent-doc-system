@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { write, git, cli, compile, commitAll } from "./helpers.mjs";
 import { impact } from "../core/impact.mjs";
-import { jsImportSpecifiers, jsImports, parseJsonc, bundlerAliases } from "../adapters/js-imports.mjs";
+import { jsImportSpecifiers, jsImports, jsImportPatterns, parseJsonc, bundlerAliases } from "../adapters/js-imports.mjs";
 import { verificationForChange } from "../core/dependents.mjs";
 
 const ref = (name) => "component:fx/" + name;
@@ -343,9 +343,9 @@ test("IMPORTS: Vite and webpack aliases stated with literals resolve", async (t)
 
 test("IMPORTS: the bundler alias reader accepts only literal shapes", () => {
   const read = (text, file = "vite.config.ts") => bundlerAliases(text, file);
-  assert.deepEqual(read('export default { resolve: { alias: { "@": "/src" } } };'), { entries: [{ find: "@", exact: false, dir: "src" }], unresolved: [] });
-  assert.deepEqual(read("export default { plugins: [] };"), { entries: [], unresolved: [] });
-  assert.deepEqual(read('// alias: { "@": "/x" }\nexport default {};'), { entries: [], unresolved: [] });
+  assert.deepEqual(read('export default { resolve: { alias: { "@": "/src" } } };'), { entries: [{ find: "@", exact: false, dir: "src" }], roots: [], unresolved: [] });
+  assert.deepEqual(read("export default { plugins: [] };"), { entries: [], roots: [], unresolved: [] });
+  assert.deepEqual(read('// alias: { "@": "/x" }\nexport default {};'), { entries: [], roots: [], unresolved: [] });
   assert.deepEqual(read('module.exports = { resolve: { alias: { "@": path.join(__dirname, "lib", "a") } } };', "app/webpack.config.js").entries,
     [{ find: "@", exact: false, dir: "app/lib/a" }]);
   for (const bad of [
@@ -396,4 +396,117 @@ test("IMPORTS: the import reader marks type-only statements", () => {
     'import H, { type I } from "h";',
   ].join("\n"));
   assert.deepEqual(Object.fromEntries(m), { a: true, b: true, d: false, f: true, g: false, h: false });
+});
+
+// ── second follow-up: workspace extends, Vitest, Babel, Rollup, dynamic ─────
+
+test("IMPORTS: tsconfig extends a workspace package from the repository, never node_modules", async (t) => {
+  const shared = (pkgJson, files) => ({
+    ...withoutTsconfig({}),
+    ...files,
+    "packages/tsconfig/package.json": JSON.stringify(pkgJson),
+    "packages/tsconfig/agentdoc.yaml": component("tsconfig"),
+  });
+  const descriptors = ["agentdoc.yaml", "src/*/agentdoc.yaml", "packages/*/agentdoc.yaml"];
+  await t.test("a subpath of the package", (st) => {
+    const files = shared({ name: "@fx/tsconfig", private: true }, {
+      "packages/tsconfig/base.json": JSON.stringify({ compilerOptions: { paths: { "@/*": ["../../src/*"] } } }),
+      "tsconfig.json": JSON.stringify({ extends: "@fx/tsconfig/base.json" }),
+    });
+    const { graph } = compiled(fixture(st, { files, descriptors }));
+    assert.ok(deps(graph).some((d) => d.from === ref("lib") && d.to === ref("db")), JSON.stringify(deps(graph)));
+  });
+  await t.test("the bare package, through its tsconfig field", (st) => {
+    const files = shared({ name: "@fx/tsconfig", private: true, tsconfig: "./react.json" }, {
+      "packages/tsconfig/react.json": JSON.stringify({ compilerOptions: { paths: { "@/*": ["../../src/*"] } } }),
+      "tsconfig.json": JSON.stringify({ extends: "@fx/tsconfig" }),
+    });
+    const { graph } = compiled(fixture(st, { files, descriptors }));
+    assert.ok(deps(graph).some((d) => d.from === ref("lib") && d.to === ref("db")));
+  });
+  await t.test("a third-party package is not read", (st) => {
+    const files = withoutTsconfig({
+      "tsconfig.json": JSON.stringify({ extends: "@tsconfig/node20/tsconfig.json" }),
+      "node_modules/@tsconfig/node20/tsconfig.json": JSON.stringify({ compilerOptions: { paths: { "@/*": ["../../../src/*"] } } }),
+    });
+    const { graph } = compiled(fixture(st, { files }));
+    assert.ok(!deps(graph).some((d) => d.from === ref("lib")));
+  });
+});
+
+test("IMPORTS: Vitest, Babel and Rollup aliases resolve", async (t) => {
+  await t.test("vitest.config test.alias, used by a test file", (st) => {
+    const files = withoutTsconfig({
+      "vitest.config.ts": 'import { defineConfig } from "vitest/config";\nexport default defineConfig({ test: { alias: { "@": new URL("./src", import.meta.url).pathname } } });\n',
+      "src/lib/user.ts": "export const u = 1;\n",
+      "src/lib/user.test.ts": 'import { db } from "@/db";\nexport const t = db;\n',
+    });
+    const { graph } = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(graph).filter((d) => d.from === ref("lib")), [
+      { type: "testDependsOn", from: ref("lib"), to: ref("db"), attributes: { via: ["bundler-alias"] } },
+    ]);
+  });
+  await t.test(".babelrc module-resolver alias and root", (st) => {
+    const files = withoutTsconfig({
+      ".babelrc": JSON.stringify({ plugins: [["module-resolver", { root: ["./src"], alias: { "@db": "./src/db", underscore: "lodash" } }]] }),
+      "src/lib/user.ts": 'import { db } from "@db";\nexport const u = db;\n',
+      "src/billing/payment.ts": 'import { db } from "db/index";\nexport const p = db;\n',
+    });
+    const res = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(res.graph).map((d) => [d.from, d.to, d.attributes.via[0]]), [
+      [ref("billing"), ref("db"), "bundler-alias"],
+      [ref("lib"), ref("db"), "bundler-alias"],
+    ]);
+    assert.deepEqual(res.diagnostics.filter((d) => d.code === "AGENTDOC_IMPORT_ALIAS_UNRESOLVED"), []);
+  });
+  await t.test("babel.config.js literal alias, regex alias reported", (st) => {
+    const files = withoutTsconfig({
+      "babel.config.js": 'module.exports = { plugins: [["module-resolver", { alias: { "~": "./src", "^@x/(.+)": "./x/\\\\1" } }]] };\n',
+      "src/lib/user.ts": 'import { db } from "~/db";\nexport const u = db;\n',
+      "src/billing/payment.ts": "export const p = 1;\n",
+    });
+    const res = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(res.graph).map((d) => [d.from, d.to]), [[ref("lib"), ref("db")]]);
+    assert.equal(res.diagnostics.filter((d) => d.code === "AGENTDOC_IMPORT_ALIAS_UNRESOLVED").length, 1);
+  });
+  await t.test("rollup @rollup/plugin-alias entries", (st) => {
+    const files = withoutTsconfig({
+      "rollup.config.mjs": 'import alias from "@rollup/plugin-alias";\nimport path from "node:path";\nexport default { plugins: [alias({ entries: [{ find: "@", replacement: path.resolve(import.meta.dirname, "src") }] })] };\n',
+      "src/billing/payment.ts": "export const p = 1;\n",
+    });
+    const { graph } = compiled(fixture(st, { files }));
+    assert.deepEqual(deps(graph).map((d) => [d.from, d.to, d.attributes.via[0]]), [[ref("lib"), ref("db"), "bundler-alias"]]);
+  });
+});
+
+test("IMPORTS: a dynamic import with a static part reaches every file its pattern matches", (t) => {
+  const files = {
+    ...ISSUE_FILES,
+    "src/db/tables/users.ts": "export const t = 'users';\n",
+    "src/lib/user.ts": "export const load = (name) => import(`../db/tables/${name}.ts`);\n",
+    "src/billing/payment.ts": 'export const all = import.meta.glob("@/db/tables/*.ts");\nexport const any = (x) => import(x);\nexport const none = (x) => import(`../missing/${x}`);\n',
+  };
+  const { graph } = compiled(fixture(t, { files }));
+  assert.deepEqual(deps(graph), [
+    { type: "buildDependsOn", from: ref("billing"), to: ref("db"), attributes: { via: ["dynamic-import"] } },
+    { type: "buildDependsOn", from: ref("lib"), to: ref("db"), attributes: { via: ["dynamic-import"] } },
+  ]);
+});
+
+test("IMPORTS: the dynamic import reader keeps only patterns with a literal part", () => {
+  assert.deepEqual(jsImportPatterns([
+    "import(`./locales/${lang}.ts`);",
+    "require(`../x/${a}/${b}`);",
+    'import.meta.glob(["./pages/**/*.tsx", "!./pages/skip.tsx"]);',
+    "import.meta.globEager('./a/*.ts');",
+    "import(name);",
+    "// import(`./commented/${x}`)",
+  ].join("\n")), [
+    { pattern: "./locales/*.ts", kind: "template" },
+    { pattern: "../x/*/*", kind: "template" },
+    { pattern: "./pages/**/*.tsx", kind: "glob" },
+    { pattern: "./a/*.ts", kind: "glob" },
+  ]);
+  // A template literal without a substitution is an ordinary specifier.
+  assert.deepEqual([...jsImportSpecifiers("import(`./plain`);")], ["./plain"]);
 });

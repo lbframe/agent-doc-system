@@ -12,9 +12,10 @@
 // order, and the first that resolves wins:
 //   - `compilerOptions.paths` of the nearest tsconfig.json or jsconfig.json,
 //     following repository-relative `extends`;
-//   - `resolve.alias` of the nearest Vite or webpack config, read statically:
-//     configuration is code and is never executed, so only literal shapes are
-//     understood and anything else is reported;
+//   - the aliases of the nearest Vite, Vitest, webpack, Rollup and Babel
+//     (module-resolver) configs, read statically: configuration is code and is
+//     never executed, so only literal shapes are understood and anything else
+//     is reported;
 //   - the `imports` map (`#x`) of the nearest package.json;
 //   - `compilerOptions.baseUrl`.
 import path from "node:path";
@@ -26,10 +27,25 @@ const EXTENSIONS = [".ts", ".tsx", ".d.ts", ".js", ".jsx", ".mts", ".cts", ".mjs
 // file that is `./x.ts`.
 const EMITTED = { ".js": [".ts", ".tsx"], ".jsx": [".tsx"], ".mjs": [".mts"], ".cjs": [".cts"] };
 const TS_CONFIGS = ["tsconfig.json", "jsconfig.json"];
-const BUNDLER_CONFIGS = [
-  "vite.config.ts", "vite.config.mts", "vite.config.js", "vite.config.mjs", "vite.config.cjs",
-  "webpack.config.js", "webpack.config.ts", "webpack.config.mjs", "webpack.config.cjs",
-];
+const JS_CONFIG_EXT = ["ts", "mts", "js", "mjs", "cjs"];
+// Each tool's configuration governs its files independently, so each family is
+// looked up on its own: a nested .babelrc does not hide a root vite.config.ts.
+const BUNDLER_FAMILIES = {
+  vite: [...JS_CONFIG_EXT.map((e) => "vite.config." + e), ...JS_CONFIG_EXT.map((e) => "vitest.config." + e)],
+  webpack: JS_CONFIG_EXT.map((e) => "webpack.config." + e),
+  rollup: JS_CONFIG_EXT.map((e) => "rollup.config." + e),
+  babel: [".babelrc", ".babelrc.json", "babel.config.json", ...["js", "cjs", "mjs"].flatMap((e) => [".babelrc." + e, "babel.config." + e])],
+};
+
+// The tool a config file belongs to.
+export function configFlavor(file) {
+  const name = path.posix.basename(file);
+  if (/^vite(st)?\.config\./.test(name)) return "vite";
+  if (/^webpack\.config\./.test(name)) return "webpack";
+  if (/^rollup\.config\./.test(name)) return "rollup";
+  if (/^(\.babelrc|babel\.config\.)/.test(name)) return "babel";
+  return null;
+}
 export const ALIAS_UNRESOLVED = "AGENTDOC_IMPORT_ALIAS_UNRESOLVED";
 
 // ── import statements ───────────────────────────────────────────────────────
@@ -44,7 +60,7 @@ export function jsImports(text) {
   const out = new Map();
   const note = (spec, typeOnly) => out.set(spec, out.has(spec) ? out.get(spec) && typeOnly : typeOnly);
   const STATIC = /(?:^|[;\s}])(?:import|export)\s+(type\s+)?(?:([^'"`;]*?)\bfrom\s*)?(["'])([^"'\n]+)\3/g;
-  const CALL = /\b(?:import|require)\s*\(\s*(["'])([^"'\n]+)\1\s*\)/g;
+  const CALL = /\b(?:import|require)\s*\(\s*(["'`])([^"'`\n]+)\1\s*\)/g;
   for (const m of code.matchAll(STATIC)) {
     let typeOnly = Boolean(m[1]);
     if (!typeOnly && m[2]) {
@@ -54,7 +70,8 @@ export function jsImports(text) {
     }
     note(m[4], typeOnly);
   }
-  for (const m of code.matchAll(CALL)) note(m[2], false);
+  // A template literal with a substitution is a pattern (jsImportPatterns).
+  for (const m of code.matchAll(CALL)) if (!m[2].includes("${")) note(m[2], false);
   return out;
 }
 
@@ -206,12 +223,9 @@ function loadTsconfig(ctx, s, file, seen = new Set()) {
   let merged = { baseUrl: null, paths: null, pathsBase: null };
   const parents = Array.isArray(json.extends) ? json.extends : json.extends ? [json.extends] : [];
   for (const ext of parents) {
-    // Only a repository-relative parent is read. A package parent lives in
-    // node_modules, which is not a repository input.
-    if (typeof ext !== "string" || !/^\.\.?\//.test(ext)) continue;
-    let target = canonicalPath(path.posix.join(dir, ext));
-    if (target && !target.endsWith(".json") && !s.files.has(target)) target += ".json";
-    if (!target || !present(ctx, s, target)) continue;
+    if (typeof ext !== "string") continue;
+    const target = extendsTarget(ctx, s, dir, ext);
+    if (!target) continue;
     const parent = loadTsconfig(ctx, s, target, seen);
     if (!parent) continue;
     merged = {
@@ -228,6 +242,33 @@ function loadTsconfig(ctx, s, file, seen = new Set()) {
   }
   s.tsconfigs.set(file, merged);
   return merged;
+}
+
+// The file an `extends` names. A relative path is joined to the config's
+// directory. A package is read only when it is a unit of this repository, at
+// its own root and never through node_modules, which is not an input: the
+// package's `exports` for the subpath, then the path itself, then its
+// `tsconfig` field or tsconfig.json for the bare name. A third-party package
+// is not read.
+function extendsTarget(ctx, s, dir, ext) {
+  const withJson = (p) => (p && !p.endsWith(".json") && !s.files.has(p) ? p + ".json" : p);
+  if (/^\.\.?\//.test(ext)) {
+    const p = withJson(canonicalPath(path.posix.join(dir, ext)));
+    return p && present(ctx, s, p) ? p : null;
+  }
+  const name = packageOf(ext);
+  const unit = name ? ctx.unitByPkgName?.get(name) : null;
+  if (!unit) return null;
+  const sub = ext.slice(name.length).replace(/^\//, "");
+  const pkg = unit.pkg || {};
+  let rel = null;
+  if (!sub) rel = typeof pkg.tsconfig === "string" ? pkg.tsconfig : "tsconfig.json";
+  else {
+    const exported = pkg.exports && typeof pkg.exports === "object" ? pkg.exports["./" + sub] : undefined;
+    rel = typeof exported === "string" ? exported : typeof exported?.default === "string" ? exported.default : sub;
+  }
+  const p = withJson(canonicalPath(joinPath(unit.root, rel.replace(/^\.\//, ""))));
+  return p && s.files.has(p) ? p : null;
 }
 
 // The pattern of a `paths` or `imports` map that matches `spec`: an exact key,
@@ -336,8 +377,11 @@ function property(part, strings) {
 
 // A replacement directory, from the literal shapes bundler configs use:
 // path.resolve/join(__dirname, "…"), fileURLToPath(new URL("…", import.meta.url)),
-// new URL("…", import.meta.url).pathname, and (Vite) a root-relative "/src".
-function aliasTarget(value, strings, configDir, vite) {
+// new URL("…", import.meta.url).pathname, a root-relative "/src" in Vite, and
+// a relative "./src" in Babel's module-resolver, which resolves it against the
+// project. A bare string in Babel names another package: SKIP, not an error.
+const SKIP = Symbol("skip");
+function aliasTarget(value, strings, configDir, flavor) {
   const lit = (s) => {
     const m = /^\u0000(\d+)\u0000$/.exec(s.trim());
     return m ? strings[Number(m[1])] : undefined;
@@ -346,7 +390,12 @@ function aliasTarget(value, strings, configDir, vite) {
   // which canonicalPath refuses.
   const inside = (rel) => canonicalPath(path.posix.join(configDir, rel));
   const direct = lit(value);
-  if (typeof direct === "string") return vite && direct.startsWith("/") ? inside("." + direct) : null;
+  if (typeof direct === "string") {
+    if (flavor === "vite" && direct.startsWith("/")) return inside("." + direct);
+    if (flavor === "babel" && /^\.\.?(\/|$)/.test(direct)) return inside(direct);
+    if (flavor === "babel" && !direct.startsWith("/")) return SKIP;
+    return null;
+  }
   let m = /^(?:path\.)?(?:resolve|join)\(\s*(?:__dirname|import\.meta\.dirname)\s*((?:,\s*\u0000\d+\u0000\s*)*)\)$/.exec(value);
   if (m) {
     const segs = [...m[1].matchAll(/\u0000(\d+)\u0000/g)].map((x) => strings[Number(x[1])]);
@@ -361,38 +410,54 @@ function aliasTarget(value, strings, configDir, vite) {
   return null;
 }
 
-// The aliases a Vite or webpack config states with literals, and why any other
-// alias could not be read. Exported for tests.
+// The aliases a bundler config states with literals, and why any other alias
+// could not be read. Rollup's alias plugin names them `entries`; Babel's
+// module-resolver adds `root` directories, searched like baseUrl. Exported for
+// tests.
 export function bundlerAliases(text, configPath) {
-  const vite = /(^|\/)vite\.config\./.test(configPath);
+  const flavor = configFlavor(configPath) || "vite";
   const configDir = path.posix.dirname(configPath) === "." ? REPO_ROOT : path.posix.dirname(configPath);
+  if (flavor === "babel" && /(\.babelrc|\.json)$/.test(configPath)) return babelJsonAliases(text, configDir);
   const lexed = lex(text);
-  if (!lexed) return { entries: [], unresolved: ["the config could not be read statically"] };
+  if (!lexed) return { entries: [], roots: [], unresolved: ["the config could not be read statically"] };
   const { code, strings } = lexed;
+  const keyName = flavor === "rollup" ? "entries" : "alias";
   const entries = [];
   const unresolved = [];
-  for (const m of code.matchAll(/(?:^|[{,\s])(?:alias|\u0000(\d+)\u0000)\s*(:|[,}])/g)) {
-    if (m[1] !== undefined && strings[Number(m[1])] !== "alias") continue;
+  const keyRe = new RegExp("(?:^|[{,\\s])(?:" + keyName + "|\u0000(\\d+)\u0000)\\s*(:|[,}])", "g");
+  for (const m of code.matchAll(keyRe)) {
+    if (m[1] !== undefined && strings[Number(m[1])] !== keyName) continue;
     if (m[2] !== ":") {
-      unresolved.push("alias is a shorthand property, not a literal");
+      unresolved.push(keyName + " is a shorthand property, not a literal");
       continue;
     }
     let at = m.index + m[0].length;
     while (/\s/.test(code[at] || "")) at++;
     const expr = OPEN[code[at]] && code[at] !== "(" ? balanced(code, at) : null;
     if (!expr) {
-      unresolved.push("alias is not an object or array literal");
+      unresolved.push(keyName + " is not an object or array literal");
       continue;
     }
     const body = expr.slice(1, -1);
+    const accept = (key, value) => {
+      if (flavor === "babel" && key.startsWith("^")) {
+        unresolved.push("alias " + JSON.stringify(key) + " is a regular expression");
+        return;
+      }
+      const dir = aliasTarget(value, strings, configDir, flavor);
+      if (dir === SKIP) return;
+      if (dir === null) {
+        unresolved.push("alias " + JSON.stringify(key) + " is not a literal path");
+        return;
+      }
+      const exact = flavor === "webpack" && key.endsWith("$");
+      entries.push({ find: exact ? key.slice(0, -1) : key, exact, dir });
+    };
     if (expr[0] === "{") {
       for (const part of splitTop(body)) {
         const prop = property(part, strings);
-        if (!prop) { unresolved.push("an alias entry is computed, spread or shorthand"); continue; }
-        const dir = aliasTarget(prop.value, strings, configDir, vite);
-        if (dir === null) { unresolved.push("alias " + JSON.stringify(prop.key) + " is not a literal path"); continue; }
-        const exact = !vite && prop.key.endsWith("$");
-        entries.push({ find: exact ? prop.key.slice(0, -1) : prop.key, exact, dir });
+        if (!prop) unresolved.push("an alias entry is computed, spread or shorthand");
+        else accept(prop.key, prop.value);
       }
     } else {
       for (const part of splitTop(body)) {
@@ -402,14 +467,44 @@ export function bundlerAliases(text, configPath) {
         const repl = props?.find((p) => p?.key === "replacement");
         const findLit = find && /^\u0000(\d+)\u0000$/.exec(find.value);
         const key = findLit ? strings[Number(findLit[1])] : null;
-        if (typeof key !== "string" || !repl) { unresolved.push("an alias entry's find is not a string literal"); continue; }
-        const dir = aliasTarget(repl.value, strings, configDir, vite);
-        if (dir === null) { unresolved.push("alias " + JSON.stringify(key) + " is not a literal path"); continue; }
-        entries.push({ find: key, exact: false, dir });
+        if (typeof key !== "string" || !repl) unresolved.push("an alias entry's find is not a string literal");
+        else accept(key, repl.value);
       }
     }
   }
-  return { entries, unresolved };
+  return { entries, roots: [], unresolved };
+}
+
+// .babelrc and babel.config.json: the options of the module-resolver plugin.
+function babelJsonAliases(text, configDir) {
+  let json;
+  try {
+    json = parseJsonc(text);
+  } catch {
+    return { entries: [], roots: [], unresolved: ["the config is not valid JSON"] };
+  }
+  const entries = [];
+  const roots = [];
+  const unresolved = [];
+  const plugins = [json, ...Object.values(json.env || {})].flatMap((c) => (Array.isArray(c?.plugins) ? c.plugins : []));
+  for (const p of plugins) {
+    const [name, opts] = Array.isArray(p) ? p : [p, {}];
+    if (name !== "module-resolver" && name !== "babel-plugin-module-resolver") continue;
+    for (const [key, value] of Object.entries(opts?.alias || {})) {
+      if (key.startsWith("^")) { unresolved.push("alias " + JSON.stringify(key) + " is a regular expression"); continue; }
+      if (typeof value !== "string") { unresolved.push("alias " + JSON.stringify(key) + " is not a string"); continue; }
+      if (!/^\.\.?(\/|$)/.test(value)) continue; // another package
+      const dir = canonicalPath(path.posix.join(configDir, value));
+      if (dir === null) unresolved.push("alias " + JSON.stringify(key) + " is outside the repository");
+      else entries.push({ find: key, exact: false, dir });
+    }
+    for (const r of [].concat(opts?.root || [])) {
+      const dir = typeof r === "string" && !/[*?{]/.test(r) ? canonicalPath(path.posix.join(configDir, r)) : null;
+      if (dir === null) unresolved.push("root " + JSON.stringify(r) + " is not a literal directory");
+      else roots.push(dir);
+    }
+  }
+  return { entries, roots, unresolved };
 }
 
 function loadBundler(ctx, s, file) {
@@ -418,7 +513,7 @@ function loadBundler(ctx, s, file) {
   try {
     parsed = bundlerAliases(ctx.repo.readText(file), file);
   } catch {
-    parsed = { entries: [], unresolved: ["the config could not be read"] };
+    parsed = { entries: [], roots: [], unresolved: ["the config could not be read"] };
   }
   if (parsed.unresolved.length) {
     // Reported once, on the component that owns the config. The aliases that
@@ -436,8 +531,9 @@ function loadBundler(ctx, s, file) {
       paths: [file],
     });
   }
-  s.bundlers.set(file, parsed.entries);
-  return parsed.entries;
+  const out = { entries: parsed.entries, roots: parsed.roots };
+  s.bundlers.set(file, out);
+  return out;
 }
 
 function matchAlias(entries, spec) {
@@ -477,38 +573,32 @@ function targetStrings(t) {
 
 // ── resolution ──────────────────────────────────────────────────────────────
 
-// Resolve one specifier written in `fromFile`. Returns every { file, via } it
-// can name (several only for a conditional package import), or [].
-export function resolveImport(ctx, fromFile, spec) {
+// The places a specifier can name, source by source, in resolution order.
+// Each route lists base paths; `all` marks a route whose bases are all
+// possible at once (the branches of a conditional package import).
+function routes(ctx, fromFile, spec) {
   const s = state(ctx);
   const fromDir = path.posix.dirname(fromFile) === "." ? REPO_ROOT : path.posix.dirname(fromFile);
-  const one = (base, via) => {
-    const file = resolveFile(s.files, base);
-    return file ? [{ file, via }] : [];
-  };
   if (spec.startsWith("./") || spec.startsWith("../") || spec === "." || spec === "..") {
-    return one(path.posix.join(fromDir, spec), "relative-import");
+    return [{ via: "relative-import", bases: [path.posix.join(fromDir, spec)] }];
   }
   if (spec.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(spec)) return [];
-
+  const out = [];
   const [tsFile] = nearest(ctx, s, "ts", TS_CONFIGS, fromDir);
   const ts = tsFile ? loadTsconfig(ctx, s, tsFile) : null;
   if (ts?.paths) {
     const hit = matchPattern(ts.paths, spec);
     if (hit && Array.isArray(hit.targets)) {
       const base = ts.baseUrl ?? ts.pathsBase;
-      for (const t of hit.targets) {
-        if (typeof t !== "string") continue;
-        const r = one(path.posix.join(base, t.replace("*", hit.capture)), "path-alias");
-        if (r.length) return r;
-      }
+      out.push({ via: "path-alias", bases: hit.targets.filter((t) => typeof t === "string").map((t) => path.posix.join(base, t.replace("*", hit.capture))) });
     }
   }
-  for (const file of nearest(ctx, s, "bundler", BUNDLER_CONFIGS, fromDir)) {
-    const target = matchAlias(loadBundler(ctx, s, file), spec);
-    if (target === null) continue;
-    const r = one(target, "bundler-alias");
-    if (r.length) return r;
+  const bundlers = Object.entries(BUNDLER_FAMILIES)
+    .flatMap(([family, names]) => nearest(ctx, s, family, names, fromDir))
+    .map((file) => loadBundler(ctx, s, file));
+  for (const b of bundlers) {
+    const target = matchAlias(b.entries, spec);
+    if (target !== null) out.push({ via: "bundler-alias", bases: [target] });
   }
   if (spec.startsWith("#")) {
     const [manifest] = nearest(ctx, s, "pkg", ["package.json"], fromDir);
@@ -516,18 +606,102 @@ export function resolveImport(ctx, fromFile, spec) {
     const hit = imports ? matchPattern(imports, spec) : null;
     if (hit) {
       const dir = path.posix.dirname(manifest);
-      const out = [];
-      for (const t of targetStrings(hit.targets)) {
-        // A bare target maps to another package, which the manifest routes cover.
-        if (!t.startsWith("./")) continue;
-        for (const r of one(path.posix.join(dir, t.split("*").join(hit.capture)), "subpath-import")) {
-          if (!out.some((x) => x.file === r.file)) out.push(r);
-        }
-      }
-      if (out.length) return out;
+      // A bare target maps to another package, which the manifest routes cover.
+      const bases = targetStrings(hit.targets).filter((t) => t.startsWith("./")).map((t) => path.posix.join(dir, t.split("*").join(hit.capture)));
+      out.push({ via: "subpath-import", bases, all: true });
     }
   }
-  if (ts?.baseUrl) return one(path.posix.join(ts.baseUrl, spec), "path-alias");
+  for (const b of bundlers) {
+    if (b.roots.length) out.push({ via: "bundler-alias", bases: b.roots.map((r) => path.posix.join(r, spec)) });
+  }
+  if (ts?.baseUrl) out.push({ via: "path-alias", bases: [path.posix.join(ts.baseUrl, spec)] });
+  return out;
+}
+
+// Resolve one specifier written in `fromFile`. Returns every { file, via } it
+// can name (several only for a conditional package import), or [].
+export function resolveImport(ctx, fromFile, spec) {
+  const s = state(ctx);
+  for (const route of routes(ctx, fromFile, spec)) {
+    const files = [];
+    for (const base of route.bases) {
+      const file = resolveFile(s.files, base);
+      if (file && !files.includes(file)) files.push(file);
+      if (file && !route.all) break;
+    }
+    if (files.length) return files.map((file) => ({ file, via: route.via }));
+  }
+  return [];
+}
+
+// ── dynamic imports with a static part ──────────────────────────────────────
+
+// Patterns a source can load at runtime: a template literal given to import()
+// or require() (`./locales/${lang}.ts` → `./locales/*.ts`), and the globs of
+// Vite's import.meta.glob. Exported for tests.
+export function jsImportPatterns(text) {
+  const code = stripComments(text);
+  const out = [];
+  const seen = new Set();
+  const push = (pattern, kind) => {
+    if (!seen.has(kind + "|" + pattern)) { seen.add(kind + "|" + pattern); out.push({ pattern, kind }); }
+  };
+  for (const m of code.matchAll(/\b(?:import|require)\s*\(\s*`([^`]*)`\s*\)/g)) {
+    if (m[1].includes("${")) push(m[1].replace(/\$\{[^}]*\}/g, "*"), "template");
+  }
+  for (const m of code.matchAll(/\bimport\.meta\.glob(?:Eager)?\s*(?:<[^>]*>)?\s*\(\s*(\[[^\]]*\]|"[^"\n]*"|'[^'\n]*')/g)) {
+    for (const g of m[1].matchAll(/(["'])([^"'\n]*)\1/g)) if (!g[2].startsWith("!")) push(g[2], "glob");
+  }
+  return out;
+}
+
+const CODE_EXT = "(?:\\.(?:ts|tsx|d\\.ts|js|jsx|mts|cts|mjs|cjs|json))";
+
+// A pattern's base path as a regular expression over repository paths. A
+// template's `*` matches across directories with an optional extension or
+// index file, as webpack's context modules do; a glob keeps glob semantics.
+function patternRegex(base, kind) {
+  const esc = (t) => t.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  if (kind === "template") {
+    const body = base.split("*").map(esc).join(".*");
+    return new RegExp("^" + body + "(?:" + CODE_EXT + "|/index" + CODE_EXT + ")?$");
+  }
+  let re = "";
+  for (let i = 0; i < base.length; i++) {
+    const c = base[i];
+    if (c === "*" && base[i + 1] === "*") {
+      re += base[i + 2] === "/" ? "(?:.*/)?" : ".*";
+      i += base[i + 2] === "/" ? 2 : 1;
+    } else if (c === "*") re += "[^/]*";
+    else if (c === "?") re += "[^/]";
+    else if (c === "{") {
+      const end = base.indexOf("}", i);
+      if (end < 0) return null;
+      re += "(?:" + base.slice(i + 1, end).split(",").map(esc).join("|") + ")";
+      i = end;
+    } else re += esc(c);
+  }
+  return new RegExp("^" + re + "$");
+}
+
+// Every repository file a dynamic import pattern can load. A pattern with no
+// static part before its first wildcard is not read: `import(x)` names nothing.
+export function resolvePattern(ctx, fromFile, pattern, kind) {
+  const s = state(ctx);
+  const star = pattern.search(/[*?{]/);
+  const prefix = star < 0 ? pattern : pattern.slice(0, star);
+  if (!prefix) return [];
+  for (const route of routes(ctx, fromFile, pattern)) {
+    const files = new Set();
+    for (const base of route.bases) {
+      const b = canonicalPath(base);
+      const re = b && b !== REPO_ROOT ? patternRegex(b, kind) : null;
+      if (!re) continue;
+      for (const f of s.files) if (re.test(f)) files.add(f);
+      if (files.size && !route.all) break;
+    }
+    if (files.size) return [...files].sort().map((file) => ({ file, via: "dynamic-import" }));
+  }
   return [];
 }
 
