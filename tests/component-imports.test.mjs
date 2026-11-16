@@ -510,3 +510,12 @@ test("IMPORTS: the dynamic import reader keeps only patterns with a literal part
   // A template literal without a substitution is an ordinary specifier.
   assert.deepEqual([...jsImportSpecifiers("import(`./plain`);")], ["./plain"]);
 });
+
+test("IMPORTS: a pathological dynamic import pattern is bounded, not evaluated", (t) => {
+  const subs = Array.from({ length: 30 }, (_, i) => "${a" + i + "}").join("-");
+  const files = { ...ISSUE_FILES, "src/billing/payment.ts": "export const x = (a) => import(`../db/" + subs + "x`);\n" };
+  const started = Date.now();
+  const { graph } = compiled(fixture(t, { files }));
+  assert.ok(Date.now() - started < 20000);
+  assert.ok(!deps(graph).some((d) => d.from === ref("billing")));
+});

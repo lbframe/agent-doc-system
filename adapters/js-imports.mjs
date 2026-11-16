@@ -686,8 +686,16 @@ function patternRegex(base, kind) {
 
 // Every repository file a dynamic import pattern can load. A pattern with no
 // static part before its first wildcard is not read: `import(x)` names nothing.
+// More wildcards than this are not read: each template `*` becomes `.*`, and a
+// failing match costs time polynomial in the path length, to the power of the
+// wildcard count. Real loaders use one or two.
+const MAX_WILDCARDS = 6;
+
 export function resolvePattern(ctx, fromFile, pattern, kind) {
   const s = state(ctx);
+  // Adjacent wildcards match exactly what one does.
+  if (kind === "template") pattern = pattern.replace(/\*{2,}/g, "*");
+  if ((pattern.match(/\*+|\?/g) || []).length > MAX_WILDCARDS) return [];
   const star = pattern.search(/[*?{]/);
   const prefix = star < 0 ? pattern : pattern.slice(0, star);
   if (!prefix) return [];

@@ -190,7 +190,8 @@ invalidates the graph.
   the same routes as a specifier (relative, aliases, `#imports`, `baseUrl`), and
   every repository file it matches is a dependency, as the bundler that packages
   it assumes. A pattern with no literal part before its first wildcard, such as
-  `import(name)`, names nothing and is not read.
+  `import(name)`, names nothing and is not read, and neither is one with more
+  than six wildcards, whose matching cost grows with each.
 - **package.json `imports`.** Exact keys and `*` patterns, as Node resolves
   them. A conditional target (`{ "types": …, "default": … }`) can select any
   of its branches at runtime, so every branch that resolves to a repository
