@@ -9,6 +9,8 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-16
+
 ### Added
 
 - The `node` adapter derives dependencies from imports between components, including components of one package. An import that resolves to a file another component owns creates the edge, with the importing files as evidence. Resolved specifiers: relative paths, `tsconfig.json`/`jsconfig.json` `paths` and `baseUrl` (with `extends` to a repository path or to a workspace package), Vite, Vitest, webpack, Rollup (`@rollup/plugin-alias`) and Babel (`module-resolver`) aliases stated with literals, `package.json` `imports` (`#x`, with patterns and conditions), and dynamic imports with a literal part (`` import(`./locales/${lang}.ts`) ``, `import.meta.glob`), which reach every file they can load. Previously a single-package app split into one component per directory had no relation between its components ([#70]).
@@ -22,7 +24,7 @@ refused by the next with `AGENTDOC_COMPILER_MISMATCH` until it is recompiled.
 - `AGENTDOC_MIGRATION_DIR_UNRESOLVED` no longer fires when a Drizzle `out` directory belongs to another unit and a logical-database Resource already declares it, or a directory enclosing it, in `spec.migrationPaths`. The declaration already routes `impact`, so projects no longer need an accepted warning for it. An undeclared `out` outside the unit still warns ([#66]).
 - `impact` on a database change (a migration or a `spec.migrationPaths` file) now lists every component that imports the database component in the same package, not only the owning component ([#70]).
 
-The `node` adapter version is now 1.1.0, so recompile committed graphs.
+Recompile committed graphs after upgrading, as the compiler version is now 1.6.0 and the `node` adapter version is now 1.1.0.
 
 ## [1.5.2] - 2026-11-14
 
@@ -474,7 +476,8 @@ First public release.
   for project health.
 - An Agent Skill under `skills/agent-doc-system/`.
 
-[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/lbframe/agent-doc-system/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/lbframe/agent-doc-system/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/lbframe/agent-doc-system/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/lbframe/agent-doc-system/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/lbframe/agent-doc-system/compare/v1.4.0...v1.5.0
